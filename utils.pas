@@ -1,0 +1,74 @@
+unit utils;
+
+{$mode delphi}
+
+interface
+
+uses
+  Classes, SysUtils;
+
+type
+  tbyte16=array[0..15] of byte;
+
+procedure log(msg:string;status:dword=0);
+function HashByteToString(hash:tbyte16):string;
+function HashStringToByte(hash:string):tbyte16;
+Function SplitUserSID(user:pchar;var domain:string;var rid:dword):boolean;
+function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
+
+implementation
+
+//status : success=0
+procedure log(msg:string;status:dword=0);
+begin
+//if status=0 then exit;
+writeln(msg);
+end;
+
+function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
+begin
+result := RightStr(StringOfChar(pad,length) + value, length );
+end;
+
+function HashByteToString(hash:tbyte16):string;
+var
+  i:byte;
+  dummy:string='';
+begin
+  for i:=0 to 15 do dummy:=dummy+inttohex(hash[i],2);
+  result:=dummy;
+end;
+
+function HashStringToByte(hash:string):tbyte16;
+var
+  i:byte;
+  tmp:string;
+begin
+i:=1;
+  while I<32 do
+      begin
+      tmp:=copy(hash,i,2);
+      result[i div 2]:=strtoint('$'+tmp);
+      inc(i,2);
+      end;
+end;
+
+
+Function SplitUserSID(user:pchar;var domain:string;var rid:dword):boolean;
+var
+  elements: TStrings;
+  i:byte;
+begin
+elements := TStringList.Create;
+   ExtractStrings(['-'],[],user,elements,false);
+   for i:=0 to elements.Count-2 do domain:=domain+'-'+elements[i];
+   delete(domain,1,1);
+   log('domain:'+domain);
+   rid:=strtoint(elements[elements.count-1]);
+   log('rid:'+inttostr(rid));
+elements.Free ;;
+end;
+
+
+end.
+
