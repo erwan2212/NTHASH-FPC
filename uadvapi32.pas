@@ -7,12 +7,35 @@ interface
 uses
   Classes, SysUtils,windows;
 
+const
+  LOGON_WITH_PROFILE = $00000001;
+
 type
  tbyte16__=array[0..15] of byte;
 
 function GenerateNTLMHash(mypassword:string):string;
 function GenerateNTLMHashByte(mypassword:string):tbyte16__;
 function EnableDebugPriv:boolean;
+
+function Impersonate(const User, PW: string): Boolean;
+function GetCurrUserName: string;
+
+function CreateProcessAsLogon(const User, PW, Application, CmdLine: WideString):
+  LongWord;
+
+function CreateProcessWithLogonW(
+  lpUsername,
+  lpDomain,
+  lpPassword:PWideChar;
+  dwLogonFlags:dword;
+  lpApplicationName: PWideChar;
+  lpCommandLine: PWideChar;
+  dwCreationFlags: DWORD;
+  lpEnvironment: Pointer;
+  lpCurrentDirectory: PWideChar;
+  lpStartupInfo: PStartupInfoW;
+  lpProcessInformation: PProcessInformation
+): BOOL; stdcall; external 'advapi32.dll';
 
 implementation
 
@@ -125,5 +148,59 @@ result:=false;
     CloseHandle(hToken);
   end;
 end;
+
+function GetCurrUserName: string;
+var
+  Size              : DWORD;
+begin
+  Size := MAX_COMPUTERNAME_LENGTH + 1;
+  SetLength(Result, Size);
+  if GetUserName(PChar(Result), Size) then
+    SetLength(Result, Size)
+  else
+    Result := '';
+end;
+
+function Impersonate(const User, PW: string): Boolean;
+var
+ LogonType         : Integer;
+ LogonProvider     : Integer;
+ TokenHandle       : THandle;
+ strAdminUser      : string;
+ strAdminDomain    : string;
+ strAdminPassword  : string;
+begin
+ LogonType := LOGON32_LOGON_INTERACTIVE;
+ LogonProvider := LOGON32_PROVIDER_DEFAULT;
+ strAdminUser := USER;
+ strAdminDomain := '';
+ strAdminPassword := PW;
+ Result := LogonUser(PChar(strAdminUser), nil,
+   PChar(strAdminPassword), LogonType, LogonProvider, TokenHandle);
+ if Result then
+ begin
+   Result := ImpersonateLoggedOnUser(TokenHandle);
+ end;
+end;
+
+function CreateProcessAsLogon(const User, PW, Application, CmdLine: WideString):
+  LongWord;
+var
+  si           : TStartupInfoW;
+  pif          : TProcessInformation;
+begin
+  //writeln(user+':'+pw);
+  ZeroMemory(@si, sizeof(si));
+  si.cb := sizeof(si);
+  si.dwFlags := STARTF_USESHOWWINDOW;
+  si.wShowWindow := 1;
+
+  SetLastError(0);
+  CreateProcessWithLogonW(PWideChar(User), nil, PWideChar(PW),
+    LOGON_WITH_PROFILE, nil, PWideChar(Application+' "'+CmdLine+'"'),
+    CREATE_DEFAULT_ERROR_MODE, nil, nil, @si, @pif);
+  Result := GetLastError;
+end;
+
 end.
 

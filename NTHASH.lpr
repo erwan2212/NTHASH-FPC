@@ -15,11 +15,14 @@ pdomainuser=^tdomainuser;
 var
   lsass_pid:dword=0;
   p:dword;
-  pid,hash,server,user,oldhash,newhash,oldpwd,newpwd:string;
+  pid,hash,server,user,oldhash,newhash,oldpwd,newpwd,password:string;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
   winver,osarch:string;
+  sysdir:pchar;
+
+
 
 
   procedure CreateFromStr (var value:_LSA_UNICODE_STRING; st : string);
@@ -588,6 +591,7 @@ rid:dword;
 userinfo:PSAMPR_USER_INTERNAL1_INFORMATION;
 begin
 result:=false;
+if user='' then exit;
 //
 GetAccountSid2(server,widestring(user),pusersid);
 if (pusersid<>nil) and (ConvertSidToStringSid(pusersid,stringsid)) then
@@ -836,9 +840,12 @@ begin
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   log('Windows Version:'+winver,1);
   log('Architecture:'+osarch,1);
-  log('DebugPrivilege:'+BoolToStr (EnableDebugPriv));
+  log('DebugPrivilege:'+BoolToStr (EnableDebugPriv),1);
   lsass_pid:=_FindPid('lsass.exe');
   log('LSASS PID:'+inttostr(lsass_pid ),1);
+  getmem(sysdir,Max_Path );
+  GetSystemDirectory(sysdir, MAX_PATH - 1);
+  //
   if paramcount=0 then
   begin
   log('NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx',1);
@@ -854,12 +861,10 @@ begin
   log('NTHASH /dumpprocess:pid',1);
   log('NTHASH /a_command /verbose',1);
   end;
-  //
   //exit;
   //
   p:=pos('/verbose',cmdline);
   if p>0 then verbose:=true;
-
   p:=pos('/dumpprocess:',cmdline);
   if p>0 then
      begin
@@ -879,8 +884,8 @@ begin
   if p>0 then
        begin
        hash:=copy(cmdline,p,255);
-       hash:=stringreplace(hash,'/hash:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(hash,pos(' ',server),255);
+       hash:=stringreplace(hash,'/gethash:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(hash,pos(' ',hash),255);
        log (GenerateNTLMHash (hash),1);
        exit;
        end;
@@ -900,6 +905,14 @@ begin
          delete(user,pos(' ',user),255);
          //log(user);
          end;
+    p:=pos('/password:',cmdline);
+      if p>0 then
+           begin
+           password:=copy(cmdline,p,255);
+           password:=stringreplace(password,'/password:','',[rfReplaceAll, rfIgnoreCase]);
+           delete(user,pos(' ',password),255);
+           //log(user);
+           end;
   p:=pos('/getusers',cmdline);  //temporary
   if p>0 then
        begin
@@ -956,7 +969,7 @@ begin
   if p>0 then
        begin
        if newhash<>'' then newhashbyte :=HashStringToByte (newhash);
-       if SetInfoUser ('',user, HashStringToByte (newhash))
+       if SetInfoUser (server,user, HashStringToByte (newhash))
           then log('Done',1)
           else log('Failed',1);
        end;
@@ -971,7 +984,19 @@ begin
           then log('Done',1)
           else log('Failed',1);
        end;
-//
+  p:=pos('/runas',cmdline);
+  if p>0 then
+     begin
+     if CreateProcessAsLogon (user,password,sysdir+'\cmd.Exe','')=0
+        then log('Done',1)
+        else log('Failed',1);
+     //WriteLn(Impersonate('l4mpje','Password123')) ;
+     //writeln(GetLastError );
+     //WriteLn (GetCurrUserName);
+     //RevertToSelf ;
+     //writeln(GetCurrUserName );
+     end;
+
 
 end.
 

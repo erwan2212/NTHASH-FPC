@@ -15,5 +15,5 @@ NTHASH /dumpprocess:pid <br/>
 NTHASH /a_command /verbose <br/>
 
 changentlm, using a legacy api, may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607. <br/>
-setntml on the other hand should always work.  <br/>
+setntlm on the other hand should always work.  <br/>
 dumpsam will temporarily patch a module in lsass to be able to dump your SAM ntlm hashes (need to cover/test as many windows version as possible). <br/>
