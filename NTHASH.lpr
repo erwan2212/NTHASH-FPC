@@ -405,15 +405,15 @@ if Status <> 0 then
    begin log('SamConnect failed:'+inttohex(status,8),status);;end
    else log ('SamConnect ok',status);
 //
+if status=0 then
+begin
 //could go straight to 'Builtin' or even 'S-1-5-32' or to computername ?
 //if a domain is ever passed as a parameter
 if _domain<>'' then
    if  ConvertStringSidToSid(_domain,PDOMAINSID )=false
    then log('ConvertStringSidToSid failed',1 )
    else log ('ConvertStringSidToSid ok',0);
-//
-if status=0 then
-begin
+
 //Builtin
 //CreateFromStr (unicode_domain,'Builtin');
 //or local computername
@@ -627,12 +627,6 @@ if Status <> 0 then
    begin log('SamOpenUser failed:'+inttohex(status,8),status);;end
    else log('SamOpenUser ok',status);
 //
-{
-status:=SamQueryInformationUser(UserHandle_ ,$12,userinfo);
-if Status <> 0 then
-   begin log('SamQueryInformationUser failed:'+inttohex(status,8));;end
-   else log ('SamQueryInformationUser ok');
-}
 userinfo:=allocmem(sizeof(_SAMPR_USER_INTERNAL1_INFORMATION));
 userinfo^.LmPasswordPresent :=0;
 userinfo^.NtPasswordPresent :=1;
