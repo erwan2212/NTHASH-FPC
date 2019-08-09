@@ -752,6 +752,7 @@ begin
      if (pos('-1803',winver)>0) then patch_pos :=WIN_BUILD_10_1803;
      if (pos('-1809',winver)>0) then patch_pos :=WIN_BUILD_10_1809;
      end;
+  //x86 to do...
   if patch_pos =0 then
      begin
      log('no patch mod for this windows version',1);
@@ -795,14 +796,17 @@ begin
                                    if WriteMem(hprocess,offset+patch_pos,after)=true then
                                         begin
                                         log('patch ok',0);
+                                        try
                                         log('***************************************',0);
                                         if QueryUsers ('','',@callback_users )=true
                                         //if QueryInfoUser (user)=true
                                            then log('SamQueryInformationUser OK',0)
                                            else log('SamQueryInformationUser NOT OK',1);
                                         log('***************************************',0);
+                                        finally //we really do want to patch back
                                         if WriteMem(hprocess,offset+patch_pos,backup)=true then log('patch ok') else log('patch failed');
                                         //should we read and compare before/after?
+                                        end;
                                         end
                                         else log('patch failed',1);
                                    end;
