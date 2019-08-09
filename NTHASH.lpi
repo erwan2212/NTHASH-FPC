@@ -32,27 +32,27 @@
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>
-        <Filename Value="..\upsapi.pas"/>
+        <Filename Value="upsapi.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit1>
       <Unit2>
-        <Filename Value="..\uimagehlp.pas"/>
+        <Filename Value="uimagehlp.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit2>
       <Unit3>
-        <Filename Value="..\uadvapi32.pas"/>
+        <Filename Value="uadvapi32.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit3>
       <Unit4>
-        <Filename Value="..\utils.pas"/>
+        <Filename Value="utils.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit4>
       <Unit5>
-        <Filename Value="..\untdll.pas"/>
+        <Filename Value="untdll.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit5>
       <Unit6>
-        <Filename Value="..\umemory.pas"/>
+        <Filename Value="umemory.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit6>
     </Units>
