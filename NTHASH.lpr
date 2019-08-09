@@ -858,6 +858,7 @@ begin
   log('NTHASH /getusers [/server:hostname]',1);
   log('NTHASH /getdomains [/server:hostname]',1);
   log('NTHASH /dumpsam',1);
+  log('NTHASH /runas /user:username /password:password',1);
   log('NTHASH /dumpprocess:pid',1);
   log('NTHASH /a_command /verbose',1);
   end;
