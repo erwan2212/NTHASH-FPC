@@ -16,13 +16,19 @@ function HashStringToByte(hash:string):tbyte16;
 Function SplitUserSID(user:pchar;var domain:string;var rid:dword):boolean;
 function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
 
+var
+  verbose:boolean=false;
+
 implementation
 
 //status : success=0
 procedure log(msg:string;status:dword=0);
 begin
-//if status=0 then exit;
-writeln(msg);
+//if (verbose=false) and (status=0) then exit;
+if verbose=false then
+   if status<>0 then writeln(msg);
+if verbose=true then writeln(msg);
+//writeln(status);
 end;
 
 function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
