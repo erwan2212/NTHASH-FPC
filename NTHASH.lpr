@@ -854,6 +854,7 @@ begin
   if paramcount=0 then
   begin
   log('NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx',1);
+  log('NTHASH /setntlm [/server:hostname] /user:username /newpwd:xxx',1);
   log('NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newpwd:xxx',1);
   log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newpwd:xxx',1);
   log('NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newhash:xxx',1);
@@ -972,6 +973,7 @@ begin
   if p>0 then
        begin
        if newhash<>'' then newhashbyte :=HashStringToByte (newhash);
+       if newpwd<>'' then newhash:=GenerateNTLMHash (newpwd);
        if SetInfoUser (server,user, HashStringToByte (newhash))
           then log('Done',1)
           else log('Failed',1);
