@@ -10,7 +10,7 @@
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
         <TopLine Value="703"/>
-        <CursorPos Y="719"/>
+        <CursorPos X="36" Y="710"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -70,13 +70,12 @@
       <Unit7>
         <Filename Value="usamlib.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="0"/>
+        <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit7>
       <Unit8>
         <Filename Value="usid.pas"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="32"/>
         <CursorPos X="7" Y="35"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
