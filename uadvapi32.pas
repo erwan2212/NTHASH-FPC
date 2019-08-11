@@ -10,6 +10,17 @@ uses
 const
   LOGON_WITH_PROFILE = $00000001;
 
+  //https://github.com/gentilkiwi/mimikatz/blob/master/modules/kull_m_crypto_system.h
+  const
+  MD4_DIGEST_LENGTH=	16;
+  MD5_DIGEST_LENGTH=	16;
+  SHA_DIGEST_LENGTH=	20;
+
+  DES_KEY_LENGTH=	7;
+  DES_BLOCK_LENGTH=	8;
+  AES_128_KEY_LENGTH=	16;
+  AES_256_KEY_LENGTH=	32;
+
 type
  tbyte16__=array[0..15] of byte;
 
@@ -37,6 +48,71 @@ function CreateProcessWithLogonW(
   lpProcessInformation: PProcessInformation
 ): BOOL; stdcall; external 'advapi32.dll';
 
+type
+   MD4_CTX  = packed record
+    _Buf    : array[0..3] of LongWord;
+    _I      : array[0..1] of LongWord;
+    input   : array[0..63] of byte;
+    digest  : Array[0..15] of Byte;
+   end;
+
+
+Procedure MD4Init(Var Context: MD4_CTX); StdCall;external 'advapi32.dll';
+Procedure MD4Update(Var Context: MD4_CTX; const Input; inLen: LongWord); StdCall;external 'advapi32.dll';
+Procedure MD4Final(Var Context: MD4_CTX); StdCall;external 'advapi32.dll';
+//function MD4_Selftest:Boolean;
+
+
+type
+  MD5_CTX = packed Record
+    i:      Array[0.. 1] of LongWord;
+    buf:    Array[0.. 3] of LongWord;
+    input:  Array[0..63] of Byte;
+    digest: Array[0..15] of Byte;
+  End;
+
+  type _CRYPTO_BUFFER = packed record
+  	 Length:dword;
+  	 MaximumLength:dword;
+  	 Buffer:PBYTE;
+  end;
+  PCRYPTO_BUFFER=^_CRYPTO_BUFFER;
+
+{
+//SystemFunction004
+extern NTSTATUS WINAPI RtlEncryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
+//SystemFunction005
+extern NTSTATUS WINAPI RtlDecryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
+}
+
+Procedure MD5Init(Var Context: MD5_CTX); StdCall;external 'advapi32.dll';
+Procedure MD5Update(Var Context: MD5_CTX; const Input; inLen: LongWord); StdCall;external 'advapi32.dll';
+Procedure MD5Final(Var Context: MD5_CTX); StdCall;external 'advapi32.dll';
+//function MD5string(const data : Ansistring):AnsiString;
+//function MD5_Selftest:Boolean;
+
+
+
+// SHA1
+
+type
+  SHA_CTX = packed record
+   	Unknown : array[0..5] of LongWord;
+	   State   : array[0..4] of LongWord;
+	   Count   : array[0..1] of LongWord;
+    	Buffer  : array[0..63] of Byte;
+  end;
+
+  SHA_DIG = packed record
+	   Dig     : array[0..19] of Byte;
+  end;
+
+procedure A_SHAInit(var Context: SHA_CTX); StdCall;external 'advapi32.dll';
+procedure A_SHAUpdate(var Context: SHA_CTX; const Input; inlen: LongWord); StdCall;external 'advapi32.dll';
+procedure A_SHAFinal(var Context: SHA_CTX; out Digest:SHA_DIG); StdCall;external 'advapi32.dll';
+
+//function SHA_Selftest:Boolean;
+
 implementation
 
 type PWSTR = PWideChar;
@@ -50,6 +126,7 @@ type
 
 function GenerateNTLMHash(mypassword:string):string;
 type
+//aka rtldigestntlm
 tSystemFunction007 = Function( password:pchar;hash:pointer): integer; stdcall;
 var
 i:byte;
@@ -84,6 +161,7 @@ end;
 
 function GenerateNTLMHashByte(mypassword:string):Tbyte16__;
 type
+//aka rtldigestlm
 tSystemFunction007 = Function( password:pchar;hash:pointer): integer; stdcall;
 var
 i:byte;

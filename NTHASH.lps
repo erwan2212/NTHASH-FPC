@@ -8,9 +8,8 @@
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <TopLine Value="703"/>
-        <CursorPos X="36" Y="710"/>
+        <CursorPos X="31" Y="710"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -34,16 +33,18 @@
       <Unit3>
         <Filename Value="uadvapi32.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="105"/>
-        <CursorPos Y="116"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="73"/>
+        <CursorPos X="3" Y="90"/>
         <UsageCount Value="165"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
       <Unit4>
         <Filename Value="utils.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="8"/>
         <CursorPos X="3" Y="31"/>
         <UsageCount Value="164"/>
@@ -60,7 +61,7 @@
       <Unit6>
         <Filename Value="umemory.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="40"/>
         <CursorPos X="28" Y="46"/>
         <UsageCount Value="117"/>
@@ -75,7 +76,7 @@
       </Unit7>
       <Unit8>
         <Filename Value="usid.pas"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="2"/>
         <CursorPos X="7" Y="35"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
