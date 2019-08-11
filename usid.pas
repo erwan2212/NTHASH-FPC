@@ -7,11 +7,11 @@ interface
 uses
   windows,Classes, SysUtils;
 
-type tbyte=array of byte;
+type tbytes=array of byte;
 
 
 
-function createbinaryform(sid:psid;buffer:tbyte;var len:dword):bool;
+function createbinaryform(sid:psid;buffer:tbytes;var len:dword):bool;
 
 function GetCurrentUserTextSid: string;
 function GetCurrentUserSid: TSID;
@@ -49,7 +49,7 @@ implementation
 			Marshal.Copy (binaryForm, buffer, 0, buffer.Length);
 		}
 //https://github.com/mono/mono/blob/master/mcs/class/corlib/System.Security.Principal/SecurityIdentifier.cs
-function createbinaryform(sid:psid;buffer:tbyte;var len:dword):bool;
+function createbinaryform(sid:psid;buffer:tbytes;var len:dword):bool;
 var
   numSubAuthorities:BYTE;
   authority:ulong;

