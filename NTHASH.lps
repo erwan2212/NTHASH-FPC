@@ -9,8 +9,8 @@
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="807"/>
-        <CursorPos X="44" Y="823"/>
+        <TopLine Value="703"/>
+        <CursorPos Y="719"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -62,7 +62,7 @@
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="2"/>
         <TopLine Value="40"/>
-        <CursorPos X="18" Y="60"/>
+        <CursorPos X="28" Y="46"/>
         <UsageCount Value="117"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -132,7 +132,7 @@
         <UsageCount Value="2"/>
       </Unit15>
     </Units>
-    <JumpHistory Count="29" HistoryIndex="28">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="umemory.pas"/>
         <Caret Line="39" Column="18" TopLine="27"/>
@@ -249,6 +249,10 @@
         <Filename Value="usid.pas"/>
         <Caret Line="14" Column="48"/>
       </Position29>
+      <Position30>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="813" Column="32" TopLine="807"/>
+      </Position30>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
