@@ -77,13 +77,17 @@ type
   	 Buffer:PBYTE;
   end;
   PCRYPTO_BUFFER=^_CRYPTO_BUFFER;
+  PCCRYPTO_BUFFER=^_CRYPTO_BUFFER; //? to be verified...
 
-{
+
+
 //SystemFunction004
-extern NTSTATUS WINAPI RtlEncryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
+//extern NTSTATUS WINAPI RtlEncryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
 //SystemFunction005
-extern NTSTATUS WINAPI RtlDecryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
-}
+//extern NTSTATUS WINAPI RtlDecryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
+//SystemFunction032
+//extern NTSTATUS WINAPI RtlEncryptDecryptRC4(IN OUT PCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key);
+function RtlEncryptDecryptRC4(var  data:PCRYPTO_BUFFER;  key:PCCRYPTO_BUFFER):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction032';
 
 Procedure MD5Init(Var Context: MD5_CTX); StdCall;external 'advapi32.dll';
 Procedure MD5Update(Var Context: MD5_CTX; const Input; inLen: LongWord); StdCall;external 'advapi32.dll';

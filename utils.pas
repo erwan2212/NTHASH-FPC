@@ -5,10 +5,26 @@ unit utils;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils,windows;
 
 type
   tbyte16=array[0..15] of byte;
+
+  type _KUHL_M_SEKURLSA_ENUM_HELPER =record
+	 tailleStruct:nativeint; //SIZE_T
+	 offsetToLuid:ULONG;
+	 offsetToLogonType:ULONG;
+	 offsetToSession:ULONG;
+	 offsetToUsername:ULONG;
+	 offsetToDomain:ULONG;
+	 offsetToCredentials:ULONG;
+	 offsetToPSid:ULONG;
+	 offsetToCredentialManager:ULONG;
+	 offsetToLogonTime:ULONG;
+	 offsetToLogonServer:ULONG;
+  end;
+ KUHL_M_SEKURLSA_ENUM_HELPER=_KUHL_M_SEKURLSA_ENUM_HELPER;
+ PKUHL_M_SEKURLSA_ENUM_HELPER=^_KUHL_M_SEKURLSA_ENUM_HELPER;
 
 procedure log(msg:string;status:dword=0);
 function HashByteToString(hash:tbyte16):string;
