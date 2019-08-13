@@ -1,20 +1,21 @@
 # NTHASH-FPC <br/>
 A tribute to Mimikatz... <br/>
 Command line as below: <br/>
-NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx
-NTHASH /setntlm [/server:hostname] /user:username /newpwd:xxx
-NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newpwd:xxx
-NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newpwd:xxx
-NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newhash:xxx
-NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newhash:xxx
-NTHASH /gethash /password:password
-NTHASH /getsid /user:username [/server:hostname]
-NTHASH /getusers [/server:hostname]
-NTHASH /getdomains [/server:hostname]
-NTHASH /dumpsam
-NTHASH /runas /user:username /password:password
-NTHASH /dumpprocess:pid
-NTHASH /a_command /verbose
+NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx <br/>
+NTHASH /setntlm [/server:hostname] /user:username /newpwd:xxx <br/>
+NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newpwd:xxx <br/>
+NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newpwd:xxx <br/>
+NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newhash:xxx <br/>
+NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newhash:xxx <br/>
+NTHASH /gethash /password:password <br/>
+NTHASH /getsid /user:username [/server:hostname] <br/>
+NTHASH /getusers [/server:hostname] <br/>
+NTHASH /getdomains [/server:hostname <br/>
+NTHASH /dumpsam <br/>
+NTHASH /getsyskey <br/>
+NTHASH /runas /user:username /password:password <br/>
+NTHASH /dumpprocess:pid <br/>
+NTHASH /a_command /verbose <br/>
 
 changentlm, using a legacy api, may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607. <br/>
 
