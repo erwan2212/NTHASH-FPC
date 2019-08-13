@@ -1,3 +1,5 @@
+*.png
+*.pdf
 *.dmp
 *.bak
 *.o

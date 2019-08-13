@@ -21,6 +21,11 @@ const
   AES_128_KEY_LENGTH=	16;
   AES_256_KEY_LENGTH=	32;
 
+  //https://github.com/rapid7/meterpreter/blob/master/source/extensions/kiwi/mimikatz/modules/kuhl_m_lsadump_struct.h
+  SYSKEY_LENGTH	=16;
+  SAM_KEY_DATA_SALT_LENGTH=	16 ;
+  SAM_KEY_DATA_KEY_LENGTH=		16;
+
 type
  tbyte16__=array[0..15] of byte;
 
@@ -85,12 +90,15 @@ type
 //extern NTSTATUS WINAPI RtlEncryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
 //SystemFunction005
 //extern NTSTATUS WINAPI RtlDecryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
-//SystemFunction032
+//SystemFunction032 or SystemFunction033?
 //extern NTSTATUS WINAPI RtlEncryptDecryptRC4(IN OUT PCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key);
-function RtlEncryptDecryptRC4(var  data:PCRYPTO_BUFFER;  key:PCCRYPTO_BUFFER):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction032';
+function RtlEncryptDecryptRC4(var  data:PCRYPTO_BUFFER;  key:PCRYPTO_BUFFER):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction032';
 
+// The MD5Init function initializes an MD5 message digest context.
 Procedure MD5Init(Var Context: MD5_CTX); StdCall;external 'advapi32.dll';
+// The MD5Update function updates the MD5 context by using the supplied buffer for the message whose MD5 digest is being generated
 Procedure MD5Update(Var Context: MD5_CTX; const Input; inLen: LongWord); StdCall;external 'advapi32.dll';
+//The MD5Final function ends an MD5 message digest previously started by a call to the MD5Init function
 Procedure MD5Final(Var Context: MD5_CTX); StdCall;external 'advapi32.dll';
 //function MD5string(const data : Ansistring):AnsiString;
 //function MD5_Selftest:Boolean;

