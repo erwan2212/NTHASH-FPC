@@ -970,7 +970,6 @@ var
   dwDisposition:dword=0;
   classSize:dword;
   classStr:array [0..15] of widechar;
-  //bytes:array[0..3] of byte;
   i:byte=0;
 begin
 result:=false;
@@ -1002,25 +1001,17 @@ end;
  * (JD, Skew1, GBG, Data)
  *}
 function get_encoded_syskey(var bytes:array of byte):boolean;
+const keys:array[0..3] of string=('JD','Skew1','GBG','Data');
 var
   i:byte;
   enc_bytes:array[0..3] of byte;
 begin
 result:=false;
-//rootket=HKEY_LOCAL_MACHINE
-//keyname="SYSTEM\\CurrentControlSet\\Control\\Lsa"
-getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa','JD',enc_bytes);
-CopyMemory (@bytes[0],@enc_bytes[0],4);
-//for i:=0 to sizeof(enc_bytes)-1 do write(LeftPad (inttohex(enc_bytes[i],1),2)) ;
-getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa','Skew1',enc_bytes);
-CopyMemory (@bytes[4],@enc_bytes[0],4);
-//for i:=0 to sizeof(enc_bytes)-1 do write(LeftPad (inttohex(enc_bytes[i],1),2)) ;
-getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa','GBG',enc_bytes);
-CopyMemory (@bytes[8],@enc_bytes[0],4);
-//for i:=0 to sizeof(enc_bytes)-1 do write(LeftPad (inttohex(enc_bytes[i],1),2)) ;
-getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa','Data',enc_bytes);
-CopyMemory (@bytes[12],@enc_bytes[0],4);
-//for i:=0 to sizeof(enc_bytes)-1 do write(LeftPad (inttohex(enc_bytes[i],1),2)) ;
+for i:=0 to length(keys)-1 do
+    begin
+    getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa',keys[i],enc_bytes);
+    CopyMemory (@bytes[i*4],@enc_bytes[0],4);
+    end;
 result:=true;
 end;
 
@@ -1069,14 +1060,14 @@ var
   dwDisposition:dword=0;
   sam:array[0..1023] of byte;
   cbdata,lptype:dword;
-
+  dummy:string;
 begin
+//get the encoded syskey
 get_encoded_syskey(bytes);
-//for i:=0 to sizeof(bytes)-1 do write(LeftPad (inttohex(bytes[i],1),2)) ;
-//writeln;
-//Get syskey raw bytes
+//Get syskey raw bytes (using permutation)
 for i:=0 to sizeof(bytes)-1 do syskey[i] := bytes[syskeyPerm[i]];
-for i:=0 to sizeof(syskey)-1 do write(LeftPad (inttohex(syskey[i],1),2)) ;
+dummy:=HashByteToString (tbyte16(syskey));
+writeln(dummy);
 exit; //for now
 writeln;
 //only if run as system
