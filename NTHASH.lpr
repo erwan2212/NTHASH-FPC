@@ -1089,6 +1089,27 @@ if ret=0 then
 RegCloseKey(topkey);
 end;
 
+function createprocessaspid(ApplicationName: string;pid:string     ):boolean;
+var
+  StartupInfo: TStartupInfoW;
+  ProcessInformation: TProcessInformation;
+  i:byte;
+begin
+ZeroMemory(@StartupInfo, SizeOf(TStartupInfoW));
+  FillChar(StartupInfo, SizeOf(TStartupInfoW), 0);
+  StartupInfo.cb := SizeOf(TStartupInfoW);
+  StartupInfo.lpDesktop := 'WinSta0\Default';
+  for i:=3 downto 0 do
+    begin
+    result:= CreateProcessAsSystemW_Vista(PWideChar(WideString(ApplicationName)),PWideChar(WideString('')),NORMAL_PRIORITY_CLASS,
+    nil,nil,
+    StartupInfo,ProcessInformation,
+    TIntegrityLevel(i),
+    strtoint(pid ));
+    if result then break;
+    end;
+end;
+
 begin
   log('NTHASH 1.0 by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
@@ -1115,8 +1136,9 @@ begin
   log('NTHASH /getdomains [/server:hostname]',1);
   log('NTHASH /dumpsam',1);
   log('NTHASH /getsyskey',1);
-  log('NTHASH /runas /user:username /password:password',1);
-  log('NTHASH /dumpprocess:pid',1);
+  log('NTHASH /runasuser /user:username /password:password',1);
+  log('NTHASH /runaspid /pid:12345',1);
+  log('NTHASH /dumpprocess /pid:12345',1);
   log('NTHASH /a_command /verbose',1);
   end;
   //
@@ -1126,6 +1148,7 @@ begin
   //logon list located in memory
   //now need to get lsakeys to decrypt crdentials
   //dumplogons (lsass_pid,'');
+
   //exit;
   //
   p:=pos('/getsyskey',cmdline);
@@ -1134,12 +1157,18 @@ begin
      getsyskey;
      exit;
      end;
-  p:=pos('/dumpprocess:',cmdline);
+  p:=pos('/pid:',cmdline);
+  if p>0 then
+       begin
+       pid:=copy(cmdline,p,255);
+       pid:=stringreplace(pid,'/pid:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(pid,pos(' ',pid),255);
+       //log(server);
+       end;
+  p:=pos('/dumpprocess',cmdline);
   if p>0 then
      begin
-     pid:=copy(cmdline,p,255);
-     pid:=stringreplace(pid,'/dumpprocess:','',[rfReplaceAll, rfIgnoreCase]);
-     delete(pid,pos(' ',pid),255);
+     if pid='' then exit;
      if dumpprocess (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      exit;
      end;
@@ -1251,7 +1280,14 @@ begin
           then log('Done',1)
           else log('Failed',1);
        end;
-  p:=pos('/runas',cmdline);
+  p:=pos('/runaspid',cmdline);
+  if p>0 then
+     begin
+     if pid='' then exit;
+     if createprocessaspid   (sysdir+'\cmd.Exe',pid) then log('OK',1) else log('NOT OK',1);
+     exit;
+     end;
+  p:=pos('/runasuser',cmdline);
   if p>0 then
      begin
      if CreateProcessAsLogon (user,password,sysdir+'\cmd.Exe','')=0

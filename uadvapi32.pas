@@ -29,6 +29,10 @@ const
 type
  tbyte16__=array[0..15] of byte;
 
+type
+   TIntegrityLevel = (UnknownIntegrityLevel=0, LowIntegrityLevel, MediumIntegrityLevel, HighIntegrityLevel, SystemIntegrityLevel);
+
+
 function GenerateNTLMHash(mypassword:string):string;
 function GenerateNTLMHashByte(mypassword:string):tbyte16__;
 function EnableDebugPriv:boolean;
@@ -36,8 +40,18 @@ function EnableDebugPriv:boolean;
 function Impersonate(const User, PW: string): Boolean;
 function GetCurrUserName: string;
 
-function CreateProcessAsLogon(const User, PW, Application, CmdLine: WideString):
-  LongWord;
+function CreateProcessAsLogon(const User, PW, Application, CmdLine: WideString): LongWord;
+
+function CreateProcessAsSystemW_Vista(
+  ApplicationName: PWideChar;
+  CommandLine: PWideChar;
+  CreationFlags: DWORD;
+  Environment: Pointer;
+  CurrentDirectory: PWideChar;
+  StartupInfo: TStartupInfoW;
+  var ProcessInformation: TProcessInformation;
+  IntegrityLevel: TIntegrityLevel;
+  const pid:cardinal=0): Boolean;
 
 function CreateProcessWithLogonW(
   lpUsername,
@@ -103,7 +117,24 @@ Procedure MD5Final(Var Context: MD5_CTX); StdCall;external 'advapi32.dll';
 //function MD5string(const data : Ansistring):AnsiString;
 //function MD5_Selftest:Boolean;
 
+function CreateProcessWithTokenW(hToken: THandle;
+  dwLogonFlags: DWORD;
+  lpApplicationName: PWideChar;
+  lpCommandLine: PWideChar;
+  dwCreationFlags: DWORD;
+  lpEnvironment: Pointer;
+  lpCurrentDirectory: PWideChar;
+  lpStartupInfo: PStartupInfoW;
+  lpProcessInformation: PProcessInformation): BOOL; stdcall;external 'advapi32.dll';
 
+function DuplicateTokenEx(hExistingToken: HANDLE; dwDesiredAccess: DWORD;
+  lpTokenAttributes: LPSECURITY_ATTRIBUTES; ImpersonationLevel: SECURITY_IMPERSONATION_LEVEL;
+  TokenType: TOKEN_TYPE; var phNewToken: HANDLE): BOOL; stdcall;external 'advapi32.dll';
+
+//function ConvertStringSidToSidA(StringSid: LPCSTR; var Sid: PSID): BOOL; stdcall;
+function ConvertStringSidToSidW(StringSid: LPCWSTR; var Sid: PSID): BOOL; stdcall;external 'advapi32.dll';
+//function ConvertStringSidToSid(StringSid: LPCTSTR; var Sid: PSID): BOOL; stdcall;
+function ConvertStringSidToSidA(StringSid: pchar; var Sid: PSID): BOOL; stdcall;external 'advapi32.dll' name 'ConvertStringSidToSidA';
 
 // SHA1
 
@@ -126,6 +157,22 @@ procedure A_SHAFinal(var Context: SHA_CTX; out Digest:SHA_DIG); StdCall;external
 //function SHA_Selftest:Boolean;
 
 implementation
+
+const
+  LOW_INTEGRITY_SID: PWideChar = ('S-1-16-4096');
+  MEDIUM_INTEGRITY_SID: PWideChar = ('S-1-16-8192');
+  HIGH_INTEGRITY_SID: PWideChar = ('S-1-16-12288');
+  SYSTEM_INTEGRITY_SID: PWideChar = ('S-1-16-16384');
+
+  SE_GROUP_INTEGRITY = $00000020;
+
+
+type
+  _TOKEN_MANDATORY_LABEL = record
+    Label_: SID_AND_ATTRIBUTES;
+  end;
+  TOKEN_MANDATORY_LABEL = _TOKEN_MANDATORY_LABEL;
+  PTOKEN_MANDATORY_LABEL = ^TOKEN_MANDATORY_LABEL;
 
 type PWSTR = PWideChar;
 type
@@ -290,6 +337,101 @@ begin
     LOGON_WITH_PROFILE, nil, PWideChar(Application+' "'+CmdLine+'"'),
     CREATE_DEFAULT_ERROR_MODE, nil, nil, @si, @pif);
   Result := GetLastError;
+end;
+
+function GetWinlogonProcessId: Cardinal;
+begin
+ //TBD
+end;
+
+function CreateProcessAsSystemW_Vista(
+  ApplicationName: PWideChar;
+  CommandLine: PWideChar;
+  CreationFlags: DWORD;
+  Environment: Pointer;
+  CurrentDirectory: PWideChar;
+  StartupInfo: TStartupInfoW;
+  var ProcessInformation: TProcessInformation;
+  IntegrityLevel: TIntegrityLevel;
+  const pid:cardinal=0): Boolean;
+var
+  ProcessHandle, TokenHandle, ImpersonateToken: THandle;
+  Sid: PSID;
+  MandatoryLabel: PTOKEN_MANDATORY_LABEL;
+  ReturnLength: DWORD;
+  PIntegrityLevel: PWideChar;
+begin
+  Result := False;
+  if (@CreateProcessWithTokenW = nil) then
+    Exit;
+  try
+    if pid=0
+      then ProcessHandle := OpenProcess(MAXIMUM_ALLOWED, False, GetWinlogonProcessId)
+      else ProcessHandle := OpenProcess(MAXIMUM_ALLOWED, False, pid);
+    if ProcessHandle <> 0 then
+    begin
+      try
+        if OpenProcessToken(ProcessHandle, MAXIMUM_ALLOWED, TokenHandle) then
+        begin
+          try
+            //writeln('OpenProcessToken OK');
+            if DuplicateTokenEx(TokenHandle, MAXIMUM_ALLOWED, nil, SecurityImpersonation, TokenPrimary, ImpersonateToken) then
+            begin
+              try
+                //writeln('DuplicateTokenEx OK');
+                New(Sid);
+                if (not GetTokenInformation(ImpersonateToken, TTokenInformationClass(TokenIntegrityLevel), MandatoryLabel, 0, ReturnLength)) and (GetLastError = ERROR_INSUFFICIENT_BUFFER) then
+                begin
+                  //writeln('GetTokenInformation OK');
+                  MandatoryLabel := nil;
+                  GetMem(MandatoryLabel, ReturnLength);
+                  if MandatoryLabel <> nil then
+                  begin
+                    try
+                      if GetTokenInformation(ImpersonateToken, TTokenInformationClass(TokenIntegrityLevel), MandatoryLabel, ReturnLength, ReturnLength) then
+                      begin
+                        //writeln('GetTokenInformation OK');
+                        if IntegrityLevel = SystemIntegrityLevel then
+                          PIntegrityLevel := (SYSTEM_INTEGRITY_SID)
+                        else if IntegrityLevel = HighIntegrityLevel then
+                          PIntegrityLevel := (HIGH_INTEGRITY_SID)
+                        else if IntegrityLevel = MediumIntegrityLevel then
+                          PIntegrityLevel := (MEDIUM_INTEGRITY_SID)
+                        else if IntegrityLevel = LowIntegrityLevel then
+                          PIntegrityLevel := (LOW_INTEGRITY_SID);
+                        writeln(strpas(PIntegrityLevel));
+                        if ConvertStringSidToSidw(PIntegrityLevel, Sid) then
+                        begin
+                          //writeln('ConvertStringSidToSidW OK');
+                          MandatoryLabel.Label_.Sid := Sid;
+                          MandatoryLabel.Label_.Attributes := SE_GROUP_INTEGRITY;
+                          if SetTokenInformation(ImpersonateToken, TTokenInformationClass(TokenIntegrityLevel), MandatoryLabel, SizeOf(TOKEN_MANDATORY_LABEL) + GetLengthSid(Sid)) then
+                          begin
+                            Result := CreateProcessWithTokenW(ImpersonateToken, 0, ApplicationName, CommandLine, CreationFlags, Environment, CurrentDirectory, @StartupInfo, @ProcessInformation);
+                            //writeln(result);
+                            SetLastError(0);
+                          end;
+                        end;
+                      end;
+                    finally
+                      FreeMem(MandatoryLabel);
+                    end;
+                  end;
+                end;
+              finally
+                CloseHandle(ImpersonateToken);
+              end;
+            end;
+          finally
+            CloseHandle(TokenHandle);
+          end;
+        end;
+      finally
+        CloseHandle(ProcessHandle);
+      end;
+    end;
+  except
+  end;
 end;
 
 end.
