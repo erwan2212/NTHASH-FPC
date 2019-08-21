@@ -1137,7 +1137,7 @@ begin
   log('NTHASH /dumpsam',1);
   log('NTHASH /getsyskey',1);
   log('NTHASH /runasuser /user:username /password:password',1);
-  log('NTHASH /runaspid /pid:12345',1);
+  log('NTHASH /runastoken /pid:12345',1);
   log('NTHASH /dumpprocess /pid:12345',1);
   log('NTHASH /a_command /verbose',1);
   end;
@@ -1280,7 +1280,7 @@ begin
           then log('Done',1)
           else log('Failed',1);
        end;
-  p:=pos('/runaspid',cmdline);
+  p:=pos('/runastoken',cmdline);
   if p>0 then
      begin
      if pid='' then exit;
