@@ -19,9 +19,9 @@ NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /enumpriv <br/>
 NTHASH /enumproc <br/>
+NTHASH /killproc /pid:12345 <br/>
 NTHASH /enummod /pid:12345 <br/>
 NTHASH /dumpprocess /pid:12345 <br/>
-NTHASH /dumpprocess:pid <br/>
 NTHASH /a_command /verbose <br/>
 
 <b>changentlm</b>, using a legacy api, may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607. <br/>
@@ -29,6 +29,12 @@ NTHASH /a_command /verbose <br/>
 <b>setntlm</b> on the other hand should always work and allow one to bypass password policy.  <br/>
 
 <b>dumpsam</b> will temporarily patch a module in lsass to be able to dump your SAM ntlm hashes (need to cover/test as many windows version as possible). <br/>
+
+<b>runastoken</b> can be used to run a process under a system account. <br/>
+Once under a system account, you can also "steal" a token from trustedinstaller (net start trustedinstaller before hand. <br/>
+With a trustedinstaller token, you can perform actions like stop windefend (or kill the process). <br/>
+
+<b>runaschild/b> can be used to run a process as a child of another existing/parent process. <br/>
 
 todo:
 -decrypt sam hashes online (rather than patching lsass) and offline
