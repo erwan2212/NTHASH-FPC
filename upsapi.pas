@@ -48,10 +48,10 @@ function GetModuleInformation(hProcess: HANDLE; hModule: HMODULE;
 nSize: DWORD): DWORD; stdcall;external 'psapi.dll';
 
   { WinVista API }
-  {//let go for late binding so that we can still run on xp
+  //let go for late binding so that we can still run on xp
+  {
   function InitializeProcThreadAttributeList(lpAttributeList: PPROC_THREAD_ATTRIBUTE_LIST; dwAttributeCount, dwFlags: DWORD; var lpSize: Cardinal): Boolean; stdcall;
     external 'kernel32.dll';
-
 
   function UpdateProcThreadAttribute(
        lpAttributeList : PPROC_THREAD_ATTRIBUTE_LIST;   //__inout
@@ -67,7 +67,9 @@ nSize: DWORD): DWORD; stdcall;external 'psapi.dll';
   }
 
   //
-  function _FindPid(search:string=''):dword;
+  function _EnumProc(search:string=''):dword;
+  function _EnumMod(pid:dword;search:string=''):dword;
+  function _killproc(pid:dword):boolean;
   function CreateProcessOnParentProcess(pid:dword;ExeName: string):boolean;
 
 
@@ -78,36 +80,89 @@ const
   PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = $00020000;
   EXTENDED_STARTUPINFO_PRESENT         = $00080000;
 
-
-
-function _FindPid(search:string=''):dword;
+function _killproc(pid:dword):boolean;
 var
-  cb,cbneeded:dword;
-  count:dword;
-  pids:array[0..1023] of dword;
   hProcess:thandle;
-  hmod:hmodule;
-  szProcessName:array[0..254] of char;
+begin
+  result:=false;
+       HProcess := OpenProcess(PROCESS_TERMINATE, False, pid);
+           if HProcess <> 0 then
+           begin
+             Result := TerminateProcess(HProcess, 0);
+             CloseHandle(HProcess);
+           end;
+end;
+
+function _EnumMod(pid:dword;search:string=''):dword;
+var
+  cbneeded:dword;
+  count:dword;
+  modules:array[0..1023] of thandle;
+  hProcess:thandle;
+  szModName:array[0..259] of char;
+begin
+result:=0;
+//beware of 32bit process onto 64bits processes...
+hProcess := OpenProcess( PROCESS_QUERY_INFORMATION or
+                         PROCESS_VM_READ,
+                         FALSE, pid );
+
+
+   if EnumProcessModules (hProcess,@modules[0],SizeOf(hmodule)*1024,cbneeded) then
+      begin
+      //writeln(cbneeded div sizeof(dword)); //debug
+      for count:=0 to cbneeded div sizeof(thandle) - 1 do
+          begin
+
+          //EnumProcessModules (hprocess,@modules[0],cb,cbneeded2);
+          if GetModuleBaseNameA( hProcess, modules[count], szModName,sizeof(szModName))<>0 then
+             begin
+             if search='' then writeln(inttohex(modules[count],sizeof(thandle))+ ' '+szModName );
+             if lowercase(search)=lowercase(strpas(szModName) ) then
+                begin
+                result:=modules[count];
+                break;
+                end; //if lowercase...
+             end;// if GetModuleBaseNameA...
+             //else writeln(getlasterror);
+          end; //for count:=0...
+      end;//if EnumProcesses...
+   closehandle(hProcess);
+end;
+
+function _EnumProc(search:string=''):dword;
+var
+  cb,cbneeded,cbneeded2:dword;
+  count:dword;
+  pids,modules:array[0..1023] of dword;
+  hProcess:thandle;
+  szProcessName:array[0..259] of char;
 begin
 result:=0;
    cb:=sizeof(dword)*1024;
    if EnumProcesses (@pids[0],cb,cbneeded) then
       begin
+      //writeln(cbneeded div sizeof(dword)); //debug
       for count:=0 to cbneeded div sizeof(dword) - 1 do
           begin
+          //beware of 32bit process onto 64bits processes...
           hProcess := OpenProcess( PROCESS_QUERY_INFORMATION or
                                    PROCESS_VM_READ,
                                    FALSE, pids[count] );
-          GetModuleBaseNameA( hProcess, 0, szProcessName,sizeof(szProcessName));
-          //writeln(inttostr(pids[count])+ ' '+szProcessName );
-          closehandle(hProcess);
-          if lowercase(search)=lowercase(strpas(szProcessName) ) then
+          //EnumProcessModules (hprocess,@modules[0],cb,cbneeded2);
+          if GetModuleBaseNameA( hProcess, 0, szProcessName,sizeof(szProcessName))<>0 then
              begin
-             result:=pids[count];
-             break;
-             end;
-          end;
-      end;
+             if search='' then writeln(inttostr(pids[count])+ ' '+szProcessName );
+             if lowercase(search)=lowercase(strpas(szProcessName) ) then
+                begin
+                result:=pids[count];
+                break;
+                end; //if lowercase...
+             end;// if GetModuleBaseNameA...
+          closehandle(hProcess);
+             //else writeln(getlasterror);
+          end; //for count:=0...
+      end;//if EnumProcesses...
 end;
 
 function EnableDebugPrivilege(PrivName: string; CanDebug: Boolean): Boolean;
@@ -133,13 +188,13 @@ function CreateProcessOnParentProcess(pid:dword;ExeName: string):boolean;
 type
 TInitializeProcThreadAttributeList=function(lpAttributeList: PPROC_THREAD_ATTRIBUTE_LIST; dwAttributeCount, dwFlags: DWORD; var lpSize: Cardinal): Boolean; stdcall;
 TUpdateProcThreadAttribute=function(
-    {__inout} lpAttributeList : PPROC_THREAD_ATTRIBUTE_LIST;
-    {__in} dwFlags : DWORD;
-    {__in} Attribute : DWORD_PTR;
-    {__in_bcount_opt(cbSize)} lpValue : pvoid;
-    {__in} cbSize : SIZE_T;
-    {__out_bcount_opt(cbSize)} lpPreviousValue : PVOID;
-    {__in_opt} lpReturnSize : PSIZE_T
+    lpAttributeList : PPROC_THREAD_ATTRIBUTE_LIST;
+    dwFlags : DWORD;
+    Attribute : DWORD_PTR;
+    lpValue : pvoid;
+    cbSize : SIZE_T;
+    lpPreviousValue : PVOID;
+    lpReturnSize : PSIZE_T
     ) : BOOL; stdcall;
 TDeleteProcThreadAttributeList=procedure(lpAttributeList: PPROC_THREAD_ATTRIBUTE_LIST); stdcall;
 var
@@ -151,7 +206,7 @@ var
   exitcode:dword;
   ptr:pointer;
 begin
-  writeln(pid);
+  //writeln(pid);
   result:=false;
   if EnableDebugPrivilege(SE_SECURITY_NAME, True)=false
      then writeln('EnableDebugPrivilege NOT OK');
@@ -165,13 +220,13 @@ begin
   FillChar(pi, SizeOf(pi), 0);
 
   cbAListSize := 0;
-  //InitializeProcThreadAttributeList(nil, 1, 0, cbAListSize);
   ptr:=GetProcAddress (loadlibrary('kernel32.dll'),'InitializeProcThreadAttributeList');
+  //InitializeProcThreadAttributeList(nil, 1, 0, cbAListSize);
   TInitializeProcThreadAttributeList(ptr)(nil, 1, 0, cbAListSize);
   pAList := HeapAlloc(GetProcessHeap(), 0, cbAListSize);
   //if InitializeProcThreadAttributeList(pAList, 1, 0, cbAListSize)=false
-  if TInitializeProcThreadAttributeList(ptr)(nil, 1, 0, cbAListSize)=false
-      then writeln('InitializeProcThreadAttributeList NOT OK');
+  if TInitializeProcThreadAttributeList(ptr)(pAList, 1, 0, cbAListSize)=false
+      then begin writeln('InitializeProcThreadAttributeList NOT OK');exit;end;
   hParent := OpenProcess(PROCESS_ALL_ACCESS, False, pid);
   if hparent<=0 then begin writeln('OpenProcess NOT OK');exit;end;
   ptr:=GetProcAddress (loadlibrary('kernel32.dll'),'UpdateProcThreadAttribute');

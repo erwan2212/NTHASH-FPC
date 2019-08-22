@@ -1131,7 +1131,7 @@ begin
   log('Windows Version:'+winver,1);
   log('Architecture:'+osarch,1);
   log('DebugPrivilege:'+BoolToStr (EnableDebugPriv),1);
-  lsass_pid:=_FindPid('lsass.exe');
+  lsass_pid:=_EnumProc('lsass.exe');
   log('LSASS PID:'+inttostr(lsass_pid ),1);
   getmem(sysdir,Max_Path );
   GetSystemDirectory(sysdir, MAX_PATH - 1);
@@ -1154,6 +1154,8 @@ begin
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /enumpriv',1);
+  log('NTHASH /enumproc',1);
+  log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpprocess /pid:12345',1);
   log('NTHASH /a_command /verbose',1);
   end;
@@ -1164,6 +1166,7 @@ begin
   //logon list located in memory
   //now need to get lsakeys to decrypt crdentials
   //dumplogons (lsass_pid,'');
+  //_FindPid ;
   //exit;
   //
   p:=pos('/enumpriv',cmdline);
@@ -1192,11 +1195,31 @@ begin
        binary:=stringreplace(binary,'/binary:','',[rfReplaceAll, rfIgnoreCase]);
        delete(binary,pos(' ',binary),255);
        end;
+  p:=pos('/enumproc',cmdline);
+    if p>0 then
+       begin
+       _EnumProc ;
+       exit;
+       end;
+    p:=pos('/enummod',cmdline);
+    if p>0 then
+       begin
+       if pid='' then exit;
+       _EnumMod(strtoint(pid),'');
+       exit;
+       end;
   p:=pos('/dumpprocess',cmdline);
   if p>0 then
      begin
      if pid='' then exit;
      if dumpprocess (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
+     exit;
+     end;
+  p:=pos('/killproc',cmdline);
+  if p>0 then
+     begin
+     if pid='' then exit;
+     if _killproc(strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      exit;
      end;
   p:=pos('/dumpsam',cmdline);
