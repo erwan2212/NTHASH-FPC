@@ -34,7 +34,9 @@ NTHASH /a_command /verbose <br/>
 Once under a system account, you can also "steal" a token from trustedinstaller (net start trustedinstaller before hand. <br/>
 With a trustedinstaller token, you can perform actions like stop windefend (or kill the process). <br/>
 
-<b>runaschild/b> can be used to run a process as a child of another existing/parent process. <br/>
+<b>runaschild</b> can be used to run a process as a child of another existing/parent process. <br/>
+Note that some apps (like cmd.exe) will crash right after initialization with a c0000142. <br/>
+Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...
 
 todo:
 -decrypt sam hashes online (rather than patching lsass) and offline
