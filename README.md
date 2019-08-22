@@ -14,9 +14,9 @@ NTHASH /getusers [/server:hostname] <br/>
 NTHASH /getdomains [/server:hostname <br/>
 NTHASH /dumpsam <br/>
 NTHASH /getsyskey <br/>
-NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe] <br/>
-NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe] <br/>
-NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe] <br/>
+NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /enumpriv <br/>
 NTHASH /enumproc <br/>
 NTHASH /enummod /pid:12345 <br/>
