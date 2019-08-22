@@ -36,6 +36,7 @@ type
 function GenerateNTLMHash(mypassword:string):string;
 function GenerateNTLMHashByte(mypassword:string):tbyte16__;
 function EnableDebugPriv:boolean;
+function enumprivileges:boolean;
 
 function Impersonate(const User, PW: string): Boolean;
 function GetCurrUserName: string;
@@ -53,6 +54,9 @@ function CreateProcessAsSystemW_Vista(
   IntegrityLevel: TIntegrityLevel;
   const pid:cardinal=0): Boolean;
 
+//***************************************************************************
+
+
 function CreateProcessWithLogonW(
   lpUsername,
   lpDomain,
@@ -66,6 +70,7 @@ function CreateProcessWithLogonW(
   lpStartupInfo: PStartupInfoW;
   lpProcessInformation: PProcessInformation
 ): BOOL; stdcall; external 'advapi32.dll';
+
 
 type
    MD4_CTX  = packed record
@@ -117,6 +122,7 @@ Procedure MD5Final(Var Context: MD5_CTX); StdCall;external 'advapi32.dll';
 //function MD5string(const data : Ansistring):AnsiString;
 //function MD5_Selftest:Boolean;
 
+{lets go late binding
 function CreateProcessWithTokenW(hToken: THandle;
   dwLogonFlags: DWORD;
   lpApplicationName: PWideChar;
@@ -126,6 +132,7 @@ function CreateProcessWithTokenW(hToken: THandle;
   lpCurrentDirectory: PWideChar;
   lpStartupInfo: PStartupInfoW;
   lpProcessInformation: PProcessInformation): BOOL; stdcall;external 'advapi32.dll';
+  }
 
 function DuplicateTokenEx(hExistingToken: HANDLE; dwDesiredAccess: DWORD;
   lpTokenAttributes: LPSECURITY_ATTRIBUTES; ImpersonationLevel: SECURITY_IMPERSONATION_LEVEL;
@@ -354,14 +361,26 @@ function CreateProcessAsSystemW_Vista(
   var ProcessInformation: TProcessInformation;
   IntegrityLevel: TIntegrityLevel;
   const pid:cardinal=0): Boolean;
+type
+  TCreateProcessWithTokenW=function(hToken: THandle;
+  dwLogonFlags: DWORD;
+  lpApplicationName: PWideChar;
+  lpCommandLine: PWideChar;
+  dwCreationFlags: DWORD;
+  lpEnvironment: Pointer;
+  lpCurrentDirectory: PWideChar;
+  lpStartupInfo: PStartupInfoW;
+  lpProcessInformation: PProcessInformation): BOOL; stdcall;
 var
   ProcessHandle, TokenHandle, ImpersonateToken: THandle;
   Sid: PSID;
   MandatoryLabel: PTOKEN_MANDATORY_LABEL;
   ReturnLength: DWORD;
   PIntegrityLevel: PWideChar;
+  CreateProcessWithTokenW:pointer;
 begin
   Result := False;
+  CreateProcessWithTokenW:=getprocaddress(loadlibrary('advapi32.dll'),'CreateProcessWithTokenW');
   if (@CreateProcessWithTokenW = nil) then
     Exit;
   try
@@ -407,7 +426,7 @@ begin
                           MandatoryLabel.Label_.Attributes := SE_GROUP_INTEGRITY;
                           if SetTokenInformation(ImpersonateToken, TTokenInformationClass(TokenIntegrityLevel), MandatoryLabel, SizeOf(TOKEN_MANDATORY_LABEL) + GetLengthSid(Sid)) then
                           begin
-                            Result := CreateProcessWithTokenW(ImpersonateToken, 0, ApplicationName, CommandLine, CreationFlags, Environment, CurrentDirectory, @StartupInfo, @ProcessInformation);
+                            Result := TCreateProcessWithTokenW(CreateProcessWithTokenW)(ImpersonateToken, 0, ApplicationName, CommandLine, CreationFlags, Environment, CurrentDirectory, @StartupInfo, @ProcessInformation);
                             //writeln(result);
                             SetLastError(0);
                           end;
@@ -431,6 +450,52 @@ begin
       end;
     end;
   except
+  end;
+end;
+
+////////////////////////////////////////////////////////////////////////////////////
+// Enumerating privileges held by the current user.
+function enumprivileges:boolean;
+type
+  TPrivilegesArray = array [0..1024] of TLuidAndAttributes;
+  PPrivilegesArray = ^TPrivilegesArray;
+var
+  TokenHandle: THandle;
+  Size: Cardinal;
+  Privileges: PTokenPrivileges;
+  I: Integer;
+  Luid: TLuid;
+  Name: string;
+  Attr: Longword;
+  function AttrToString: string;
+  begin
+    Result := '';
+    if (Attr and SE_PRIVILEGE_ENABLED) <> 0 then
+       Result := Result + 'Enabled ';
+    if (Attr and SE_PRIVILEGE_ENABLED_BY_DEFAULT) <> 0
+       then Result := Result + 'EnabledByDefault';
+    Result := '[' + Trim(Result) + ']';
+  end;
+begin
+  Win32Check(OpenProcessToken(GetCurrentProcess,
+    TOKEN_QUERY, TokenHandle));
+  try
+    GetTokenInformation(TokenHandle, TokenPrivileges, nil,
+      0, Size);
+    Privileges := AllocMem(Size);
+    Win32Check(GetTokenInformation(TokenHandle, TokenPrivileges, Privileges, Size, Size));
+    for I := 0 to Privileges.PrivilegeCount - 1 do
+    begin
+      Luid := PPrivilegesArray(@Privileges^.Privileges)^[I].Luid;
+      Attr := PPrivilegesArray(@Privileges^.Privileges)^[I].Attributes;
+      Size := 0;
+      LookupPrivilegeName(nil, Luid, nil, Size);
+      SetLength(Name, Size);
+      LookupPrivilegeName(nil, Luid, PChar(Name), Size);
+      writeln(PChar(Name) + ' ' + AttrToString);
+    end;
+  finally
+    CloseHandle(TokenHandle);
   end;
 end;
 

