@@ -24,7 +24,7 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <CommandLineParams Value="/runaspid /pid:8808"/>
+        <CommandLineParams Value="/getsyskey"/>
       </local>
     </RunParams>
     <Units Count="8">

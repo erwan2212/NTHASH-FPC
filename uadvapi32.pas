@@ -1,6 +1,7 @@
 unit uadvapi32;
 
 {$mode delphi}
+{$Define UsePacked}
 
 interface
 
@@ -24,7 +25,7 @@ const
   //https://github.com/rapid7/meterpreter/blob/master/source/extensions/kiwi/mimikatz/modules/kuhl_m_lsadump_struct.h
   SYSKEY_LENGTH	=16;
   SAM_KEY_DATA_SALT_LENGTH=	16 ;
-  SAM_KEY_DATA_KEY_LENGTH=		16;
+  SAM_KEY_DATA_KEY_LENGTH=	16;
 
 type
  tbyte16__=array[0..15] of byte;
@@ -77,7 +78,7 @@ type
     _Buf    : array[0..3] of LongWord;
     _I      : array[0..1] of LongWord;
     input   : array[0..63] of byte;
-    digest  : Array[0..15] of Byte;
+    digest  : Array[0..MD4_DIGEST_LENGTH-1] of Byte;
    end;
 
 
@@ -88,14 +89,15 @@ Procedure MD4Final(Var Context: MD4_CTX); StdCall;external 'advapi32.dll';
 
 
 type
-  MD5_CTX = packed Record
+  MD5_DIG  = {$IfDef UsePacked} packed {$EndIf} array[0..15] of byte;
+  MD5_CTX  = {$IfDef UsePacked} packed {$EndIf} record
     i:      Array[0.. 1] of LongWord;
     buf:    Array[0.. 3] of LongWord;
     input:  Array[0..63] of Byte;
-    digest: Array[0..15] of Byte;
+    digest: MD5_DIG;
   End;
 
-  type _CRYPTO_BUFFER = packed record
+  type _CRYPTO_BUFFER = {packed} record
   	 Length:dword;
   	 MaximumLength:dword;
   	 Buffer:PBYTE;
@@ -111,14 +113,14 @@ type
 //extern NTSTATUS WINAPI RtlDecryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
 //SystemFunction032 or SystemFunction033?
 //extern NTSTATUS WINAPI RtlEncryptDecryptRC4(IN OUT PCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key);
-function RtlEncryptDecryptRC4(var  data:PCRYPTO_BUFFER;  key:PCRYPTO_BUFFER):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction032';
+function RtlEncryptDecryptRC4(var  data:_CRYPTO_BUFFER;   const key:_CRYPTO_BUFFER):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction032';
 
 // The MD5Init function initializes an MD5 message digest context.
-Procedure MD5Init(Var Context: MD5_CTX); StdCall;external 'advapi32.dll';
+procedure MD5Init(var ctx : MD5_CTX); stdcall;external 'advapi32.dll';
 // The MD5Update function updates the MD5 context by using the supplied buffer for the message whose MD5 digest is being generated
-Procedure MD5Update(Var Context: MD5_CTX; const Input; inLen: LongWord); StdCall;external 'advapi32.dll';
+procedure MD5Update(var ctx : MD5_CTX; const Buffer; const BufferSize : LongInt); stdcall;external 'advapi32.dll';
 //The MD5Final function ends an MD5 message digest previously started by a call to the MD5Init function
-Procedure MD5Final(Var Context: MD5_CTX); StdCall;external 'advapi32.dll';
+procedure MD5Final(var ctx : MD5_CTX); stdcall;external 'advapi32.dll';
 //function MD5string(const data : Ansistring):AnsiString;
 //function MD5_Selftest:Boolean;
 

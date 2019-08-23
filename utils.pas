@@ -9,6 +9,7 @@ uses
 
 type
   tbyte16=array[0..15] of byte;
+  tbyte32=array[0..31] of byte;
 
   type _KUHL_M_SEKURLSA_ENUM_HELPER =record
 	 tailleStruct:nativeint; //SIZE_T
@@ -27,7 +28,8 @@ type
  PKUHL_M_SEKURLSA_ENUM_HELPER=^_KUHL_M_SEKURLSA_ENUM_HELPER;
 
 procedure log(msg:string;status:dword=0);
-function HashByteToString(hash:tbyte16):string;
+//function HashByteToString(hash:tbyte16):string;
+function HashByteToString(hash:array of byte):string;
 function HashStringToByte(hash:string):tbyte16;
 Function SplitUserSID(user:pchar;var domain:string;var rid:dword):boolean;
 function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
@@ -52,7 +54,8 @@ begin
 result := RightStr(StringOfChar(pad,length) + value, length );
 end;
 
-function HashByteToString(hash:tbyte16):string;
+//function HashByteToString(hash:tbyte16):string;
+function HashByteToString(hash:array of byte):string;
 var
   i:byte;
   dummy:string='';
