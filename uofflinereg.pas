@@ -8,7 +8,7 @@ uses
   Windows,Classes, SysUtils;
 
 function init:boolean;
-
+function getvaluePTR(key:thandle;svaluename:string;var data:pointer):integer;
 
 
 type

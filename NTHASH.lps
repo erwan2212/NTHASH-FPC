@@ -8,8 +8,9 @@
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="1095"/>
-        <CursorPos X="32" Y="1104"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="1050"/>
+        <CursorPos X="17" Y="1058"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -17,7 +18,7 @@
       <Unit1>
         <Filename Value="upsapi.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="60"/>
         <CursorPos X="43" Y="86"/>
         <UsageCount Value="213"/>
@@ -37,7 +38,7 @@
         <Filename Value="uadvapi32.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="4"/>
-        <TopLine Value="37"/>
+        <TopLine Value="14"/>
         <CursorPos X="15"/>
         <UsageCount Value="212"/>
         <Loaded Value="True"/>
@@ -46,8 +47,7 @@
       <Unit4>
         <Filename Value="utils.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="11"/>
-        <TopLine Value="37"/>
+        <EditorIndex Value="9"/>
         <CursorPos X="52" Y="16"/>
         <UsageCount Value="211"/>
         <Loaded Value="True"/>
@@ -63,8 +63,7 @@
       <Unit6>
         <Filename Value="umemory.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="10"/>
-        <TopLine Value="21"/>
+        <EditorIndex Value="8"/>
         <CursorPos X="35" Y="56"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
@@ -73,8 +72,7 @@
       <Unit7>
         <Filename Value="ucryptoapi.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="8"/>
-        <TopLine Value="31"/>
+        <EditorIndex Value="6"/>
         <UsageCount Value="236"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -89,9 +87,8 @@
       </Unit8>
       <Unit9>
         <Filename Value="usid.pas"/>
-        <EditorIndex Value="9"/>
-        <TopLine Value="380"/>
-        <CursorPos X="31" Y="27"/>
+        <EditorIndex Value="7"/>
+        <CursorPos X="3" Y="10"/>
         <UsageCount Value="100"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -113,49 +110,46 @@
       </Unit11>
       <Unit12>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\base.inc"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="196"/>
         <CursorPos X="6" Y="208"/>
         <UsageCount Value="60"/>
-        <Loaded Value="True"/>
       </Unit12>
       <Unit13>
         <Filename Value="C:\FPC\3.0.0\source\rtl\inc\systemh.inc"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="452"/>
         <CursorPos X="3" Y="464"/>
         <UsageCount Value="54"/>
-        <Loaded Value="True"/>
       </Unit13>
       <Unit14>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\redef.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="337"/>
         <CursorPos X="10" Y="349"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="12"/>
       </Unit14>
       <Unit15>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\sysosh.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="7"/>
         <CursorPos X="3" Y="19"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="12"/>
       </Unit15>
       <Unit16>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\func.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="104"/>
         <CursorPos X="10" Y="116"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="1"/>
       </Unit16>
       <Unit17>
         <Filename Value="usamutils.pas"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="25"/>
-        <CursorPos X="29" Y="37"/>
-        <UsageCount Value="28"/>
+        <TopLine Value="462"/>
+        <CursorPos Y="475"/>
+        <UsageCount Value="34"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit17>
@@ -163,9 +157,9 @@
         <Filename Value="uofflinereg.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="64"/>
-        <CursorPos X="23" Y="79"/>
-        <UsageCount Value="22"/>
+        <TopLine Value="31"/>
+        <CursorPos X="10" Y="40"/>
+        <UsageCount Value="28"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit18>
@@ -173,123 +167,123 @@
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="12" Column="82" TopLine="5"/>
+        <Caret Line="92" Column="10" TopLine="86"/>
       </Position1>
       <Position2>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1013" Column="37" TopLine="999"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="239" Column="9" TopLine="222"/>
       </Position2>
       <Position3>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="30" Column="29" TopLine="15"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="237" Column="18" TopLine="227"/>
       </Position3>
       <Position4>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1017" Column="24" TopLine="1006"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="207" Column="10" TopLine="192"/>
       </Position4>
       <Position5>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1159" Column="22" TopLine="1147"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="205" Column="18" TopLine="201"/>
       </Position5>
       <Position6>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="252" Column="15" TopLine="237"/>
+        <Caret Line="217" Column="22" TopLine="189"/>
       </Position6>
       <Position7>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="19" Column="26"/>
+        <Caret Line="331" Column="10" TopLine="322"/>
       </Position7>
       <Position8>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1106" Column="51" TopLine="1097"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="109" Column="10" TopLine="106"/>
       </Position8>
       <Position9>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="327" Column="16" TopLine="312"/>
+        <Caret Line="92" Column="10" TopLine="86"/>
       </Position9>
       <Position10>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="75" Column="10" TopLine="72"/>
+        <Caret Line="330" TopLine="322"/>
       </Position10>
       <Position11>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="60" Column="10" TopLine="54"/>
+        <Caret Line="108" Column="46" TopLine="97"/>
       </Position11>
       <Position12>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="5" Column="67"/>
+        <Caret Line="181" Column="94" TopLine="249"/>
       </Position12>
       <Position13>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="38" Column="19" TopLine="18"/>
+        <Caret Line="332" Column="26" TopLine="319"/>
       </Position13>
       <Position14>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="167" Column="37" TopLine="147"/>
+        <Caret Line="200" TopLine="194"/>
       </Position14>
       <Position15>
-        <Filename Value="uofflinereg.pas"/>
-        <Caret Line="49" TopLine="25"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="347" Column="44" TopLine="339"/>
       </Position15>
       <Position16>
-        <Filename Value="uofflinereg.pas"/>
-        <Caret Line="15" Column="15" TopLine="3"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="376" TopLine="357"/>
       </Position16>
       <Position17>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="38" Column="37" TopLine="53"/>
+        <Caret Line="351" Column="19" TopLine="351"/>
       </Position17>
       <Position18>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="75" Column="10" TopLine="72"/>
+        <Caret Line="332" Column="10" TopLine="362"/>
       </Position18>
       <Position19>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="60" Column="10" TopLine="54"/>
+        <Caret Line="223" TopLine="209"/>
       </Position19>
       <Position20>
-        <Filename Value="uofflinereg.pas"/>
-        <Caret Line="67" Column="35" TopLine="44"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="397" Column="29" TopLine="383"/>
       </Position20>
       <Position21>
-        <Filename Value="uofflinereg.pas"/>
-        <Caret Line="96" Column="55" TopLine="76"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="356" Column="22" TopLine="345"/>
       </Position21>
       <Position22>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="25" Column="12" TopLine="5"/>
+        <Caret Line="464" Column="42" TopLine="448"/>
       </Position22>
       <Position23>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="8" Column="56" TopLine="3"/>
+        <Caret Line="332" Column="10" TopLine="329"/>
       </Position23>
       <Position24>
-        <Filename Value="uofflinereg.pas"/>
-        <Caret Line="69" Column="20" TopLine="54"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="439" Column="32" TopLine="408"/>
       </Position24>
       <Position25>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="32" Column="8" TopLine="9"/>
+        <Caret Line="345" TopLine="368"/>
       </Position25>
       <Position26>
-        <Filename Value="uofflinereg.pas"/>
-        <Caret Line="148" Column="5" TopLine="125"/>
+        <Filename Value="usamutils.pas"/>
+        <Caret Line="444" Column="12" TopLine="443"/>
       </Position26>
       <Position27>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="32" Column="20" TopLine="23"/>
+        <Caret Line="445" Column="25" TopLine="442"/>
       </Position27>
       <Position28>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="33" Column="26" TopLine="21"/>
+        <Caret Line="473" Column="20" TopLine="459"/>
       </Position28>
       <Position29>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="42" Column="36" TopLine="27"/>
+        <Caret Line="466" Column="33" TopLine="453"/>
       </Position29>
       <Position30>
         <Filename Value="usamutils.pas"/>
-        <Caret Line="37" Column="19" TopLine="27"/>
+        <Caret Line="439" Column="32" TopLine="430"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>

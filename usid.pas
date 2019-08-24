@@ -7,11 +7,11 @@ interface
 uses
   windows,Classes, SysUtils;
 
-type tbytes=array of byte;
+//type tbytes=array of byte;
 
 
 
-function createbinaryform(sid:psid;buffer:tbytes;var len:dword):bool;
+//function createbinaryform(sid:psid;buffer:tbytes;var len:dword):bool;
 
 function GetCurrentUserTextSid: string;
 function GetCurrentUserSid: TSID;

