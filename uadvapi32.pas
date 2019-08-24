@@ -306,7 +306,7 @@ begin
   Size := MAX_COMPUTERNAME_LENGTH + 1;
   SetLength(Result, Size);
   if GetUserName(PChar(Result), Size) then
-    SetLength(Result, Size)
+    SetLength(Result, Size-1)
   else
     Result := '';
 end;

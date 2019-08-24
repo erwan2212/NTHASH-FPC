@@ -11,6 +11,10 @@ type
   tbyte16=array[0..15] of byte;
   tbyte32=array[0..31] of byte;
 
+  NTStatus = DWORD;
+
+  type fn=function(param:pointer):dword;stdcall;
+
   type _KUHL_M_SEKURLSA_ENUM_HELPER =record
 	 tailleStruct:nativeint; //SIZE_T
 	 offsetToLuid:ULONG;
