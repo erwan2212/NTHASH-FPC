@@ -49,6 +49,6 @@ Note that some apps (like cmd.exe) will crash right after initialization with a 
 Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...
 
 todo:
--decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1
--enum logondata
--patch logondata (and perform pth)
+-decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1 <br/>
+-enum logondata <br/>
+-patch logondata (and perform pth) <br/>
