@@ -3,7 +3,7 @@
 program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, upsapi, uimagehlp,
-  uadvapi32, utils, untdll, umemory, ucryptoapi, usamutils;
+  uadvapi32, utils, untdll, umemory, ucryptoapi, usamutils, uofflinereg;
 
 
 

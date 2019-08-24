@@ -5,7 +5,7 @@ unit usamutils;
 interface
 
 uses
-  windows,Classes, SysUtils,utils,uadvapi32;
+  windows,Classes, SysUtils,utils,uadvapi32,uofflinereg;
 
 function getsyskey(var output:tbyte16):boolean;
 function getsamkey(syskey:tbyte16;var output:tbyte16):boolean;
@@ -18,7 +18,39 @@ type tsamuser=record
 end;
 psamuser=^tsamuser;
 
+var
+  offline:boolean=false;
+
 implementation
+
+function getclass_offline(hive:string;keyname,valuename:string;var bytes:array of byte):boolean;
+var
+  ret:word;
+  hkey,hkresult:thandle;
+  classSize:dword;
+  classStr:array [0..15] of widechar;
+  i:byte=0;
+begin
+uofflinereg.init ;
+ret:=OROpenHive(pwidechar(widestring(hive)),hkey);
+if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
+keyname:=keyname+'\'+valuename;
+ret:=OROpenKey (hkey,pwidechar(widestring(keyname)),hkresult);
+if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
+classSize := 8+1;
+ret:=ORQueryInfoKey(hkresult,@classStr[0],@classSize,nil,nil,nil,nil,nil,nil,nil,nil);
+if (classSize=8) then
+      begin
+       while i<8 do
+             begin
+             bytes[i div 2]:=strtoint('$'+classStr[I]+classStr[i+1]);
+             inc(I,2);
+             end;
+       result:=true;
+       end;//if (classSize=8) then
+ret:=ORcloseKey (hkresult);
+ret:=ORCloseHive (hkey);
+end;
 
 function getclass(rootkey:hkey;keyname,valuename:string;var bytes:array of byte):boolean;
 var
@@ -66,7 +98,9 @@ begin
 result:=false;
 for i:=0 to length(keys)-1 do
     begin
-    result:=getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa',keys[i],enc_bytes);
+    if offline=false
+       then result:=getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa',keys[i],enc_bytes)
+       else result:=getclass_offline  ('system.sav' ,'ControlSet001\Control\Lsa',keys[i],enc_bytes);
     CopyMemory (@bytes[i*4],@enc_bytes[0],4);
     end;
 end;
