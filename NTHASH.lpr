@@ -1013,7 +1013,7 @@ end;
 
 
 begin
-  log('NTHASH 1.0 by erwan2212@gmail.com',1);
+  log('NTHASH 1.1 by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   log('Windows Version:'+winver,1);
