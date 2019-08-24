@@ -48,7 +48,7 @@ With a trustedinstaller token, you can perform actions like stop windefend (or k
 Note that some apps (like cmd.exe) will crash right after initialization with a c0000142. <br/>
 Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...
 
-todo:
+todo: <br/>
 -decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1 <br/>
 -enum logondata <br/>
 -patch logondata (and perform pth) <br/>
