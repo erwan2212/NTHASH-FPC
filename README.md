@@ -13,7 +13,10 @@ NTHASH /getsid /user:username [/server:hostname] <br/>
 NTHASH /getusers [/server:hostname] <br/>
 NTHASH /getdomains [/server:hostname <br/>
 NTHASH /dumpsam <br/>
-NTHASH /getsyskey <br/>
+NTHASH /dumphashes [/offline] <br/>
+NTHASH /dumphash /rid:500 [/offline] <br/>
+NTHASH /getsamkey [/offline] <br/>
+NTHASH /getsyskey [/offline] <br/>
 NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
@@ -25,10 +28,17 @@ NTHASH /dumpprocess /pid:12345 <br/>
 NTHASH /a_command /verbose <br/>
 
 <b>changentlm</b>, using a legacy api, may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607. <br/>
+Credits goes to https://github.com/vletoux/NTLMInjector <br/>
 
 <b>setntlm</b> on the other hand should always work and allow one to bypass password policy.  <br/>
+Credits goes to https://github.com/vletoux/NTLMInjector <br/>
 
 <b>dumpsam</b> will temporarily patch a module in lsass to be able to dump your SAM ntlm hashes (need to cover/test as many windows version as possible). <br/>
+
+<b>dumphash and dumphashes</b> will read the registry - you need to run as system to perform this action <br/>.
+You can also perform this offline (and then no longer require to run as system). <br/>
+For now only the rc4 algorithm is supported (need to implement the latest ntlm algorithm). <br/>
+https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/ is a must read. <br/>
 
 <b>runastoken</b> can be used to run a process under a system account. <br/>
 Once under a system account, you can also "steal" a token from trustedinstaller (net start trustedinstaller before hand. <br/>
@@ -39,6 +49,6 @@ Note that some apps (like cmd.exe) will crash right after initialization with a 
 Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...
 
 todo:
--decrypt sam hashes online (rather than patching lsass) and offline
+-decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1
 -enum logondata
 -patch logondata (and perform pth)
