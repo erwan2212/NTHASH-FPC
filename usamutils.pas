@@ -5,7 +5,7 @@ unit usamutils;
 interface
 
 uses
-  windows,Classes, SysUtils,utils,uadvapi32,uofflinereg;
+  windows,Classes, SysUtils,utils,uadvapi32,uofflinereg,ucryptoapi;
 
 function getsyskey(var output:tbyte16):boolean;
 function getsamkey(syskey:tbyte16;var output:tbyte16):boolean;
@@ -189,9 +189,9 @@ var
   ret:word;
   hkey,hkresult:thandle;
   data:array[0..1023] of byte;
-  salt:tbyte16;
+  salt,aesdata,IV:tbyte16;
   encrypted_samkey:array[0..31] of byte;
-  //bytes:array[0..15] of byte;
+  bytes:tbyte16;
   ptr:pointer;
   cbdata:integer;
 begin
@@ -215,11 +215,25 @@ copymemory(@data[0],ptr,cbdata);
      Syskey = decryptAES(encSysk, hBootkey, hBootIV)
      }
      log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
-     CopyMemory(@salt[0],@data[$70],sizeof(salt)) ;
-     CopyMemory(@encrypted_samkey[0],@data[$80],sizeof(tbyte16)) ;
-     //writeln('SAMKey:'+HashByteToString (samkey));
-     result:= gethashedbootkeyRC4(salt,syskey,encrypted_samkey,tbyte16(output)); //=true then writeln('SAMKey:'+HashByteToString (tbyte16(bytes)));
-
+     //writeln(data[0]);
+     if data[0]=3 then
+       begin
+       log('F.revision =3 - AES MODE',0);
+       CopyMemory(@iv[0],@data[$78],sizeof(iv)) ;
+       CopyMemory(@aesdata[0],@data[$88],sizeof(aesdata)) ;//Only 16 bytes needed
+       fillchar(output,sizeof(output),0);
+       log('key:'+HashByteToString (syskey),0);
+       log('iv:'+HashByteToString (iv),0);
+       log('data:'+HashByteToString (aesdata),0);
+       result:=DecryptAES128(syskey ,iv,aesdata,output);
+       end
+       else
+       begin
+        CopyMemory(@salt[0],@data[$70],sizeof(salt)) ;
+        CopyMemory(@encrypted_samkey[0],@data[$80],sizeof(tbyte16)) ;
+        //writeln('SAMKey:'+HashByteToString (samkey));
+        result:= gethashedbootkeyRC4(salt,syskey,encrypted_samkey,tbyte16(output)); //=true then writeln('SAMKey:'+HashByteToString (tbyte16(bytes)));
+       end;
      ret:=ORcloseKey (hkresult);
      ret:=ORCloseHive (hkey);
 
@@ -261,11 +275,18 @@ if ret=0 then
      Syskey = decryptAES(encSysk, hBootkey, hBootIV)
      }
      log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
-     //writeln(sam[0]);
+     //writeln(data[0]);
+     if data[0]=3 then
+     begin
+     log('F.revision not supported',1);
+     end
+     else
+     begin
      CopyMemory(@salt[0],@data[$70],sizeof(salt)) ;
      CopyMemory(@encrypted_samkey[0],@data[$80],sizeof(tbyte16)) ;
      //writeln('SAMKey:'+HashByteToString (samkey));
      result:= gethashedbootkeyRC4(salt,syskey,encrypted_samkey,tbyte16(output)); //=true then writeln('SAMKey:'+HashByteToString (tbyte16(bytes)));
+     end;
      end
      else log('RegQueryValueex NOT OK:'+inttostr(ret),0);
   end
