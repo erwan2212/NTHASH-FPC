@@ -78,9 +78,6 @@ begin
           if ResultLen >0 then result:=true else result:=false;
           log('CryptDecrypt NOT OK '+ IntTohex(GetLastError,4),0);
           Result := true;
-          {$IFDEF DEBUG_SLT_CRYPT}
-          OutputDebugCRYPT('TSLTAES128ECB.Decrypt ' + IntToStr(GetLastError()));
-          {$ENDIF DEBUG_SLT_CRYPT}
         end;
 
         CryptDestroyKey(hDecryptKey);
@@ -93,7 +90,7 @@ begin
   end;
 end;
 
-
+//------------------------------------------------------------------------------
 function AES128ECB_Decrypt(const Value: RawByteString; const Key: RawByteString): RawByteString;
 var
   pbData: PByte;
@@ -141,9 +138,6 @@ begin
         else
         begin
           Result := '';
-          {$IFDEF DEBUG_SLT_CRYPT}
-          OutputDebugCRYPT('TSLTAES128ECB.Decrypt ' + IntToStr(GetLastError()));
-          {$ENDIF DEBUG_SLT_CRYPT}
         end;
 
         CryptDestroyKey(hDecryptKey);
@@ -226,7 +220,7 @@ begin
     CryptReleaseContext(hCryptProvider, 0);
   end;
 end;
-
+//------------------------------------------------------------------------------
 
 
 procedure doSomeEncryption();

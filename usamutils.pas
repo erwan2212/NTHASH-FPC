@@ -218,7 +218,7 @@ copymemory(@data[0],ptr,cbdata);
      //writeln(data[0]);
      if data[0]=3 then
        begin
-       log('F.revision =3 - AES MODE',0);
+       log('AES MODE',0);
        CopyMemory(@iv[0],@data[$78],sizeof(iv)) ;
        CopyMemory(@aesdata[0],@data[$88],sizeof(aesdata)) ;//Only 16 bytes needed
        fillchar(output,sizeof(output),0);
@@ -246,7 +246,7 @@ var
   topkey:thandle;
   cbdata,lptype:dword;
   data:array[0..1023] of byte;
-  salt:tbyte16;
+  salt,iv,aesdata:tbyte16;
   encrypted_samkey:array[0..31] of byte;
   //bytes:array[0..15] of byte;
 begin
@@ -278,7 +278,14 @@ if ret=0 then
      //writeln(data[0]);
      if data[0]=3 then
      begin
-     log('F.revision not supported',1);
+     log('AES MODE',0);
+     CopyMemory(@iv[0],@data[$78],sizeof(iv)) ;
+     CopyMemory(@aesdata[0],@data[$88],sizeof(aesdata)) ;//Only 16 bytes needed
+     fillchar(output,sizeof(output),0);
+     log('key:'+HashByteToString (syskey),0);
+     log('iv:'+HashByteToString (iv),0);
+     log('data:'+HashByteToString (aesdata),0);
+     result:=DecryptAES128(syskey ,iv,aesdata,output);
      end
      else
      begin
@@ -330,6 +337,8 @@ key.MaximumLength :=MD5_DIGEST_LENGTH;
 key.Buffer :=md5ctx.digest;
 status := RtlEncryptDecryptRC4(cypheredHashBuffer, key );
 if status<>0 then log('RtlEncryptDecryptRC4 NOT OK',0) else log('RtlEncryptDecryptRC4 OK',0);
+result:=status=0;
+exit;
 //STEP5, use DES derived from RID to fully decrypt the Hash
 //...
 //kuhl_m_lsadump_dcsync_decrypt(PBYTE encodedData, DWORD encodedDataSize, DWORD rid, LPCWSTR prefix, BOOL isHistory)
@@ -356,10 +365,12 @@ var
   hkey,hkresult:thandle;
   cbdata:integer;
   data:array[0..1023] of byte;
-  //hash:tbyte16;
-  offset,name_offset,name_length:dword;
+  iv,aesdata:tbyte16;
+  aeshash_offset,hash_offset,hash_length,name_offset,name_length,iv_offset:dword;
   name:pwidechar;
   ptr:pointer;
+  i:byte;
+  status:ntstatus;
 begin
 result:=false;
 
@@ -385,19 +396,62 @@ copymemory(@data[0],ptr,cbdata);
      copymemory(@name_offset,@data[$0C],sizeof(name_offset));
      name_offset := name_offset + $CC;
      copymemory(@name_length,@data[$10],sizeof(name_length));
-     copymemory(@offset,@data[$A8],sizeof(offset));
      name:=allocmem(name_length);
      CopyMemory(name,@data[name_offset],name_length );
      username:=name;
      //
-     offset:=offset+$CC+4; //the first 4 bytes are a header (revision, etc?)
-     log('Offset:'+inttohex(offset,4),0);
-     CopyMemory(@output[0],@data[offset],sizeof(output)) ;
+     copymemory(@hash_length,@data[$AC],sizeof(hash_length));
+     log('hash_length:'+inttostr(hash_length),0);
+     copymemory(@hash_offset,@data[$A8],sizeof(hash_offset));
+     hash_offset:=hash_offset+$CC+4; //the first 4 bytes are a header (revision, etc?)
+     log('hash Offset:'+inttohex(hash_offset,4),0);
+     if hash_length =$38 then    //aes
+     begin
+     log('AES MODE',0);
+     //hash_offset:=hash_offset+4;  //actually matches the IV offset??
+     aeshash_offset:=hash_offset+24-4;
+     iv_offset:=hash_offset+8-4;
+     //copymemory(@iv_offset,@data[$B4],sizeof(iv_offset));
+     //iv_offset:=iv_offset+$CC; //rubbish for now but actialy is 16 bytes after actual IV offset??
+     log('IV Offset:'+inttohex(iv_offset,4),0);
+     CopyMemory(@iv[0],@data[iv_offset],sizeof(iv)) ;
+     CopyMemory(@aesdata[0],@data[aeshash_offset],sizeof(aesdata)) ;//Only 16 bytes needed
+     fillchar(output,sizeof(output),0);
+     log('key:'+HashByteToString (samkey),0);
+     log('iv:'+HashByteToString (iv),0);
+     log('data:'+HashByteToString (aesdata),0);
+     result:=DecryptAES128(samkey ,iv,aesdata,output);
+     end;
+     if hash_length =$14 then //rc4
+     begin
+     CopyMemory(@output[0],@data[hash_offset],sizeof(output)) ;
      log('Encrypted Hash:'+HashByteToString (output),0);
      result:=decrypthashRC4(samkey ,output,rid);
-
+     end;
      ret:=ORcloseKey (hkresult);
      ret:=ORCloseHive (hkey);
+
+     if result=false then exit;
+
+     if (hash_length =$14) or (hash_length =$38) then
+     begin
+     //STEP5, use DES derived from RID to fully decrypt the Hash
+     //...
+     //kuhl_m_lsadump_dcsync_decrypt(PBYTE encodedData, DWORD encodedDataSize, DWORD rid, LPCWSTR prefix, BOOL isHistory)
+     for i := 0 to 15 do
+       begin
+       //i := i+ 16; //LM_NTLM_HASH_LENGTH; //?
+       status:=RtlDecryptDES2blocks1DWORD(@output[0]  + i, @rid, data);
+       if status=0 then
+                   begin
+                   //writeln('ok:'+HashByteToString (data)); //debug
+                   copymemory(@output[0],@data[0],16);
+                   result:=status=0;
+                   break;
+                   end //if status=0 then
+                   else log('RtlDecryptDES2blocks1DWORD NOT OK',0)
+     end; //for i := 0 to 15 do
+     end; //if (hash_length =$20) or (hash_length =$38) then
 
 end;
 
@@ -409,9 +463,11 @@ var
   topkey:thandle;
   cbdata,lptype:dword;
   data:array[0..1023] of byte;
-  //hash:tbyte16;
-  offset,name_offset,name_length:dword;
+  iv,aesdata:tbyte16;
+  aeshash_offset,hash_offset,hash_length,name_offset,name_length,iv_offset:dword;
   name:pwidechar;
+  i:byte;
+  status:ntstatus;
 begin
 result:=false;
 if offline=true then
@@ -441,20 +497,65 @@ if ret=0 then
      copymemory(@name_offset,@data[$0C],sizeof(name_offset));
      name_offset := name_offset + $CC;
      copymemory(@name_length,@data[$10],sizeof(name_length));
-     copymemory(@offset,@data[$A8],sizeof(offset));
      name:=allocmem(name_length);
      CopyMemory(name,@data[name_offset],name_length );
      username:=name;
      //
-     offset:=offset+$CC+4; //the first 4 bytes are a header (revision, etc?)
-     log('Offset:'+inttohex(offset,4),0);
-     CopyMemory(@output[0],@data[offset],sizeof(output)) ;
+     copymemory(@hash_length,@data[$AC],sizeof(hash_length));
+     log('hash_length:'+inttostr(hash_length),0);
+     copymemory(@hash_offset,@data[$A8],sizeof(hash_offset));
+     hash_offset:=hash_offset+$CC+4; //the first 4 bytes are a header (revision, etc?)
+     log('hash Offset:'+inttohex(hash_offset,4),0);
+     if hash_length =$38 then    //aes
+     begin
+     log('AES MODE',0);
+     //hash_offset:=hash_offset+4;  //actually matches the IV offset??
+     aeshash_offset:=hash_offset+24-4;
+     iv_offset:=hash_offset+8-4;
+     //copymemory(@iv_offset,@data[$B4],sizeof(iv_offset));
+     //iv_offset:=iv_offset+$CC; //rubbish for now but actialy is 16 bytes after actual IV offset??
+     log('IV Offset:'+inttohex(iv_offset,4),0);
+     CopyMemory(@iv[0],@data[iv_offset],sizeof(iv)) ;
+     CopyMemory(@aesdata[0],@data[aeshash_offset],sizeof(aesdata)) ;//Only 16 bytes needed
+     fillchar(output,sizeof(output),0);
+     log('key:'+HashByteToString (samkey),0);
+     log('iv:'+HashByteToString (iv),0);
+     log('data:'+HashByteToString (aesdata),0);
+     result:=DecryptAES128(samkey ,iv,aesdata,output);
+     end;
+     if hash_length =$14 then //rc4
+     begin
+     CopyMemory(@output[0],@data[hash_offset],sizeof(output)) ;
      log('Encrypted Hash:'+HashByteToString (output),0);
      result:=decrypthashRC4(samkey ,output,rid);
-     end
-     else writeln(ret);
+     end;
+     end //if ret=0 then
+     else log('RegOpenKeyEx NOT OK',0);
   end;
 RegCloseKey(topkey);
+
+if result=false then exit;
+
+if (hash_length =$14) or (hash_length =$38) then
+begin
+//STEP5, use DES derived from RID to fully decrypt the Hash
+//...
+//kuhl_m_lsadump_dcsync_decrypt(PBYTE encodedData, DWORD encodedDataSize, DWORD rid, LPCWSTR prefix, BOOL isHistory)
+for i := 0 to 15 do
+  begin
+  //i := i+ 16; //LM_NTLM_HASH_LENGTH; //?
+  status:=RtlDecryptDES2blocks1DWORD(@output[0]  + i, @rid, data);
+  if status=0 then
+              begin
+              //writeln('ok:'+HashByteToString (data)); //debug
+              copymemory(@output[0],@data[0],16);
+              result:=status=0;
+              break;
+              end //if status=0 then
+              else log('RtlDecryptDES2blocks1DWORD NOT OK',0)
+end; //for i := 0 to 15 do
+end; //if (hash_length =$20) or (hash_length =$38) then
+
 end;
 
 function query_samusers_offline(samkey:tbyte16;func:pointer =nil):boolean;

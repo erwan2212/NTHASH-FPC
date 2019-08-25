@@ -1005,9 +1005,11 @@ var
   bytes:tbyte16;
   username:string;
 begin
+writeln('ok');
+exit;
   if dumphash(psamuser(param).samkey,psamuser(param).rid,bytes,username)
      then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+HashByteToString(bytes) ,1)
-     else log('gethash NOT OK' ,1);
+     else log('gethash NOT OK for '+username ,1);
 end;
 
 
