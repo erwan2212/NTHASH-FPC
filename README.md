@@ -26,6 +26,7 @@ NTHASH /killproc /pid:12345 <br/>
 NTHASH /enummod /pid:12345 <br/>
 NTHASH /dumpprocess /pid:12345 <br/>
 NTHASH /a_command /verbose <br/>
+NTHASH /a_command /system <br/>
 
 <b>changentlm</b>, using a legacy api, may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607. <br/>
 Credits goes to https://github.com/vletoux/NTLMInjector <br/>
@@ -36,13 +37,15 @@ Credits goes to https://github.com/vletoux/NTLMInjector <br/>
 <b>dumpsam</b> will temporarily patch a module in lsass to be able to dump your SAM ntlm hashes (need to cover/test as many windows version as possible). <br/>
 
 <b>dumphash and dumphashes</b> will read the registry - you need to run as system to perform this action <br/>.
+Or you can use the /system switch <br/>.
 You can also perform this offline (and then no longer require to run as system). <br/>
 Both the RC4 and AES cipher are supported. <br/>
 https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/ is a must read to understand RC4 vs AES. <br/>
 
 <b>runastoken</b> can be used to run a process under a system account. <br/>
 Once under a system account, you can also "steal" a token from trustedinstaller (net start trustedinstaller before hand. <br/>
-With a trustedinstaller token, you can perform actions like stop windefend (or kill the process). <br/>
+Note that you can steal a trustedinstaller token directly by using the /system switch. <br/>
+With a trustedinstaller token, you can perform actions like stop windefend (or kill the process, or modify the AV settings, etc). <br/>
 
 <b>runaschild</b> can be used to run a process as a child of another existing/parent process. <br/>
 Note that some apps (like cmd.exe) will crash right after initialization with a c0000142. <br/>
