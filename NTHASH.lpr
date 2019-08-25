@@ -978,6 +978,17 @@ begin
 
 end;
 
+function impersonatepid(pid:dword):boolean;
+var
+  i:byte;
+begin
+result:=false;
+for i:=3 downto 0 do
+  begin
+  if ImpersonateAsSystemW_Vista (TIntegrityLevel(i),pid) then begin result:=true;exit;end;
+  end;
+log('impersonatepid NOT OK',1);
+end;
 
 function createprocessaspid(ApplicationName: string;pid:string     ):boolean;
 var
@@ -1051,8 +1062,14 @@ begin
   log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpprocess /pid:12345',1);
   log('NTHASH /a_command /verbose',1);
+  log('NTHASH /a_command /system',1);
   end;
   //
+  p:=pos('/system',cmdline);
+  if p>0 then
+     begin
+     if impersonatepid (lsass_pid) then log('Impersonate:'+GetCurrUserName,1);
+     end;
   p:=pos('/verbose',cmdline);
   if p>0 then verbose:=true;
   p:=pos('/offline',cmdline);

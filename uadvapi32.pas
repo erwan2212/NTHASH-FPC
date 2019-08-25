@@ -39,8 +39,10 @@ function GenerateNTLMHashByte(mypassword:string):tbyte16__;
 function EnableDebugPriv:boolean;
 function enumprivileges:boolean;
 
-function Impersonate(const User, PW: string): Boolean;
+function ImpersonateUser(const User, PW: string): Boolean;
 function GetCurrUserName: string;
+
+function ImpersonateAsSystemW_Vista(IntegrityLevel: TIntegrityLevel;pid:cardinal): Boolean;
 
 function CreateProcessAsLogon(const User, PW, Application, CmdLine: WideString): LongWord;
 
@@ -311,7 +313,7 @@ begin
     Result := '';
 end;
 
-function Impersonate(const User, PW: string): Boolean;
+function ImpersonateUser(const User, PW: string): Boolean;
 var
  LogonType         : Integer;
  LogonProvider     : Integer;
@@ -434,6 +436,88 @@ begin
                           begin
                             Result := TCreateProcessWithTokenW(CreateProcessWithTokenW)(ImpersonateToken, 0, ApplicationName, CommandLine, CreationFlags, Environment, CurrentDirectory, @StartupInfo, @ProcessInformation);
                             //writeln(result);
+                            SetLastError(0);
+                          end;
+                        end;
+                      end;
+                    finally
+                      FreeMem(MandatoryLabel);
+                    end;
+                  end;
+                end;
+              finally
+                CloseHandle(ImpersonateToken);
+              end;
+            end;
+          finally
+            CloseHandle(TokenHandle);
+          end;
+        end;
+      finally
+        CloseHandle(ProcessHandle);
+      end;
+    end;
+  except
+  end;
+end;
+
+function ImpersonateAsSystemW_Vista(IntegrityLevel: TIntegrityLevel;pid:cardinal): Boolean;
+var
+  ProcessHandle, TokenHandle, ImpersonateToken: THandle;
+  Sid: PSID;
+  MandatoryLabel: PTOKEN_MANDATORY_LABEL;
+  ReturnLength: DWORD;
+  PIntegrityLevel: PWideChar;
+  //
+   StartInfo: TStartupInfoW;
+  ProcInfo: TProcessInformation;
+begin
+  Result := False;
+  if (@ImpersonateLoggedOnUser = nil) then
+    Exit;
+  try
+  ProcessHandle := OpenProcess(MAXIMUM_ALLOWED, False, pid);
+    if ProcessHandle <> 0 then
+    begin
+      try
+        if OpenProcessToken(ProcessHandle, MAXIMUM_ALLOWED, TokenHandle) then
+        begin
+          try
+            if DuplicateTokenEx(TokenHandle, MAXIMUM_ALLOWED, nil, SecurityImpersonation, TokenPrimary, ImpersonateToken) then
+            begin
+              try
+                New(Sid);
+                if (not GetTokenInformation(ImpersonateToken, TTokenInformationClass(TokenIntegrityLevel), MandatoryLabel, 0, ReturnLength)) and (GetLastError = ERROR_INSUFFICIENT_BUFFER) then
+                begin
+                  MandatoryLabel := nil;
+                  GetMem(MandatoryLabel, ReturnLength);
+                  if MandatoryLabel <> nil then
+                  begin
+                    try
+                      if GetTokenInformation(ImpersonateToken, TTokenInformationClass(TokenIntegrityLevel), MandatoryLabel, ReturnLength, ReturnLength) then
+                      begin
+                        if IntegrityLevel = SystemIntegrityLevel then
+                          PIntegrityLevel := SYSTEM_INTEGRITY_SID
+                        else if IntegrityLevel = HighIntegrityLevel then
+                          PIntegrityLevel := HIGH_INTEGRITY_SID
+                        else if IntegrityLevel = MediumIntegrityLevel then
+                          PIntegrityLevel := MEDIUM_INTEGRITY_SID
+                        else if IntegrityLevel = LowIntegrityLevel then
+                          PIntegrityLevel := LOW_INTEGRITY_SID;
+                        if ConvertStringSidToSidW(PIntegrityLevel, Sid) then
+                        begin
+                          MandatoryLabel.Label_.Sid := Sid;
+                          MandatoryLabel.Label_.Attributes := SE_GROUP_INTEGRITY;
+                          if SetTokenInformation(ImpersonateToken, TTokenInformationClass(TokenIntegrityLevel), MandatoryLabel, SizeOf(TOKEN_MANDATORY_LABEL) + GetLengthSid(Sid)) then
+                          begin
+                            {
+                            FillChar(StartInfo, SizeOf(TStartupInfoW), #0);
+                            FillChar(ProcInfo, SizeOf(TProcessInformation), #0);
+                            StartInfo.cb := SizeOf(TStartupInfo);
+                            StartInfo.lpDesktop := pwidechar(widestring('WinSta0\Default'));
+                            Result := CreateProcessWithTokenW(ImpersonateToken, 0, '', widestring('c:\windows\system32\cmd.exe'), CREATE_NEW_PROCESS_GROUP or NORMAL_PRIORITY_CLASS, nil, nil, @StartInfo, @ProcInfo);
+                            }
+                            result:=ImpersonateLoggedOnUser (ImpersonateToken);
                             SetLastError(0);
                           end;
                         end;
