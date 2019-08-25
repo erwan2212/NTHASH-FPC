@@ -13,6 +13,7 @@ function dumphash(samkey:tbyte16;rid:dword;var output:tbyte16;var username:strin
 function query_samusers(samkey:tbyte16;func:pointer =nil):boolean;
 
 type tsamuser=record
+     //could be a good idea to pass the handle to the reg key, offline/online
      samkey:tbyte16;
      rid:dword;
 end;
@@ -121,7 +122,6 @@ result:=false;
 result:=get_encoded_syskey(bytes);
 //Get syskey raw bytes (using permutation)
 for i:=0 to sizeof(bytes)-1 do output[i] := bytes[syskeyPerm[i]];
-//if getsamkey(output,samkey)=true then writeln('SAMKey:'+HashByteToString (samkey));
 end;
 
 //see kuhl_m_lsadump_getSamKey in kuhl_m_lsadump_getSamKey
@@ -207,14 +207,8 @@ if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
 cbdata:=getvaluePTR (hkresult,'F',ptr);
 if cbdata<=0 then begin log('getvaluePTR NOT OK',0);exit;end;
 copymemory(@data[0],ptr,cbdata);
-     {
-     //we should cover AES/DES on new "ntlm", based on the first byte of F
-     //if F[0]=3 then ...
-     hBootIV = HexRegSysk[0x78*2:(0x78+16)*2] ## 16 Bytes iv
-     encSysk = HexRegSysk[0x88*2:(0x88+32)*2][:32] ## Only 16 bytes needed
-     Syskey = decryptAES(encSysk, hBootkey, hBootIV)
-     }
-     log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
+log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
+
      //writeln(data[0]);
      if data[0]=3 then
        begin
@@ -257,7 +251,6 @@ if offline=true then
    exit;
    end;
 //only if run as system
-//ret := RegCreateKeyEx(HKEY_LOCAL_MACHINE ,pchar('SAM\sam\Domains\account'),0,nil,REG_OPTION_NON_VOLATILE,KEY_READ,nil,topKey,@dwDisposition);
 ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, 'SAM\sam\Domains\account',0, KEY_READ, topkey);
 if ret=0 then
   begin
@@ -267,13 +260,6 @@ if ret=0 then
   ret := RegQueryValueex (topkey,pchar('F'),nil,@lptype,@data[0],@cbdata);
   if ret=0 then
      begin
-     {
-     //we should cover AES/DES on new "ntlm", based on the first byte of F
-     //if F[0]=3 then ...
-     hBootIV = HexRegSysk[0x78*2:(0x78+16)*2] ## 16 Bytes iv
-     encSysk = HexRegSysk[0x88*2:(0x88+32)*2][:32] ## Only 16 bytes needed
-     Syskey = decryptAES(encSysk, hBootkey, hBootIV)
-     }
      log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
      //writeln(data[0]);
      if data[0]=3 then
@@ -340,8 +326,7 @@ if status<>0 then log('RtlEncryptDecryptRC4 NOT OK',0) else log('RtlEncryptDecry
 result:=status=0;
 exit;
 //STEP5, use DES derived from RID to fully decrypt the Hash
-//...
-//kuhl_m_lsadump_dcsync_decrypt(PBYTE encodedData, DWORD encodedDataSize, DWORD rid, LPCWSTR prefix, BOOL isHistory)
+//moved to dumphash to handle both rc4 and aes
 for i := 0 to cypheredHashBuffer.Length -1 do
   begin
   //i := i+ 16; //LM_NTLM_HASH_LENGTH; //?
@@ -390,12 +375,6 @@ if cbdata<=0
      copymemory(@data[0],ptr,cbdata);
 
      log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
-     //we should check the length 0x14=rc4 / 0x38=aes
-     //see https://github.com/tijldeneut/Security/blob/master/DumpSomeHashes/DumpSomeHashesAuto.py
-     {
-     if hex(Length)=='0x38': ## AES Encrypted Hash
-     EncryptedHash = decryptAES(Hash, Syskey, IV)
-     }
      //username
      copymemory(@name_offset,@data[$0C],sizeof(name_offset));
      name_offset := name_offset + $CC;
@@ -409,6 +388,7 @@ if cbdata<=0
      copymemory(@hash_offset,@data[$A8],sizeof(hash_offset));
      hash_offset:=hash_offset+$CC+4; //the first 4 bytes are a header (revision, etc?)
      log('hash Offset:'+inttohex(hash_offset,4),0);
+     //see https://github.com/tijldeneut/Security/blob/master/DumpSomeHashes/DumpSomeHashesAuto.py
      if hash_length =$38 then    //aes
      begin
      log('AES MODE',0);
@@ -442,8 +422,7 @@ if cbdata<=0
      if (hash_length =$14) or (hash_length =$38) then
      begin
      //STEP5, use DES derived from RID to fully decrypt the Hash
-     //...
-     //kuhl_m_lsadump_dcsync_decrypt(PBYTE encodedData, DWORD encodedDataSize, DWORD rid, LPCWSTR prefix, BOOL isHistory)
+     //see kuhl_m_lsadump_dcsync_decrypt in mimikatz
      for i := 0 to 15 do
        begin
        //i := i+ 16; //LM_NTLM_HASH_LENGTH; //?
@@ -482,7 +461,6 @@ if offline=true then
             exit;
             end;
 //only if run as system
-//ret := RegCreateKeyEx(HKEY_LOCAL_MACHINE ,pchar('SAM\sam\Domains\account'),0,nil,REG_OPTION_NON_VOLATILE,KEY_READ,nil,topKey,@dwDisposition);
 ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account\users\'+inttohex(rid,8)),0, KEY_READ, topkey);
 if ret=0 then
   begin
@@ -493,12 +471,6 @@ if ret=0 then
   if ret=0 then
      begin
      log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
-     //we should check the length 0x14=rc4 / 0x38=aes
-     //see https://github.com/tijldeneut/Security/blob/master/DumpSomeHashes/DumpSomeHashesAuto.py
-     {
-     if hex(Length)=='0x38': ## AES Encrypted Hash
-     EncryptedHash = decryptAES(Hash, Syskey, IV)
-     }
      //username
      copymemory(@name_offset,@data[$0C],sizeof(name_offset));
      name_offset := name_offset + $CC;
@@ -512,6 +484,7 @@ if ret=0 then
      copymemory(@hash_offset,@data[$A8],sizeof(hash_offset));
      hash_offset:=hash_offset+$CC+4; //the first 4 bytes are a header (revision, etc?)
      log('hash Offset:'+inttohex(hash_offset,4),0);
+     //see https://github.com/tijldeneut/Security/blob/master/DumpSomeHashes/DumpSomeHashesAuto.py
      if hash_length =$38 then    //aes
      begin
      log('AES MODE',0);
@@ -545,8 +518,7 @@ if result=false then exit;
 if (hash_length =$14) or (hash_length =$38) then
 begin
 //STEP5, use DES derived from RID to fully decrypt the Hash
-//...
-//kuhl_m_lsadump_dcsync_decrypt(PBYTE encodedData, DWORD encodedDataSize, DWORD rid, LPCWSTR prefix, BOOL isHistory)
+//see kuhl_m_lsadump_dcsync_decrypt in mimikatz
 for i := 0 to 15 do
   begin
   //i := i+ 16; //LM_NTLM_HASH_LENGTH; //?

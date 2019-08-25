@@ -17,7 +17,7 @@ implementation
 const
 PROV_RSA_AES = 24;
 
-
+//similar to kull_m_crypto_genericAES128Decrypt in mimikatz
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;
 var
   pbData: PByte;
@@ -260,48 +260,7 @@ begin
   Move(Source^, Destination^, Length);
 end;
 
-//kull_m_crypto_genericAES128Decrypt(sysKey, pAesKey->Salt, pAesKey->data, pAesKey->DataLen, &out, &len)
 
-function crypto_genericAES128Decrypt(pKey,pIV,pData:pointer;dwDataLen:dword;pOut:pointer;var dwOutLen:dword):boolean;
-
-  var
-	 status:boolean = FALSE;
-	 hProv:HCRYPTPROV;
-	 hKey:HCRYPTKEY;
-	 mode :DWORD= CRYPT_MODE_CBC;
- begin
-	if(CryptAcquireContext(hProv, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) then
-	begin
-		//if(kull_m_crypto_hkey(hProv, CALG_AES_128, pKey, 16, 0, &hKey, NULL))
-                if 1=1 then
-		begin
-			if(CryptSetKeyParam(hKey, KP_MODE, @mode, 0)) then
-			begin
-				if(CryptSetKeyParam(hKey, KP_IV, pIV, 0)) then
-				begin
-					if (pOut = pointer(LocalAlloc(LPTR, dwDataLen))) then
-					begin
-						dwOutLen := dwDataLen;
-						RtlCopyMemory(pOut, pData, dwDataLen);
-						if (CryptDecrypt(hKey, 0, TRUE, 0, pOut, dwOutLen)=true) then
-						begin
-							writeln('CryptDecrypt');
-							pOut := pointer(LocalFree(nativeuint(pOut)));
-							dwOutLen := 0;
-						end
-					end
-				end
-				else writeln('CryptSetKeyParam (IV)');
-			end
-			else writeln('CryptSetKeyParam (MODE)');
-			CryptDestroyKey(hKey);
-		end
-		else writeln('kull_m_crypto_hkey');
-		CryptReleaseContext(hProv, 0);
-	end
-	else writeln('CryptAcquireContext');
-	result:= status;
-end;
 
 
 end.
