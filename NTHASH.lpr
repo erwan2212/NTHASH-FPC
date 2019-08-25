@@ -1005,8 +1005,6 @@ var
   bytes:tbyte16;
   username:string;
 begin
-writeln('ok');
-exit;
   if dumphash(psamuser(param).samkey,psamuser(param).rid,bytes,username)
      then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+HashByteToString(bytes) ,1)
      else log('gethash NOT OK for '+username ,1);
@@ -1015,7 +1013,7 @@ end;
 
 
 begin
-  log('NTHASH 1.1 by erwan2212@gmail.com',1);
+  log('NTHASH 1.2 by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   log('Windows Version:'+winver,1);

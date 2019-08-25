@@ -382,8 +382,12 @@ if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
 
 
 cbdata:=getvaluePTR (hkresult,'V',ptr);
-if cbdata<=0 then begin log('getvaluePTR NOT OK',0);exit;end;
-copymemory(@data[0],ptr,cbdata);
+if cbdata<=0
+     then
+     log('getvaluePTR NOT OK',0)
+     else //if cbdata<=0
+     begin
+     copymemory(@data[0],ptr,cbdata);
 
      log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
      //we should check the length 0x14=rc4 / 0x38=aes
@@ -428,8 +432,10 @@ copymemory(@data[0],ptr,cbdata);
      log('Encrypted Hash:'+HashByteToString (output),0);
      result:=decrypthashRC4(samkey ,output,rid);
      end;
-     ret:=ORcloseKey (hkresult);
-     ret:=ORCloseHive (hkey);
+     //ugly try/except as it seems to crash randomly
+     try if hkresult>0 then ret:=ORcloseKey (hkresult);except end;
+     try if hkey>0 then ret:=ORCloseHive (hkey);except end;
+     end; //if cbdata<=0
 
      if result=false then exit;
 
