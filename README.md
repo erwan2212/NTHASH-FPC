@@ -37,7 +37,7 @@ Credits goes to https://github.com/vletoux/NTLMInjector <br/>
 
 <b>dumphash and dumphashes</b> will read the registry - you need to run as system to perform this action <br/>.
 You can also perform this offline (and then no longer require to run as system). <br/>
-For now only the rc4 algorithm is supported (need to implement the latest ntlm algorithm). <br/>
+For now only the rc4 cipher is supported (need to look at AES to suppoport latest win10 1607 hashes). <br/>
 https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/ is a must read. <br/>
 
 <b>runastoken</b> can be used to run a process under a system account. <br/>
@@ -50,5 +50,6 @@ Wierdly enough, loading notepad.exe with this method and then launching cmd.exe 
 
 todo: <br/>
 -decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1 <br/>
+-deal with new AES cipher used in latest win10 1607 <br/>
 -enum logondata <br/>
 -patch logondata (and perform pth) <br/>
