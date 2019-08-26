@@ -149,7 +149,12 @@ function DuplicateTokenEx(hExistingToken: HANDLE; dwDesiredAccess: DWORD;
 //function ConvertStringSidToSidA(StringSid: LPCSTR; var Sid: PSID): BOOL; stdcall;
 function ConvertStringSidToSidW(StringSid: LPCWSTR; var Sid: PSID): BOOL; stdcall;external 'advapi32.dll';
 //function ConvertStringSidToSid(StringSid: LPCTSTR; var Sid: PSID): BOOL; stdcall;
-function ConvertStringSidToSidA(StringSid: pchar; var Sid: PSID): BOOL; stdcall;external 'advapi32.dll' name 'ConvertStringSidToSidA';
+function ConvertStringSidToSidA(StringSid: pchar; var Sid: PSID): BOOL; stdcall;external 'advapi32.dll';// name 'ConvertStringSidToSidA';
+
+function ConvertSidToStringSidA(SID: PSID; var StringSid: pchar): Boolean; stdcall;
+    external 'advapi32.dll';// name 'ConvertSidToStringSidA';
+function ConvertSidToStringSidW(SID: PSID; var StringSid: pwidechar): Boolean; stdcall;
+    external 'advapi32.dll';// name 'ConvertSidToStringSidA';
 
 // SHA1
 

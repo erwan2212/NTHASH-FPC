@@ -64,7 +64,7 @@ var
   i:byte;
   dummy:string='';
 begin
-  for i:=0 to sizeof(hash)-1 do dummy:=dummy+inttohex(hash[i],2);
+  for i:=0 to sizeof(hash)-1 do  dummy:=dummy+inttohex(hash[i],2);
   result:=dummy;
 end;
 
@@ -74,7 +74,7 @@ var
   tmp:string;
 begin
 i:=1;
-  while I<sizeof(hash)*2 do
+  while I<length(hash){sizeof(hash)*2} do
       begin
       tmp:=copy(hash,i,2);
       result[i div 2]:=strtoint('$'+tmp);

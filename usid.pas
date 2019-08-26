@@ -21,11 +21,7 @@ function GetCurrentUserSid: TSID;
 
 function GetAccountSid2(const Server, User: WideString; var Sid: PSID): DWORD;
 
-function ConvertSidToStringSid(SID: PSID; var StringSid: pchar): Boolean; stdcall;
-    external 'advapi32.dll' name 'ConvertSidToStringSidA';
 
-function ConvertStringSidToSid(StringSid: pchar; var Sid: PSID): BOOL; stdcall;
-    external 'advapi32.dll' name 'ConvertStringSidToSidA';
 
 const
  HEAP_ZERO_MEMORY = $00000008;
@@ -34,6 +30,12 @@ SID_REVISION     = 1; // Current revision level
 
 
 implementation
+
+function ConvertSidToStringSid(SID: PSID; var StringSid: pchar): Boolean; stdcall;
+    external 'advapi32.dll' name 'ConvertSidToStringSidA';
+
+function ConvertStringSidToSid(StringSid: pchar; var Sid: PSID): BOOL; stdcall;
+    external 'advapi32.dll' name 'ConvertStringSidToSidA';
 
 
 //void CreateFromBinaryForm (IntPtr binaryForm, int length)
