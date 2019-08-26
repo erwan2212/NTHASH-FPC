@@ -54,5 +54,6 @@ Wierdly enough, loading notepad.exe with this method and then launching cmd.exe 
 todo: <br/>
 -decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1 <br/>
 -deal with new AES cipher used in latest win10 1607 : done in 1.2 <br/>
--enum logondata <br/>
--patch logondata (and perform pth) <br/>
+-enum Lsasrv.dll!LogonSessionList <br/>
+-enum Wdigest.dll!l_LogSessList <br/>
+-patch LogonSessionList and perform pth? <br/>
