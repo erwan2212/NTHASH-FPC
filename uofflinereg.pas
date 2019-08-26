@@ -8,7 +8,7 @@ uses
   Windows,Classes, SysUtils;
 
 function init:boolean;
-function getvaluePTR(key:thandle;svaluename:string;var data:pointer):integer;
+function getvaluePTR(key:thandle;svaluename:string;var data:pointer):longword;
 
 
 type
@@ -105,46 +105,55 @@ implementation
   end;
   end;
 
-  function getvaluePTR(key:thandle;svaluename:string;var data:pointer):integer;
+  function getvaluePTR(key:thandle;svaluename:string;var data:pointer):longword;
 var
 ret:dword;
 wvaluename:array[0..255] of widechar;
 pvdata:pointer;
-pdwtype,pcbData:pdword;
-b:array of byte;
+//pdwtype,pcbData:pdword;
+pdwtype,pcbdata:dword;
+//b:array of byte;
 begin
-result:=-1;
+result:=0;
 try
 fillchar(wvaluename,sizeof(wvaluename),#0);
 StringToWideChar(svaluename, wvaluename, length(svaluename)+1);
-getmem(pdwType,sizeof(dword));
 
-getmem(pcbdata,sizeof(dword));pcbdata^:=0;
+//getmem(pdwType,sizeof(dword));
+//getmem(pcbdata,sizeof(dword));pcbdata^:=0;
+pcbdata:=0;
 pvdata:=nil;
-ret:=ORGetValue (key,nil,wvaluename,pdwtype,pvdata,pcbData);
+ret:=ORGetValue (key,nil,wvaluename,@pdwtype,pvdata,@pcbData);
 if ret<>0 then raise exception.Create('ORGetValue failed:'+inttostr(ret)+':'+SysErrorMessage(ret));
-if pcbData^=0 then
+//if pcbData^=0 then
+if (pcbData=0) then
     begin
     result:=0;
     exit;
     end;
 
-getmem(pvdata,pcbdata^);
-ret:=ORGetValue (key,nil,wvaluename,pdwtype,pvdata,pcbData);
-if ret<>0
-  then raise exception.Create('ORGetValue failed:'+inttostr(ret)+':'+SysErrorMessage(ret))
+//getmem(pvdata,pcbdata^);
+getmem(pvdata,pcbdata);
+ret:=ORGetValue (key,nil,wvaluename,@pdwtype,pvdata,@pcbData);
+if ret<>0 then raise exception.Create('ORGetValue failed:'+inttostr(ret)+':'+SysErrorMessage(ret))
   else
   begin
-  result:=pcbdata^;
-  if pdwtype^=reg_binary then
+  if pvdata=nil then exit;
+  //result:=pcbdata^;
+  //if pdwtype^=reg_binary then
+  if pdwtype=reg_binary then
     begin
-    getmem(data,pcbdata^);
-    CopyMemory(data,pvdata,pcbdata^);
-    end;
+    //getmem(data,pcbdata^);
+    getmem(data,pcbdata);
+    //CopyMemory(data,pvdata,pcbdata^);
+    CopyMemory(data,pvdata,pcbdata);
+    result:=pcbdata;
+    end
+    else result:=0;
   end;
-freemem(pdwtype);
+//freemem(pdwtype);
 freemem(pvdata);
-freemem(pcbdata);
+//freemem(pcbdata);
 except
 on e:exception do raise exception.Create('getvalue error:'+e.message);
 end;
