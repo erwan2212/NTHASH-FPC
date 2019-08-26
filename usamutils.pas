@@ -24,6 +24,7 @@ var
 
 implementation
 
+
 function getclass_offline(hive:string;keyname,valuename:string;var bytes:array of byte):boolean;
 var
   ret:word;

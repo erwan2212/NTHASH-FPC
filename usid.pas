@@ -15,10 +15,6 @@ uses
 
 function GetCurrentUserTextSid: string;
 function GetCurrentUserSid: TSID;
-
-//function ConvertSidtoString(Sid: PSID; pszSidText: PChar; var dwBufferLen: DWORD): BOOL;
-//procedure ConvertStringToSid (const sidName : string; sid : PSid; sidLen :DWORD);
-
 function GetAccountSid2(const Server, User: WideString; var Sid: PSID): DWORD;
 
 
