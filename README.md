@@ -39,6 +39,7 @@ Credits goes to https://github.com/vletoux/NTLMInjector <br/>
 <b>dumphash and dumphashes</b> will read the registry - you need to run as system to perform this action <br/>.
 Or you can use the /system switch <br/>.
 You can also perform this offline (and then no longer require to run as system). <br/>
+You can use reg save hklm\sam sam.sav and reg save hklm\system system.sav to generate offline hives. <br/>
 Both the RC4 and AES cipher are supported. <br/>
 https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/ is a must read to understand RC4 vs AES. <br/>
 
