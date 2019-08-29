@@ -7,15 +7,75 @@ interface
 
 
 uses
-  windows,Classes, SysUtils,JwaWinCrypt,utils;
+  windows,Classes, SysUtils,JwaWinCrypt,jwabcrypt,utils;
 
 
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;
+function bdecrypt(algo:lpcwstr;encrypedPass:puchar;encryptedPassLen:ulong;gKey,initializationVector:puchar):ULONG;
+//function bdecryptDES(encrypedPass:puchar;encryptedPassLen:ulong;gDesKey,initializationVector:puchar):ULONG;
+//function bdecryptAES(encrypedPass:puchar;encryptedPassLen:ulong;gAesKey,initializationVector:puchar):ULONG;
 
 implementation
 
 const
 PROV_RSA_AES = 24;
+
+function bdecrypt(algo:lpcwstr;encrypedPass:puchar;encryptedPassLen:ulong;gKey,initializationVector:puchar):ULONG;
+var
+  hProvider:BCRYPT_ALG_HANDLE;
+  decryptedPass:PUCHAR;
+  hkey:BCRYPT_KEY_HANDLE;
+  status:NTSTATUS;
+  decryptedPassLen:ULONG;
+  //gInitializationVector:array[0..15] of uchar;
+begin
+   //3des
+  BCryptOpenAlgorithmProvider(hProvider, algo, nil, 0);
+  if algo=BCRYPT_AES_ALGORITHM
+     then BCryptSetProperty(hProvider, BCRYPT_CHAINING_MODE, @BCRYPT_CHAIN_MODE_CFB[1], sizeof(BCRYPT_CHAIN_MODE_CFB), 0);
+  if algo=BCRYPT_3DES_ALGORITHM
+     then BCryptSetProperty(hProvider, BCRYPT_CHAINING_MODE, @BCRYPT_CHAIN_MODE_CBC[1], sizeof(BCRYPT_CHAIN_MODE_CBC), 0);
+  BCryptGenerateSymmetricKey(hProvider, hkey, nil, 0, gKey, sizeof(gKey), 0);
+  status := BCryptDecrypt(hkey, encrypedPass, encryptedPassLen, 0, initializationVector, 8, decryptedPass, decryptedPassLen, result, 0);
+
+end;
+
+function bdecryptDES(encrypedPass:puchar;encryptedPassLen:ulong;gDesKey,initializationVector:puchar):ULONG;
+var
+  hDesProvider:BCRYPT_ALG_HANDLE;
+  decryptedPass:PUCHAR;
+  hDes:BCRYPT_KEY_HANDLE;
+  status:NTSTATUS;
+  decryptedPassLen:ULONG;
+  gInitializationVector:array[0..15] of uchar;
+  mode:string;
+begin
+   //3des
+  BCryptOpenAlgorithmProvider(hDesProvider, BCRYPT_3DES_ALGORITHM, nil, 0);
+  BCryptSetProperty(hDesProvider, BCRYPT_CHAINING_MODE, @BCRYPT_CHAIN_MODE_CBC[1], sizeof(BCRYPT_CHAIN_MODE_CBC), 0);
+  BCryptGenerateSymmetricKey(hDesProvider, hDes, nil, 0, gDesKey, sizeof(gDesKey), 0);
+  status := BCryptDecrypt(hDes, encrypedPass, encryptedPassLen, 0, initializationVector, 8, decryptedPass, decryptedPassLen, result, 0);
+
+end;
+
+
+function bdecryptAES(encrypedPass:puchar;encryptedPassLen:ulong;gAesKey,initializationVector:puchar):ULONG;
+var
+  hprovider:BCRYPT_ALG_HANDLE;
+  decryptedPass:PUCHAR;
+  hAes:BCRYPT_KEY_HANDLE;
+  status:NTSTATUS;
+  decryptedPassLen:ULONG;
+  gInitializationVector:array[0..15] of uchar;
+  mode:string;
+begin
+  //aes
+  BCryptOpenAlgorithmProvider(hProvider, BCRYPT_AES_ALGORITHM, nil, 0);
+  BCryptSetProperty(hProvider, BCRYPT_CHAINING_MODE, @BCRYPT_CHAIN_MODE_CFB[1], sizeof(BCRYPT_CHAIN_MODE_CFB), 0);
+  BCryptGenerateSymmetricKey(hProvider, hAes, nil, 0, gAesKey, sizeof(gAesKey), 0);
+  status := BCryptDecrypt(hAes, encrypedPass, encryptedPassLen, 0, initializationVector, sizeof(gInitializationVector), decryptedPass, decryptedPassLen, result, 0);
+
+end;
 
 //similar to kull_m_crypto_genericAES128Decrypt in mimikatz
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;

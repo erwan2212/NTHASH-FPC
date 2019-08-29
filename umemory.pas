@@ -8,7 +8,8 @@ uses
   Classes, SysUtils,windows;
 
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:array of byte):boolean;
-function ReadMem(hprocess:thandle;offset:nativeint;var bytes:array of byte):boolean;
+function ReadMem(hprocess:thandle;offset:nativeuint;var bytes:array of byte):boolean;overload;
+function ReadMem(hprocess:thandle;offset:nativeuint;bytes:pointer;len:PtrUInt):boolean;overload;
 function SearchMem(hprocess:thandle;addr:pointer;sizeofimage:DWORD;pattern:array of byte):nativeint;
 
 
@@ -24,12 +25,24 @@ result:=WriteProcessMemory (hprocess,pointer(offset),@bytes[0],length(bytes),@wr
 //ideally should check written against length(bytes) as well...
 end;
 
-function ReadMem(hprocess:thandle;offset:nativeint;var bytes:array of byte):boolean;
+function ReadMem(hprocess:thandle;offset:nativeuint;var bytes:array of byte):boolean;
 var
-  read:cardinal;
+  read:PtrUInt;
 begin
 fillchar(bytes,length(bytes),0);
 result:=ReadProcessMemory (hprocess,pointer(offset),@bytes[0],length(bytes),@read);
+//ideally should check read against length(bytes) as well...
+end;
+
+function ReadMem(hprocess:thandle;offset:nativeuint;bytes:pointer;len:PtrUInt):boolean;overload;
+var
+  read:PtrUInt;
+begin
+//fillchar(bytes,length(bytes),0);
+//writeln('len:'+inttostr(len));
+result:=ReadProcessMemory (hprocess,pointer(offset),bytes,len,@read);
+if read=0 then result:=false;
+//if read=0 then writeln(getlasterror);
 //ideally should check read against length(bytes) as well...
 end;
 
