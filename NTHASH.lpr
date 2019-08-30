@@ -244,7 +244,7 @@ if lsasrvMem=0 then exit;
 ivOffset:=0;
 if ReadMem(hprocess, keySigOffset + IV_OFFSET, @ivOffset, 4) then
     begin
-    log('ReadMem=false ivOffset');
+    log('ReadMem=false '+inttohex(keySigOffset + IV_OFFSET,sizeof(pointer)));
     exit;
     end;
 {$ifdef CPU64}
@@ -259,7 +259,7 @@ CopyMemory(@iv[0],@iv_[0],sizeof(iv_));
 
 //keySigOffset:7FFEEE887696
 //target :     7ffeee94d998
-//delta : 0C6302 // found : 44 63 0c 00
+//delta : 0C6302 // found : 44 63 0c 00 - 0c6344 - 0c6302=66 +4 = 70
 //keySigOffset + DES_OFFSET = 7FFEEE887650 //DES_OFFSET:=-70
 
 //7FFEEE94D9DA
@@ -268,7 +268,7 @@ CopyMemory(@iv[0],@iv_[0],sizeof(iv_));
 desOffset:=0;
 if ReadMem(hprocess, keySigOffset + DES_OFFSET, @desOffset, 4)=false then
    begin
-   log('ReadMem=false desOffset');
+   log('ReadMem=false '+inttohex(keySigOffset + DES_OFFSET,sizeof(pointer)));
    exit;
    end;
 {$ifdef CPU64}
@@ -309,7 +309,7 @@ if winver='6.3.9600' then
 aesOffset:=0;
 if ReadMem(hprocess, keySigOffset + AES_OFFSET, @aesOffset, 4)=false then
    begin
-   log('ReadMem=false aesOffset');
+   log('ReadMem=false '+inttohex(keySigOffset + AES_OFFSET,sizeof(pointer)));
    exit;
    end;
 {$ifdef CPU64}
