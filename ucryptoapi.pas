@@ -11,7 +11,7 @@ uses
 
 
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;
-function bdecrypt(algo:lpcwstr;encrypedPass:puchar;encryptedPassLen:ulong;gKey,initializationVector:puchar):ULONG;
+function bdecrypt(algo:lpcwstr;encryped:array of byte;encryptedPassLen:ulong;gKey,initializationVector:array of byte):ULONG;
 //function bdecryptDES(encrypedPass:puchar;encryptedPassLen:ulong;gDesKey,initializationVector:puchar):ULONG;
 //function bdecryptAES(encrypedPass:puchar;encryptedPassLen:ulong;gAesKey,initializationVector:puchar):ULONG;
 
@@ -20,24 +20,54 @@ implementation
 const
 PROV_RSA_AES = 24;
 
-function bdecrypt(algo:lpcwstr;encrypedPass:puchar;encryptedPassLen:ulong;gKey,initializationVector:puchar):ULONG;
+function bdecrypt(algo:lpcwstr;encryped:array of byte;encryptedPassLen:ulong;gKey,initializationVector:array of byte):ULONG;
+const
+BCRYPT_CHAIN_MODE_CBC_:widestring       = 'ChainingModeCBC';
+BCRYPT_CHAIN_MODE_ECB_:widestring       = 'ChainingModeECB';
+BCRYPT_CHAIN_MODE_CFB_:widestring       = 'ChainingModeCFB';
+BCRYPT_CHAINING_MODE_:widestring        = 'ChainingMode';
 var
-  hProvider:BCRYPT_ALG_HANDLE;
-  decryptedPass:PUCHAR;
-  hkey:BCRYPT_KEY_HANDLE;
+  hProvider:BCRYPT_ALG_HANDLE=0;
+  decryptedPass:array[0..1023] of byte;
+  hkey:BCRYPT_KEY_HANDLE=0;
   status:NTSTATUS;
-  decryptedPassLen:ULONG;
+  decryptedPassLen,cbiv:ULONG;
   //gInitializationVector:array[0..15] of uchar;
 begin
-   //3des
-  BCryptOpenAlgorithmProvider(hProvider, algo, nil, 0);
-  if algo=BCRYPT_AES_ALGORITHM
-     then BCryptSetProperty(hProvider, BCRYPT_CHAINING_MODE, @BCRYPT_CHAIN_MODE_CFB[1], sizeof(BCRYPT_CHAIN_MODE_CFB), 0);
-  if algo=BCRYPT_3DES_ALGORITHM
-     then BCryptSetProperty(hProvider, BCRYPT_CHAINING_MODE, @BCRYPT_CHAIN_MODE_CBC[1], sizeof(BCRYPT_CHAIN_MODE_CBC), 0);
-  BCryptGenerateSymmetricKey(hProvider, hkey, nil, 0, gKey, sizeof(gKey), 0);
-  status := BCryptDecrypt(hkey, encrypedPass, encryptedPassLen, 0, initializationVector, 8, decryptedPass, decryptedPassLen, result, 0);
-
+  result:=0;
+  cbiv:=0;
+  log('algo:'+strpas(algo) );
+  log('encrypted size:'+inttostr(sizeof(encryped) ));
+  log('encryptedPassLen:'+inttostr(encryptedPassLen) );
+  log ('sizeof(gkey):'+inttostr(sizeof(gkey)));
+  log('sizeof(iv):'+inttostr(sizeof(initializationVector )));
+  status:=BCryptOpenAlgorithmProvider(hProvider, algo, nil, 0);
+  //log('hProvider:'+inttostr(hProvider));
+  if status<>0 then begin log('BCryptOpenAlgorithmProvider NOT OK');exit;end;
+  //BCRYPT_CHAIN_MODE_CFB is an ansitring
+  if algo=BCRYPT_AES_ALGORITHM then
+     begin
+       status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @BCRYPT_CHAIN_MODE_CFB_[1], sizeof(BCRYPT_CHAIN_MODE_CFB_), 0);
+       cbiv:=sizeof(initializationVector );
+     end;
+  if algo=BCRYPT_3DES_ALGORITHM then
+     begin
+       status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @BCRYPT_CHAIN_MODE_CBC_[1], sizeof(BCRYPT_CHAIN_MODE_CBC_), 0);
+       cbiv:=sizeof(initializationVector ) div 2;
+     end;
+  //writeln('cbiv:'+inttostr(cbiv));
+  if status<>0 then begin log('BCryptSetProperty NOT OK:'+inttohex(status,sizeof(status)));exit;end;
+  status:=BCryptGenerateSymmetricKey(hProvider, hkey, nil, 0, @gKey[0], sizeof(gKey), 0);
+  if status<>0 then begin log('BCryptGenerateSymmetricKey NOT OK:'+inttohex(status,sizeof(status)));exit;end;
+  //writeln('hkey:'+inttostr(hkey));
+  fillchar(decryptedPass,sizeof(decryptedPass ),0);
+  status := BCryptDecrypt(hkey, @encryped[0], encryptedPassLen, 0, @initializationVector[0], cbiv, @decryptedPass[0], sizeof(decryptedPass), result, 0);
+  if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));exit;end;
+  log('resultlen:'+inttostr(result));
+  log(HashByteToString  (decryptedPass ));
+  log(strpas (pwidechar(@decryptedPass[0]) ));
+  //https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
+  //0xC0000023  STATUS_BUFFER_TOO_SMALL
 end;
 
 function bdecryptDES(encrypedPass:puchar;encryptedPassLen:ulong;gDesKey,initializationVector:puchar):ULONG;
