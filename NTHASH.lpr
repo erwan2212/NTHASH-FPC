@@ -242,7 +242,7 @@ if lsasrvMem=0 then exit;
 //writeln('sizeof(nativeuint):'+inttostr(sizeof(nativeuint)));
 // Retrieve offset to InitializationVector address due to "lea reg, [InitializationVector]" instruction
 ivOffset:=0;
-ReadMem(hprocess, keySigOffset + IV_OFFSET, @ivOffset, 4);
+if ReadMem(hprocess, keySigOffset + IV_OFFSET, @ivOffset, 4) then
     begin
     log('ReadMem=false');
     exit;
