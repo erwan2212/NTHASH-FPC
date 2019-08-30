@@ -244,7 +244,7 @@ if lsasrvMem=0 then exit;
 ivOffset:=0;
 if ReadMem(hprocess, keySigOffset + IV_OFFSET, @ivOffset, 4) then
     begin
-    log('ReadMem=false');
+    log('ReadMem=false ivOffset');
     exit;
     end;
 {$ifdef CPU64}
@@ -268,7 +268,7 @@ CopyMemory(@iv[0],@iv_[0],sizeof(iv_));
 desOffset:=0;
 if ReadMem(hprocess, keySigOffset + DES_OFFSET, @desOffset, 4)=false then
    begin
-   log('ReadMem=false');
+   log('ReadMem=false desOffset');
    exit;
    end;
 {$ifdef CPU64}
@@ -309,7 +309,7 @@ if winver='6.3.9600' then
 aesOffset:=0;
 if ReadMem(hprocess, keySigOffset + AES_OFFSET, @aesOffset, 4)=false then
    begin
-   log('ReadMem=false');
+   log('ReadMem=false aesOffset');
    exit;
    end;
 {$ifdef CPU64}
