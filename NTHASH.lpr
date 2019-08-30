@@ -240,6 +240,10 @@ if lsasrvMem=0 then exit;
 // Retrieve offset to InitializationVector address due to "lea reg, [InitializationVector]" instruction
 ivOffset:=0;
 ReadMem(hprocess, keySigOffset + IV_OFFSET, @ivOffset, 4);
+    begin
+    log('ReadMem=false');
+    exit;
+    end;
 {$ifdef CPU64}
 ivOffset:=keySigOffset + IV_OFFSET+ivOffset+4;
 {$endif CPU64}
@@ -259,7 +263,11 @@ CopyMemory(@iv[0],@iv_[0],sizeof(iv_));
 
 // Retrieve offset to h3DesKey address due to "lea reg, [h3DesKey]" instruction
 desOffset:=0;
-ReadMem(hprocess, keySigOffset + DES_OFFSET, @desOffset, 4);
+if ReadMem(hprocess, keySigOffset + DES_OFFSET, @desOffset, 4)=false then
+   begin
+   log('ReadMem=false');
+   exit;
+   end;
 {$ifdef CPU64}
 desOffset:=keySigOffset + DES_OFFSET+desOffset+4;
 {$endif CPU64}
@@ -296,7 +304,11 @@ if winver='6.3.9600' then
 
 // Retrieve offset to hAesKey address due to "lea reg, [hAesKey]" instruction
 aesOffset:=0;
-ReadMem(hprocess, keySigOffset + AES_OFFSET, @aesOffset, 4);
+if ReadMem(hprocess, keySigOffset + AES_OFFSET, @aesOffset, 4)=false then
+   begin
+   log('ReadMem=false');
+   exit;
+   end;
 {$ifdef CPU64}
 aesOffset:=keySigOffset + AES_OFFSET+aesOffset+4;
 {$endif CPU64}
