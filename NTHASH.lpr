@@ -211,7 +211,10 @@ if lowercase(osarch) ='amd64' then
       begin
       setlength(pattern,sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
       CopyMemory(@pattern[0],@PTRN_WN10_LsaInitializeProtectedMemory_KEY[0],sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
-      IV_OFFSET:=62 ; DES_OFFSET:=-70 ; AES_OFFSET:=23 ;
+      IV_OFFSET:=61 ; DES_OFFSET:=-73 ; AES_OFFSET:=16 ;
+      // IV_OFFSET = 61; DES_OFFSET = -73; AES_OFFSET = 16; //before 1903
+      //{KULL_M_WIN_BUILD_10_1507,	{sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY),	PTRN_WN10_LsaInitializeProtectedMemory_KEY}, {0, NULL}, {61, -73, 16}},
+      //{KULL_M_WIN_BUILD_10_1809,	{sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY),	PTRN_WN10_LsaInitializeProtectedMemory_KEY}, {0, NULL}, {67, -89, 16}},
       end;
    end;
 //*************************
