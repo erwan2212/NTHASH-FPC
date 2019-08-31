@@ -17,7 +17,8 @@ function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,
 //function bdecryptDES(encrypedPass:puchar;encryptedPassLen:ulong;gDesKey,initializationVector:puchar):ULONG;
 //function bdecryptAES(encrypedPass:puchar;encryptedPassLen:ulong;gAesKey,initializationVector:puchar):ULONG;
 
-function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;
+function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
+function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;overload;
 
 implementation
 
@@ -29,12 +30,14 @@ BCRYPT_CHAIN_MODE_ECB_:widestring       = 'ChainingModeECB';
 BCRYPT_CHAIN_MODE_CFB_:widestring       = 'ChainingModeCFB';
 BCRYPT_CHAINING_MODE_:widestring        = 'ChainingMode';
 
-function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;
+function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
 var
   plainBlob,encryptedBlob:DATA_BLOB;
 begin
   fillchar(plainBlob,sizeof(DATA_BLOB),0);
   fillchar(encryptedBlob,sizeof(DATA_BLOB),0);
+
+  //HANDLE outFile = CreateFile(L"c:\\users\\mantvydas\\desktop\\encrypted.bin", GENERIC_ALL, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
   plainBlob.pbData := dataBytes;
   plainBlob.cbData := sizeof(dataBytes);
@@ -43,6 +46,45 @@ begin
   //WriteFile(outFile, encryptedBlob.pbData, encryptedBlob.cbData, NULL, NULL);
   setlength(output,encryptedBlob.cbData);
   CopyMemory (@output[0],encryptedBlob.pbData,encryptedBlob.cbData);
+end;
+
+function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;overload;
+var
+  plainBlob,encryptedBlob:DATA_BLOB;
+  outfile:thandle=0;
+  byteswritten:dword=0;
+  //
+  text:string;
+
+begin
+  result:=false;
+  fillchar(plainBlob,sizeof(DATA_BLOB),0);
+  fillchar(encryptedBlob,sizeof(DATA_BLOB),0);
+
+  outFile := CreateFile(pchar(filename), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+  if outfile<=0 then exit;
+
+  plainBlob.pbData := @dataBytes[0];
+  plainBlob.cbData := length(dataBytes);
+  writeln(length(dataBytes));
+
+  //test
+  text:='password';
+  plainBlob.cbData := SizeOf(Char)*Length(Text);
+  plainBlob.pbData := Pointer(LocalAlloc(LPTR, plainBlob.cbData));
+  Move(Pointer(Text)^, plainBlob.pbData^, plainBlob.cbData);
+
+
+  result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @encryptedBlob);
+  writeln(result);
+  writeln(encryptedBlob.cbData );
+  writeln(getlasterror);
+
+  result:=WriteFile(outFile, encryptedBlob.pbData, encryptedBlob.cbData, byteswritten, nil);
+  writeln(byteswritten );
+
+  closehandle(outfile);
+
 end;
 
 function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;

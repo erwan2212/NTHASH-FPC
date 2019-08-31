@@ -121,7 +121,7 @@ var
   winver,osarch:string;
   sysdir:pchar;
   syskey,samkey,ntlmhash:tbyte16;
-  deskey,aeskey,iv:tbytes;
+  deskey,aeskey,iv,buffer:tbytes;
 
 
 function decryptLSA(cbmemory:ulong;encrypted:array of byte;var decrypted:tbytes):boolean;
@@ -900,7 +900,11 @@ begin
   //dumplogons (lsass_pid,'');
   //_FindPid ;
   //enum_samusers(samkey);
-  //exit;
+  password:='Password2212';
+  setlength(buffer,length(password)+1);
+  Move(password[1], buffer[0], Length(password)+1);
+  if CryptProtectData_ (buffer,'test.bin')=false then writeln('false');
+  exit;
   //
   p:=pos('/getlsakeys',cmdline);
   if p>0 then
