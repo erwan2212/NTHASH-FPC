@@ -250,8 +250,8 @@ if Status <> 0 then
    else log ('SamQueryInformationUser ok');
 if status=0 then
    begin
-   if (userinfo^.LmPasswordPresent=1 ) then log('LmPassword:'+HashByteToString (tbyte16(userinfo^.EncryptedLmOwfPassword)  ),1);
-   if (userinfo^.NtPasswordPresent=1) then log('NTLmPassword:'+HashByteToString (tbyte16(userinfo^.EncryptedNtOwfPassword)),1);
+   if (userinfo^.LmPasswordPresent=1 ) then log('LmPassword:'+ByteToHexaString (tbyte16(userinfo^.EncryptedLmOwfPassword)  ),1);
+   if (userinfo^.NtPasswordPresent=1) then log('NTLmPassword:'+ByteToHexaString (tbyte16(userinfo^.EncryptedNtOwfPassword)),1);
    result:=true;
    SamFreeMemory(userinfo);
    end;

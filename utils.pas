@@ -33,8 +33,12 @@ type
 
 procedure log(msg:string;status:dword=0);
 //function HashByteToString(hash:tbyte16):string;
-function HashByteToString(hash:array of byte):string;
-function HashStringToByte(hash:string):tbyte16;
+function ByteToHexaString(hash:array of byte):string;
+function HexaStringToByte(hash:string):tbyte16;
+
+function BytetoAnsiString(input:array of byte):string;
+function AnsiStringtoByte(input:string):tbytes;
+
 Function SplitUserSID(user:pchar;var domain:string;var rid:dword):boolean;
 function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
 
@@ -62,8 +66,26 @@ begin
 result := RightStr(StringOfChar(pad,length) + value, length );
 end;
 
+function AnsiStringtoByte(input:string):tbytes;
+var
+  i:byte;
+begin
+setlength(result,length(input));
+for i:=1 to length(input) do result[i-1]:=ord(input[i]);
+end;
+
+function BytetoAnsiString(input:array of byte):string;
+var
+  i:byte;
+  dummy:string='';
+begin
+//writeln(sizeof(input));
+  for i:=0 to sizeof(input)-1 do  dummy:=dummy+chr(input[i]);
+  result:=dummy;
+end;
+
 //function HashByteToString(hash:tbyte16):string;
-function HashByteToString(hash:array of byte):string;
+function ByteToHexaString(hash:array of byte):string;
 var
   i:byte;
   dummy:string='';
@@ -72,7 +94,7 @@ begin
   result:=dummy;
 end;
 
-function HashStringToByte(hash:string):tbyte16;
+function HexaStringToByte(hash:string):tbyte16;
 var
   i:byte;
   tmp:string;

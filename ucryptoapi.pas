@@ -130,7 +130,7 @@ begin
   status := BCryptDecrypt(hkey, @encryped[0], sizeof(encryped), 0, @initializationVector[0], cbiv, @decrypted[0], length(decrypted), result, 0);
   if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));exit;end;
   log('resultlen:'+inttostr(result));
-  log(HashByteToString  (decrypted ));
+  log(ByteToHexaString  (decrypted ));
   log(strpas (pwidechar(@decrypted[0]) ));
   copymemory(output,@decrypted[0],result);
   //https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55

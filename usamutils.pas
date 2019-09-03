@@ -165,7 +165,7 @@ begin
 	MD5Update(md5ctx,syskey,SYSKEY_LENGTH);  //16
 	MD5Update(md5ctx,pansichar(SAM_NUM)^,length(SAM_NUM)); //40
 	MD5Final(md5ctx); //rc4_key = MD5(F[0x70:0x80] + aqwerty + bootkey + anum)
-        log('RC4Key:'+HashByteToString (md5ctx.digest),0);
+        log('RC4Key:'+ByteToHexaString (md5ctx.digest),0);
         //in and out
         fillchar(data,sizeof(data),0);
         data.Length :=SAM_KEY_DATA_KEY_LENGTH;
@@ -217,9 +217,9 @@ log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
        CopyMemory(@iv[0],@data[$78],sizeof(iv)) ;
        CopyMemory(@aesdata[0],@data[$88],sizeof(aesdata)) ;//Only 16 bytes needed
        fillchar(output,sizeof(output),0);
-       log('key:'+HashByteToString (syskey),0);
-       log('iv:'+HashByteToString (iv),0);
-       log('data:'+HashByteToString (aesdata),0);
+       log('key:'+ByteToHexaString (syskey),0);
+       log('iv:'+ByteToHexaString (iv),0);
+       log('data:'+ByteToHexaString (aesdata),0);
        result:=DecryptAES128(syskey ,iv,aesdata,output);
        end
        else
@@ -269,9 +269,9 @@ if ret=0 then
      CopyMemory(@iv[0],@data[$78],sizeof(iv)) ;
      CopyMemory(@aesdata[0],@data[$88],sizeof(aesdata)) ;//Only 16 bytes needed
      fillchar(output,sizeof(output),0);
-     log('key:'+HashByteToString (syskey),0);
-     log('iv:'+HashByteToString (iv),0);
-     log('data:'+HashByteToString (aesdata),0);
+     log('key:'+ByteToHexaString (syskey),0);
+     log('iv:'+ByteToHexaString (iv),0);
+     log('data:'+ByteToHexaString (aesdata),0);
      result:=DecryptAES128(syskey ,iv,aesdata,output);
      end
      else
@@ -311,7 +311,7 @@ MD5Update(md5ctx, samKey, SAM_KEY_DATA_KEY_LENGTH);
 MD5Update(md5ctx, rid_, sizeof(DWORD));
 MD5Update(md5ctx, pansichar(NTPASSWORD)^,length(NTPASSWORD));
 MD5Final(md5ctx);
-log('RC4Key:'+HashByteToString (md5ctx.digest ));
+log('RC4Key:'+ByteToHexaString (md5ctx.digest ));
 //
 //in and out
 fillchar(cypheredHashBuffer,sizeof(cypheredHashBuffer),0);
@@ -388,16 +388,16 @@ result:=false;
      CopyMemory(@iv[0],@data[iv_offset],sizeof(iv)) ;
      CopyMemory(@aesdata[0],@data[aeshash_offset],sizeof(aesdata)) ;//Only 16 bytes needed
      fillchar(output,sizeof(output),0); //crashes in win32?
-     log('key:'+HashByteToString (samkey),0);
-     log('iv:'+HashByteToString (iv),0);
-     log('data:'+HashByteToString (aesdata),0);
+     log('key:'+ByteToHexaString (samkey),0);
+     log('iv:'+ByteToHexaString (iv),0);
+     log('data:'+ByteToHexaString (aesdata),0);
      ret:=DecryptAES128(samkey ,iv,aesdata,output);
      end;
      if hash_length =$14 then //rc4
      begin
      log('RC4 MODE',0);
      CopyMemory(@output[0],@data[hash_offset],sizeof(output)) ;
-     log('Encrypted Hash:'+HashByteToString (output),0);
+     log('Encrypted Hash:'+ByteToHexaString (output),0);
      ret:=decrypthashRC4(samkey ,output,rid);
      end;
 
@@ -628,15 +628,15 @@ if ret=0 then
      CopyMemory(@iv[0],@data[iv_offset],sizeof(iv)) ;
      CopyMemory(@aesdata[0],@data[aeshash_offset],sizeof(aesdata)) ;//Only 16 bytes needed
      fillchar(output,sizeof(output),0);
-     log('key:'+HashByteToString (samkey),0);
-     log('iv:'+HashByteToString (iv),0);
-     log('data:'+HashByteToString (aesdata),0);
+     log('key:'+ByteToHexaString (samkey),0);
+     log('iv:'+ByteToHexaString (iv),0);
+     log('data:'+ByteToHexaString (aesdata),0);
      bret:=DecryptAES128(samkey ,iv,aesdata,output);
      end;
      if hash_length =$14 then //rc4
      begin
      CopyMemory(@output[0],@data[hash_offset],sizeof(output)) ;
-     log('Encrypted Hash:'+HashByteToString (output),0);
+     log('Encrypted Hash:'+ByteToHexaString (output),0);
      bret:=decrypthashRC4(samkey ,output,rid);
      end;
      end //if ret=0 then

