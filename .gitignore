@@ -10,3 +10,5 @@ lib
 *.dmp
 *.sav
 *.bin
+*.blob
+*.txt

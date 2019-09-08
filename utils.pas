@@ -31,7 +31,9 @@ type
  KUHL_M_SEKURLSA_ENUM_HELPER=_KUHL_M_SEKURLSA_ENUM_HELPER;
  PKUHL_M_SEKURLSA_ENUM_HELPER=^_KUHL_M_SEKURLSA_ENUM_HELPER;
 
-procedure log(msg:string;status:dword=0);
+procedure log(msg:string;status:dword=0);overload;
+procedure log(msg:dword;status:dword=0);overload;
+procedure log(msg:qword;status:dword=0);overload;
 //function HashByteToString(hash:tbyte16):string;
 function ByteToHexaString(hash:array of byte):string;
 function HexaStringToByte(hash:string):tbyte16;
@@ -61,6 +63,16 @@ if verbose=true then writeln(msg);
 //writeln(status);
 end;
 
+procedure log(msg:dword;status:dword=0);overload;
+begin
+log(inttostr(msg),status);
+end;
+
+procedure log(msg:qword;status:dword=0);overload;
+begin
+log(inttostr(msg),status);
+end;
+
 function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
 begin
 result := RightStr(StringOfChar(pad,length) + value, length );
@@ -87,7 +99,7 @@ end;
 //function HashByteToString(hash:tbyte16):string;
 function ByteToHexaString(hash:array of byte):string;
 var
-  i:byte;
+  i:word;
   dummy:string='';
 begin
   for i:=0 to sizeof(hash)-1 do  dummy:=dummy+inttohex(hash[i],2);
@@ -96,11 +108,12 @@ end;
 
 function HexaStringToByte(hash:string):tbyte16;
 var
-  i:byte;
+  i:word;
   tmp:string;
 begin
 i:=1;
-  while I<length(hash){sizeof(hash)*2} do
+//setlength(result,length(hash));
+  while I<min(32,length(hash)){sizeof(hash)*2} do
       begin
       tmp:=copy(hash,i,2);
       result[i div 2]:=strtoint('$'+tmp);

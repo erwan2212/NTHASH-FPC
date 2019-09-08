@@ -20,7 +20,59 @@ function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,
 function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
 function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;overload;
 
+function CryptUnProtectData_(var dataBytes:tbytes;filename:string):boolean;overload;
+
+function CredEnum:boolean;
+
 implementation
+
+type
+ PCREDENTIAL_ATTRIBUTEW = ^_CREDENTIAL_ATTRIBUTEW;
+  _CREDENTIAL_ATTRIBUTEW = record
+    Keyword: LPWSTR;
+    Flags: DWORD;
+    ValueSize: DWORD;
+    Value: LPBYTE;
+  end;
+
+
+  PCREDENTIALW = ^_CREDENTIALW;
+  _CREDENTIALW = record
+    Flags: DWORD;
+    Type_: DWORD;
+    TargetName: LPWSTR;
+    Comment: LPWSTR;
+    LastWritten: FILETIME;
+    CredentialBlobSize: DWORD;
+    CredentialBlob: LPBYTE;
+    Persist: DWORD;
+    AttributeCount: DWORD;
+    Attributes: PCREDENTIAL_ATTRIBUTEW;
+    TargetAlias: LPWSTR;
+    UserName: LPWSTR;
+  end;
+
+PCredentialArray = array of PCREDENTIALW;
+
+const
+  CRED_TYPE_GENERIC                 = 1;
+  CRED_TYPE_DOMAIN_PASSWORD         = 2;
+  CRED_TYPE_DOMAIN_CERTIFICATE      = 3;
+  CRED_TYPE_DOMAIN_VISIBLE_PASSWORD = 4;
+  CRED_TYPE_MAXIMUM                 = 5;  // Maximum supported cred type
+  CRED_TYPE_MAXIMUM_EX              = CRED_TYPE_MAXIMUM + 1000;  // Allow new applications to run on old OSes
+
+  function CredReadW(TargetName: LPCWSTR; Type_: DWORD; Flags: DWORD; var Credential: PCREDENTIALW): BOOL; stdcall; external 'advapi32.dll';
+  function CredEnumerateW(Filter: LPCWSTR; Flags: DWORD; out Count: DWORD; out Credential: pointer {PCredentialArray}): BOOL; stdcall; external 'advapi32.dll';
+  Procedure CredFree(Buffer:pointer); stdcall; external 'advapi32.dll';
+
+
+type
+  //{$align 8}
+  _MY_BLOB = record
+    cbData: DWORD;
+    pbData: LPBYTE;
+  end;
 
 const
 PROV_RSA_AES = 24;
@@ -30,6 +82,52 @@ BCRYPT_CHAIN_MODE_ECB_:widestring       = 'ChainingModeECB';
 BCRYPT_CHAIN_MODE_CFB_:widestring       = 'ChainingModeCFB';
 BCRYPT_CHAINING_MODE_:widestring        = 'ChainingMode';
 
+function CredEnum:boolean;
+var
+  Credentials: array of pointer; //PCredentialArray;
+  ptr:pointer;
+  Credential: PCREDENTIALW;
+  UserName: WideString;
+  i: integer;
+  dwCount: DWORD;
+  bytes:array[0..1023] of byte;
+begin
+  //setlength(Credentials ,1024);
+    if CredEnumerateW(nil{PChar('TERM*')}, 0, dwCount, Credentials) then
+    begin
+      writeln(dwcount);
+      //ptr:=credentials;
+      for i:= 0 to dwCount - 1  do
+        begin
+          log('*************************************',1);
+          log('Flags:'+inttostr(PCREDENTIALW(Credentials[i])^.Flags)  ,1);
+          log('Type_:'+inttostr(PCREDENTIALW(Credentials[i])^.Type_   ),1);
+          log('TargetName:'+widestring(PCREDENTIALW(Credentials[i])^.TargetName ),1);
+          log('Comment:'+widestring(PCREDENTIALW(Credentials[i])^.Comment ),1);
+          log('TargetAlias:'+widestring(PCREDENTIALW(Credentials[i])^.TargetAlias ),1);
+          log('UserName:'+widestring(PCREDENTIALW(Credentials[i])^.UserName ),1);
+          //writeln(PCREDENTIALW(Credentials[i])^.CredentialBlobSize);
+          if PCREDENTIALW(Credentials[i])^.CredentialBlobSize >0 then
+             begin
+               //writeln('getting blob');
+               CopyMemory (@bytes[0],PCREDENTIALW(Credentials[i])^.CredentialBlob,PCREDENTIALW(Credentials[i])^.CredentialBlobSize);
+               log('CredentialBlob:'+copy(BytetoAnsiString (bytes),1,PCREDENTIALW(Credentials[i])^.CredentialBlobSize),1);
+             end;
+          //inc(ptr,sizeof(pointer));
+          {
+            if CredReadW(Credentials[i].TargetName, Credentials[i].Type_, 0, Credential) then
+            begin
+              writeln(widestring(Credential.UserName));
+              UserName:= Credential.UserName;
+              log(Credentials[i].TargetName + ' :: ' + UserName + ' >> ' + IntToStr(Credentials[i].Type_));
+              log(IntToStr(Credential.CredentialBlobSize));
+            end; // if CredReadW
+            }
+        end; //for i:= 0 to dwCount - 1  do
+    credfree(Credentials);
+    end; //if CredEnumerateW
+end;
+
 function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
 var
   plainBlob,encryptedBlob:DATA_BLOB;
@@ -37,20 +135,20 @@ begin
   fillchar(plainBlob,sizeof(DATA_BLOB),0);
   fillchar(encryptedBlob,sizeof(DATA_BLOB),0);
 
-  //HANDLE outFile = CreateFile(L"c:\\users\\mantvydas\\desktop\\encrypted.bin", GENERIC_ALL, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-
   plainBlob.pbData := dataBytes;
   plainBlob.cbData := sizeof(dataBytes);
 
   result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @encryptedBlob);
-  //WriteFile(outFile, encryptedBlob.pbData, encryptedBlob.cbData, NULL, NULL);
-  setlength(output,encryptedBlob.cbData);
-  CopyMemory (@output[0],encryptedBlob.pbData,encryptedBlob.cbData);
+  if result=true then
+     begin
+     setlength(output,encryptedBlob.cbData);
+     CopyMemory (@output[0],encryptedBlob.pbData,encryptedBlob.cbData);
+     end;
 end;
 
 function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;overload;
 var
-  plainBlob,encryptedBlob:DATA_BLOB;
+  plainBlob,encryptedBlob:_MY_BLOB;
   outfile:thandle=0;
   byteswritten:dword=0;
   //
@@ -58,30 +156,82 @@ var
 
 begin
   result:=false;
-  fillchar(plainBlob,sizeof(DATA_BLOB),0);
-  fillchar(encryptedBlob,sizeof(DATA_BLOB),0);
+  fillchar(plainBlob,sizeof(plainBlob),0);
+  fillchar(encryptedBlob,sizeof(encryptedBlob),0);
 
-  outFile := CreateFile(pchar(filename), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+  outFile := CreateFile(pchar(filename), GENERIC_WRITE, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
   if outfile<=0 then exit;
 
   plainBlob.pbData := @dataBytes[0];
   plainBlob.cbData := length(dataBytes);
-  writeln(length(dataBytes));
+  //writeln(length(dataBytes));
 
   //test
+  {
   text:='password';
   plainBlob.cbData := SizeOf(Char)*Length(Text);
   plainBlob.pbData := Pointer(LocalAlloc(LPTR, plainBlob.cbData));
   Move(Pointer(Text)^, plainBlob.pbData^, plainBlob.cbData);
-
+  }
 
   result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @encryptedBlob);
-  writeln(result);
-  writeln(encryptedBlob.cbData );
-  writeln(getlasterror);
+  log('cbData:'+inttostr(encryptedBlob.cbData) );
+  if result=true then
+     begin
+     result:=WriteFile(outFile, encryptedBlob.pbData^, encryptedBlob.cbData, byteswritten, nil);
+     log('byteswritten:'+inttostr(byteswritten));
+     end;
 
-  result:=WriteFile(outFile, encryptedBlob.pbData, encryptedBlob.cbData, byteswritten, nil);
-  writeln(byteswritten );
+  closehandle(outfile);
+
+end;
+
+function CryptUnProtectData_(var dataBytes:tbytes;filename:string):boolean;overload;
+var
+  plainBlob,decryptedBlob:_MY_BLOB;
+  outfile:thandle=0;
+  byteswritten:dword=0;
+  //
+  text:string;
+  buffer:array[0..4095] of byte;
+  bytesread:cardinal;
+begin
+  result:=false;
+  fillchar(plainBlob,sizeof(plainBlob),0);
+  fillchar(decryptedBlob,sizeof(decryptedBlob),0);
+
+  outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+  if outfile<=0 then exit;
+  result:=readfile(outfile ,buffer,4096,bytesread,nil);
+  log('bytesread:'+inttostr(bytesread));
+
+  plainBlob.pbData := @buffer[0];
+  //plainBlob.pbData:=getmem(bytesread);
+  //copymemory(plainBlob.pbData,@buffer[0],bytesread);
+  plainBlob.cbData := bytesread;
+  //writeln(length(dataBytes));
+
+  //test
+  {
+  text:='password';
+  plainBlob.cbData := SizeOf(Char)*Length(Text);
+  plainBlob.pbData := Pointer(LocalAlloc(LPTR, plainBlob.cbData));
+  Move(Pointer(Text)^, plainBlob.pbData^, plainBlob.cbData);
+  }
+
+  decryptedBlob.pbData :=getmem(4096); //@databytes[0];
+  result:=CryptunProtectData(@plainBlob, nil, nil, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
+  //writeln('CryptunProtectData:'+booltostr(result));
+  log('cbData:'+inttostr(decryptedBlob.cbData) );
+  //log(strpas(pchar(decryptedBlob.pbData)));
+  if result=true then
+    begin
+    setlength(databytes,decryptedBlob.cbData);
+    CopyMemory(@databytes[0],decryptedBlob.pbData,decryptedBlob.cbData);
+    end;
+  //if result=false then writeln('lasterror:'+inttostr(getlasterror));
+
+
 
   closehandle(outfile);
 
