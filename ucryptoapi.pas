@@ -100,6 +100,8 @@ begin
       for i:= 0 to dwCount - 1  do
         begin
           log('*************************************',1);
+          CopyMemory(@bytes[0],Credentials[i],sizeof(_CREDENTIALW)) ;
+          log('Hexa:'+ByteToHexaString (bytes),1);
           log('Flags:'+inttostr(PCREDENTIALW(Credentials[i])^.Flags)  ,1);
           log('Type_:'+inttostr(PCREDENTIALW(Credentials[i])^.Type_   ),1);
           log('TargetName:'+widestring(PCREDENTIALW(Credentials[i])^.TargetName ),1);
@@ -109,7 +111,7 @@ begin
           //writeln(PCREDENTIALW(Credentials[i])^.CredentialBlobSize);
           if PCREDENTIALW(Credentials[i])^.CredentialBlobSize >0 then
              begin
-               //writeln('getting blob');
+               //we could use entropy/salt + CryptUnprotectData
                CopyMemory (@bytes[0],PCREDENTIALW(Credentials[i])^.CredentialBlob,PCREDENTIALW(Credentials[i])^.CredentialBlobSize);
                log('CredentialBlob:'+copy(BytetoAnsiString (bytes),1,PCREDENTIALW(Credentials[i])^.CredentialBlobSize),1);
              end;
