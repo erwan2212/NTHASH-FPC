@@ -24,7 +24,7 @@ function CryptUnProtectData_(var dataBytes:tbytes;filename:string):boolean;overl
 
 function CredEnum:boolean;
 
-implementation
+
 
 type
  PCREDENTIAL_ATTRIBUTEW = ^_CREDENTIAL_ATTRIBUTEW;
@@ -44,6 +44,7 @@ type
     Comment: LPWSTR;
     LastWritten: FILETIME;
     CredentialBlobSize: DWORD;
+    dummy : dword;
     CredentialBlob: LPBYTE;
     Persist: DWORD;
     AttributeCount: DWORD;
@@ -53,6 +54,8 @@ type
   end;
 
 PCredentialArray = array of PCREDENTIALW;
+
+implementation
 
 const
   CRED_TYPE_GENERIC                 = 1;
@@ -101,7 +104,7 @@ begin
         begin
           log('*************************************',1);
           CopyMemory(@bytes[0],Credentials[i],sizeof(_CREDENTIALW)) ;
-          log('Hexa:'+ByteToHexaString (bytes),1);
+          //log('Hexa:'+ByteToHexaString (bytes),1);
           log('Flags:'+inttostr(PCREDENTIALW(Credentials[i])^.Flags)  ,1);
           log('Type_:'+inttostr(PCREDENTIALW(Credentials[i])^.Type_   ),1);
           log('TargetName:'+widestring(PCREDENTIALW(Credentials[i])^.TargetName ),1);
