@@ -38,7 +38,7 @@ function ReadMem(hprocess:thandle;offset:nativeuint;bytes:pointer;len:PtrUInt):b
 var
   read:PtrUInt;
 begin
-//fillchar(bytes,length(bytes),0);
+fillchar(bytes^,len,0);
 //writeln('len:'+inttostr(len));
 result:=ReadProcessMemory (hprocess,pointer(offset),bytes,len,@read);
 if read=0 then result:=false;
