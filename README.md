@@ -17,6 +17,11 @@ NTHASH /dumphashes [/offline] <br/>
 NTHASH /dumphash /rid:500 [/offline] <br/>
 NTHASH /getsamkey [/offline] <br/>
 NTHASH /getsyskey [/offline] <br/>
+NTHASH /getlsakeys <br/>
+NTHASH /wdigest <br/>
+NTHASH /logonpasswords <br/>
+NTHASH /cryptunprotectdata /input:filename
+NTHASH /cryptprotectdata /input:string
 NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
@@ -55,6 +60,6 @@ Wierdly enough, loading notepad.exe with this method and then launching cmd.exe 
 todo: <br/>
 -decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1 <br/>
 -deal with new AES cipher used in latest win10 1607 : done in 1.2 <br/>
--enum Lsasrv.dll!LogonSessionList <br/>
--enum Wdigest.dll!l_LogSessList <br/>
+-enum Lsasrv.dll!LogonSessionList: done in 1.3 <br/>
+-enum Wdigest.dll!l_LogSessList: done in 1.3 <br/>
 -patch LogonSessionList and perform pth? <br/>
