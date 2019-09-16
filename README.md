@@ -52,6 +52,16 @@ https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-change
 Once under a system account, you can also "steal" a token from trustedinstaller (net start trustedinstaller before hand. <br/>
 Note that you can steal a trustedinstaller token directly by using the /system switch. <br/>
 With a trustedinstaller token, you can perform actions like stop windefend (or kill the process, or modify the AV settings, etc). <br/>
+See example below where you would start the trustedinstaller service, retrieve its pid and run a process as the account. <br/>
+<i>
+@echo off
+net start trustedinstaller
+for /F "tokens=1" %%K in ('
+   nthash-win64 /enumproc ^| findstr /i "trustedinstaller"
+') do (
+   nthash-win64 /runastoken /pid:%%K /system
+)
+  </i>
 
 <b>runaschild</b> can be used to run a process as a child of another existing/parent process. <br/>
 Note that some apps (like cmd.exe) will crash right after initialization with a c0000142. <br/>
