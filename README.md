@@ -14,14 +14,14 @@ NTHASH /getusers [/server:hostname] <br/>
 NTHASH /getdomains [/server:hostname <br/>
 NTHASH /dumpsam <br/>
 NTHASH /dumphashes [/offline] <br/>
-NTHASH /dumphash /rid:500 [/offline] <br/>
+NTHASH /dumphash /rid:123 [/offline] <br/>
 NTHASH /getsamkey [/offline] <br/>
 NTHASH /getsyskey [/offline] <br/>
 NTHASH /getlsakeys <br/>
 NTHASH /wdigest <br/>
 NTHASH /logonpasswords <br/>
-NTHASH /cryptunprotectdata /input:filename
-NTHASH /cryptprotectdata /input:string
+NTHASH /cryptunprotectdata /input:filename <br/>
+NTHASH /cryptprotectdata /input:string <br/>
 NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
