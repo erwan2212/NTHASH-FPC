@@ -95,9 +95,11 @@ var
   dwCount: DWORD;
   bytes:array[0..1023] of byte;
 begin
+  result:=false;
   //setlength(Credentials ,1024);
     if CredEnumerateW(nil{PChar('TERM*')}, 0, dwCount, Credentials) then
     begin
+      result:=true;
       writeln(dwcount);
       //ptr:=credentials;
       for i:= 0 to dwCount - 1  do
@@ -130,7 +132,8 @@ begin
             }
         end; //for i:= 0 to dwCount - 1  do
     credfree(Credentials);
-    end; //if CredEnumerateW
+    end //if CredEnumerateW
+    else log('CredEnumerateW failed, '+inttostr(getlasterror));
 end;
 
 function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;

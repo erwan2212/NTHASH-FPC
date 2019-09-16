@@ -5,7 +5,7 @@ unit umemory;
 interface
 
 uses
-  Classes, SysUtils,windows;
+  Classes, SysUtils,windows,utils;
 
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:array of byte):boolean;
 function ReadMem(hprocess:thandle;offset:nativeuint;var bytes:array of byte):boolean;overload;
@@ -30,7 +30,9 @@ var
   read:PtrUInt;
 begin
 fillchar(bytes,length(bytes),0);
+log('offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(length(bytes)));
 result:=ReadProcessMemory (hprocess,pointer(offset),@bytes[0],length(bytes),@read);
+if result=false then log('readmem: read:'+inttostr(read)+' error:'+inttostr(getlasterror));
 //ideally should check read against length(bytes) as well...
 end;
 
@@ -39,10 +41,10 @@ var
   read:PtrUInt;
 begin
 fillchar(bytes^,len,0);
-//writeln('len:'+inttostr(len));
+log('offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(len));
 result:=ReadProcessMemory (hprocess,pointer(offset),bytes,len,@read);
 if read=0 then result:=false;
-//if read=0 then writeln(getlasterror);
+if result=false then log('readmem: read:'+inttostr(read)+' error:'+inttostr(getlasterror));
 //ideally should check read against length(bytes) as well...
 end;
 

