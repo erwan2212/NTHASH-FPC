@@ -3,7 +3,7 @@
 program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, upsapi, uimagehlp,
-  uadvapi32, utils, untdll, umemory, ucryptoapi, usamutils, uofflinereg;
+  uadvapi32, utils, untdll, umemory, ucryptoapi, usamutils, uofflinereg, uvaults;
 
 type _LUID =record
      LowPart:DWORD;
@@ -1419,6 +1419,12 @@ begin
   }
   //exit;
   //
+    p:=pos('/enumvaults',cmdline);
+  if p>0 then
+     begin
+     uvaults.Init ;
+     uvaults.enum ;
+     end;
   p:=pos('/enumcred',cmdline);
   if p>0 then
      begin
