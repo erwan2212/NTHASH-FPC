@@ -20,6 +20,9 @@ NTHASH /getsyskey [/offline] <br/>
 NTHASH /getlsakeys <br/>
 NTHASH /wdigest <br/>
 NTHASH /logonpasswords <br/>
+NTHASH /enumcred <br/>
+NTHASH /enumcred2 <br/>
+NTHASH /enumvault <br/>
 NTHASH /cryptunprotectdata /input:filename <br/>
 NTHASH /cryptprotectdata /input:string <br/>
 NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
@@ -39,7 +42,7 @@ Credits goes to https://github.com/vletoux/NTLMInjector <br/>
 <b>setntlm</b> on the other hand should always work and allow one to bypass password policy.  <br/>
 Credits goes to https://github.com/vletoux/NTLMInjector <br/>
 
-<b>dumpsam</b> will temporarily patch a module in lsass to be able to dump your SAM ntlm hashes (need to cover/test as many windows version as possible). <br/>
+<b>dumpsam</b> will temporarily patch a module in lsass to be able to dump your SAM ntlm hashes from the lsass memory (need to cover/test as many windows version as possible). <br/>
 
 <b>dumphash and dumphashes</b> will read the registry - you need to run as system to perform this action <br/>.
 Or you can use the /system switch <br/>.
@@ -47,6 +50,11 @@ You can also perform this offline (and then no longer require to run as system).
 You can use reg save hklm\sam sam.sav and reg save hklm\system system.sav to generate offline hives. <br/>
 Both the RC4 and AES cipher are supported. <br/>
 https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/ is a must read to understand RC4 vs AES. <br/>
+
+<b>enumcred</b> will use CredEnumerate windows API to enumerate the logged on user credentials. <br/>
+<b>enumcred2</b> will use CredEnumerate windows API to enumerate the logged on user credentials while also patching lsass to dump all credentials <br/>
+
+<b>enumvault</b> will use vaultcli.dll windows API to enumerate the logged on user vault credentials. <br/>
 
 <b>runastoken</b> can be used to run a process under a system account. <br/>
 Once under a system account, you can also "steal" a token from trustedinstaller (net start trustedinstaller before hand. <br/>
@@ -73,4 +81,5 @@ todo: <br/>
 -deal with new AES cipher used in latest win10 1607 : done in 1.2 <br/>
 -enum Lsasrv.dll!LogonSessionList: done in 1.3 <br/>
 -enum Wdigest.dll!l_LogSessList: done in 1.3 <br/>
+-decrypt dpapi encrypted vault credentials ? <br/>
 -patch LogonSessionList and perform pth? <br/>
