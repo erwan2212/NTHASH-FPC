@@ -56,6 +56,10 @@ https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-change
 
 <b>enumvault</b> will use vaultcli.dll windows API to enumerate the logged on user vault credentials. <br/>
 
+<b>logonpasswords</b> will dump lsasrv logon sessions primary credentials (hashes) and credential managers (clear text) <br/>
+
+<b>wdigest</b> will dump wdigest sessions credentials (clear text) <br/>
+
 <b>runastoken</b> can be used to run a process under a system account. <br/>
 Once under a system account, you can also "steal" a token from trustedinstaller (net start trustedinstaller before hand. <br/>
 Note that you can steal a trustedinstaller token directly by using the /system switch. <br/>
