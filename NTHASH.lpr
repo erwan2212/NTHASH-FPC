@@ -1093,6 +1093,8 @@ begin
   log('NTHASH /wdigest',1);
   log('NTHASH /logonpasswords',1);
   log('NTHASH /enumcred',1);
+  log('NTHASH /enumcred2',1);
+  log('NTHASH /enumvault',1);
   log('NTHASH /cryptunprotectdata /input:filename',1);
   log('NTHASH /cryptprotectdata /input:string',1);
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
