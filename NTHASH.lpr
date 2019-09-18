@@ -1057,7 +1057,13 @@ begin
   end;
 end;
 
-
+function pth:boolean;
+begin
+  //createprocesswithlogon suspended
+  //OpenProcessToken / GetTokenInformation +tokenstatistics to get LogonSession LUID
+  //cycle thru logonsessions to match the luid
+  //patch the structure to stuff the ntlm hash (encrypted)
+end;
 
 begin
   log('NTHASH 1.3 by erwan2212@gmail.com',1);

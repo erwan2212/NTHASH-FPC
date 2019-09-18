@@ -58,9 +58,13 @@ implementation
 procedure log(msg:string;status:dword=0);
 begin
 //if (verbose=false) and (status=0) then exit;
+try
 if verbose=false then
    if status<>0 then writeln(msg);
 if verbose=true then writeln(msg);
+except
+on e:exception do writeln('log:'+e.message);
+end;
 //writeln(status);
 end;
 
@@ -81,20 +85,29 @@ end;
 
 function AnsiStringtoByte(input:string):tbytes;
 var
-  i:byte;
+  i:word;
 begin
+try
 setlength(result,length(input));
 for i:=1 to length(input) do result[i-1]:=ord(input[i]);
+
+except
+on e:exception do log('AnsiStringtoByte'+e.Message );
+end;
 end;
 
 function BytetoAnsiString(input:array of byte):string;
 var
-  i:byte;
+  i:word;
   dummy:string='';
 begin
+try
 //writeln(sizeof(input));
   for i:=0 to sizeof(input)-1 do  dummy:=dummy+chr(input[i]);
   result:=dummy;
+except
+on e:exception do log('AnsiStringtoByte'+e.Message );
+end;
 end;
 
 //function HashByteToString(hash:tbyte16):string;
@@ -103,8 +116,12 @@ var
   i:word;
   dummy:string='';
 begin
+try
   for i:=0 to sizeof(hash)-1 do  dummy:=dummy+inttohex(hash[i],2);
   result:=dummy;
+except
+on e:exception do log('AnsiStringtoByte'+e.Message );
+end;
 end;
 
 function HexaStringToByte(hash:string):tbyte16;
@@ -112,6 +129,7 @@ var
   i:word;
   tmp:string;
 begin
+try
 i:=1;
 //setlength(result,length(hash));
   while I<min(32,length(hash)){sizeof(hash)*2} do
@@ -120,6 +138,9 @@ i:=1;
       result[i div 2]:=strtoint('$'+tmp);
       inc(i,2);
       end;
+except
+on e:exception do log('AnsiStringtoByte'+e.Message );
+end;
 end;
 
 
