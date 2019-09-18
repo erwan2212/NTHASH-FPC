@@ -27,7 +27,7 @@
         <CommandLineParams Value="/getsyskey"/>
       </local>
     </RunParams>
-    <Units Count="11">
+    <Units Count="12">
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -72,6 +72,11 @@
         <Filename Value="uvaults.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit10>
+      <Unit11>
+        <Filename Value="ulsa.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="uLSA"/>
+      </Unit11>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
