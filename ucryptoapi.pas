@@ -20,10 +20,8 @@ function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,
 function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
 function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;overload;
 
-function CryptUnProtectData_(var dataBytes:tbytes;filename:string):boolean;overload;
-
-function CredEnum:boolean;
-
+function CryptUnProtectData_(filename:string;var dataBytes:tbytes):boolean;overload;
+function CryptUnProtectData_(buffer:tbytes;var output:tbytes):boolean;overload;
 
 
 type
@@ -57,17 +55,7 @@ PCredentialArray = array of PCREDENTIALW;
 
 implementation
 
-const
-  CRED_TYPE_GENERIC                 = 1;
-  CRED_TYPE_DOMAIN_PASSWORD         = 2;
-  CRED_TYPE_DOMAIN_CERTIFICATE      = 3;
-  CRED_TYPE_DOMAIN_VISIBLE_PASSWORD = 4;
-  CRED_TYPE_MAXIMUM                 = 5;  // Maximum supported cred type
-  CRED_TYPE_MAXIMUM_EX              = CRED_TYPE_MAXIMUM + 1000;  // Allow new applications to run on old OSes
 
-  function CredReadW(TargetName: LPCWSTR; Type_: DWORD; Flags: DWORD; var Credential: PCREDENTIALW): BOOL; stdcall; external 'advapi32.dll';
-  function CredEnumerateW(Filter: LPCWSTR; Flags: DWORD; out Count: DWORD; out Credential: pointer {PCredentialArray}): BOOL; stdcall; external 'advapi32.dll';
-  Procedure CredFree(Buffer:pointer); stdcall; external 'advapi32.dll';
 
 
 type
@@ -85,56 +73,6 @@ BCRYPT_CHAIN_MODE_ECB_:widestring       = 'ChainingModeECB';
 BCRYPT_CHAIN_MODE_CFB_:widestring       = 'ChainingModeCFB';
 BCRYPT_CHAINING_MODE_:widestring        = 'ChainingMode';
 
-function CredEnum:boolean;
-var
-  Credentials: array of pointer; //PCredentialArray;
-  ptr:pointer;
-  Credential: PCREDENTIALW;
-  UserName: WideString;
-  i: integer;
-  dwCount: DWORD;
-  bytes:array[0..1023] of byte;
-begin
-  result:=false;
-  //setlength(Credentials ,1024);
-    if CredEnumerateW(nil{PChar('TERM*')}, 0, dwCount, Credentials) then
-    begin
-      result:=true;
-      writeln(dwcount);
-      //ptr:=credentials;
-      for i:= 0 to dwCount - 1  do
-        begin
-          log('*************************************',1);
-          CopyMemory(@bytes[0],Credentials[i],sizeof(_CREDENTIALW)) ;
-          //log('Hexa:'+ByteToHexaString (bytes),1);
-          log('Flags:'+inttostr(PCREDENTIALW(Credentials[i])^.Flags)  ,1);
-          log('Type_:'+inttostr(PCREDENTIALW(Credentials[i])^.Type_   ),1);
-          log('TargetName:'+widestring(PCREDENTIALW(Credentials[i])^.TargetName ),1);
-          log('Comment:'+widestring(PCREDENTIALW(Credentials[i])^.Comment ),1);
-          log('TargetAlias:'+widestring(PCREDENTIALW(Credentials[i])^.TargetAlias ),1);
-          log('UserName:'+widestring(PCREDENTIALW(Credentials[i])^.UserName ),1);
-          //writeln(PCREDENTIALW(Credentials[i])^.CredentialBlobSize);
-          if PCREDENTIALW(Credentials[i])^.CredentialBlobSize >0 then
-             begin
-               //we could use entropy/salt + CryptUnprotectData
-               CopyMemory (@bytes[0],PCREDENTIALW(Credentials[i])^.CredentialBlob,PCREDENTIALW(Credentials[i])^.CredentialBlobSize);
-               log('CredentialBlob:'+copy(BytetoAnsiString (bytes),1,PCREDENTIALW(Credentials[i])^.CredentialBlobSize),1);
-             end;
-          //inc(ptr,sizeof(pointer));
-          {
-            if CredReadW(Credentials[i].TargetName, Credentials[i].Type_, 0, Credential) then
-            begin
-              writeln(widestring(Credential.UserName));
-              UserName:= Credential.UserName;
-              log(Credentials[i].TargetName + ' :: ' + UserName + ' >> ' + IntToStr(Credentials[i].Type_));
-              log(IntToStr(Credential.CredentialBlobSize));
-            end; // if CredReadW
-            }
-        end; //for i:= 0 to dwCount - 1  do
-    credfree(Credentials);
-    end //if CredEnumerateW
-    else log('CredEnumerateW failed, '+inttostr(getlasterror));
-end;
 
 function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
 var
@@ -194,7 +132,7 @@ begin
 
 end;
 
-function CryptUnProtectData_(var dataBytes:tbytes;filename:string):boolean;overload;
+function CryptUnProtectData_(filename:string;var dataBytes:tbytes):boolean;overload;
 var
   plainBlob,decryptedBlob:_MY_BLOB;
   outfile:thandle=0;
@@ -242,6 +180,51 @@ begin
 
 
   closehandle(outfile);
+
+end;
+
+function CryptUnProtectData_(buffer:tbytes;var output:tbytes):boolean;overload;
+var
+  plainBlob,decryptedBlob:_MY_BLOB;
+  byteswritten:dword=0;
+  //
+  text:string;
+  //buffer:array[0..4095] of byte;
+
+begin
+  result:=false;
+
+  fillchar(plainBlob,sizeof(plainBlob),0);
+  fillchar(decryptedBlob,sizeof(decryptedBlob),0);
+
+
+  plainBlob.pbData := @buffer[0];
+  //plainBlob.pbData:=getmem(bytesread);
+  //copymemory(plainBlob.pbData,@buffer[0],bytesread);
+  plainBlob.cbData := length(buffer);
+  log('plainBlob.cbData:'+inttostr(plainBlob.cbData) );
+
+  //test
+  {
+  text:='password';
+  plainBlob.cbData := SizeOf(Char)*Length(Text);
+  plainBlob.pbData := Pointer(LocalAlloc(LPTR, plainBlob.cbData));
+  Move(Pointer(Text)^, plainBlob.pbData^, plainBlob.cbData);
+  }
+
+  decryptedBlob.pbData :=getmem(4096); //@databytes[0];
+  //3rd param entropy
+  result:=CryptunProtectData(@plainBlob, nil, nil, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
+  //writeln('CryptunProtectData:'+booltostr(result));
+  log('decryptedBlob.cbData:'+inttostr(decryptedBlob.cbData) );
+  //log(strpas(pchar(decryptedBlob.pbData)));
+  if result=true then
+    begin
+    setlength(output,decryptedBlob.cbData);
+    CopyMemory(@output[0],decryptedBlob.pbData,decryptedBlob.cbData);
+    end;
+  if result=false then log('CryptUnProtectData_ lasterror:'+inttostr(getlasterror));
+
 
 end;
 

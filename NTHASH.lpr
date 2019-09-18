@@ -1139,18 +1139,19 @@ begin
   }
   //exit;
   //
+  p:=pos('/enumcred2',cmdline);
+if p>0 then
+   begin
+   uvaults.VaultInit ;
+   uvaults.patch (lsass_pid ); //calling enumvault seems to bring back an encrypted blob
+   exit;
+   end;
     p:=pos('/enumvault',cmdline);
   if p>0 then
      begin
-     uvaults.Init ;
-     uvaults.enum ;
+     uvaults.VaultInit ;
+     uvaults.Vaultenum ;
      end;
-  p:=pos('/enumvault2',cmdline);
-if p>0 then
-   begin
-   uvaults.Init ;
-   uvaults.patch (lsass_pid );
-   end;
   p:=pos('/enumcred',cmdline);
   if p>0 then
      begin
@@ -1462,7 +1463,7 @@ if p>0 then
   if p>0 then
      begin
      if input='' then exit;
-      if CryptUnProtectData_(buffer,input)=false
+      if CryptUnProtectData_(input,buffer)=false
          then log('CryptUnProtectData_ NOT OK',1)
          else log('Decrypted:'+BytetoAnsiString (buffer),1);
      end;

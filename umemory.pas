@@ -21,7 +21,10 @@ function WriteMem(hprocess:thandle;offset:nativeint;bytes:array of byte):boolean
 var
   written:cardinal;
 begin
+log('WriteMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(length(bytes)));
 result:=WriteProcessMemory (hprocess,pointer(offset),@bytes[0],length(bytes),@written);
+if written=0 then result:=false;
+if result=false then log('WriteMem: written:'+inttostr(written)+' error:'+inttostr(getlasterror));
 //ideally should check written against length(bytes) as well...
 end;
 
@@ -30,8 +33,9 @@ var
   read:PtrUInt;
 begin
 fillchar(bytes,length(bytes),0);
-log('offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(length(bytes)));
+log('ReadMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(length(bytes)));
 result:=ReadProcessMemory (hprocess,pointer(offset),@bytes[0],length(bytes),@read);
+if read=0 then result:=false;
 if result=false then log('readmem: read:'+inttostr(read)+' error:'+inttostr(getlasterror));
 //ideally should check read against length(bytes) as well...
 end;
@@ -41,7 +45,7 @@ var
   read:PtrUInt;
 begin
 fillchar(bytes^,len,0);
-log('offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(len));
+log('ReadMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(len));
 result:=ReadProcessMemory (hprocess,pointer(offset),bytes,len,@read);
 if read=0 then result:=false;
 if result=false then log('readmem: read:'+inttostr(read)+' error:'+inttostr(getlasterror));
