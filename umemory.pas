@@ -7,15 +7,30 @@ interface
 uses
   Classes, SysUtils,windows,utils;
 
-function WriteMem(hprocess:thandle;offset:nativeint;bytes:array of byte):boolean;
+function WriteMem(hprocess:thandle;offset:nativeint;bytes:array of byte):boolean;overload;
+function WriteMem(hprocess:thandle;offset:nativeint;bytes:pointer;len:PtrUInt):boolean;overload;
+
 function ReadMem(hprocess:thandle;offset:nativeuint;var bytes:array of byte):boolean;overload;
 function ReadMem(hprocess:thandle;offset:nativeuint;bytes:pointer;len:PtrUInt):boolean;overload;
+
 function SearchMem(hprocess:thandle;addr:pointer;sizeofimage:DWORD;pattern:array of byte):nativeint;
 
 
 implementation
 
 //type tbytes=array of byte;
+
+function WriteMem(hprocess:thandle;offset:nativeint;bytes:pointer;len:PtrUInt):boolean;overload;
+var
+  written:cardinal;
+begin
+log('WriteMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(len));
+result:=WriteProcessMemory (hprocess,pointer(offset),bytes,len,@written);
+if written=0 then result:=false;
+if result=false then log('WriteMem: written:'+inttostr(written)+' error:'+inttostr(getlasterror));
+//ideally should check written against length(bytes) as well...
+end;
+
 
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:array of byte):boolean;
 var

