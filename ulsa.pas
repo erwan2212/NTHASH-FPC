@@ -8,7 +8,10 @@ uses
   windows,Classes, SysUtils,ucryptoapi,utils,upsapi,umemory;
 
 function decryptLSA(cbmemory:ulong;encrypted:array of byte;var decrypted:tbytes):boolean;
+function encryptLSA(cbmemory:ulong;decrypted:array of byte;var encrypted:tbytes):boolean;
+
 function findlsakeys(pid:dword;var DesKey,aeskey,iv:tbytes):boolean;
+
 
 var
   deskey,aeskey,iv,buffer:tbytes;
@@ -73,17 +76,18 @@ type
        tempiv:tbytes;
      begin
        //fillchar(decrypted,sizeof(decrypted),0); //will nullify the array?
-       for i:=0 to length(encrypted)-1 do encrypted[i]:=0;
+     setlength(encrypted,length(decrypted));
+     for i:=0 to length(encrypted)-1 do encrypted[i]:=0;
 
        if (cbMemory mod 8)<>0 then     //multiple of 8
      	begin
      		//hKey = &kAes.hKey;
      		cbIV := sizeof(iv);
                      log('cbmemory:'+inttostr(cbmemory));
-                     log('aes encrypted:'+ByteToHexaString (decrypted));
+                     log('aes decrypted:'+ByteToHexaString (decrypted));
                      setlength(tempiv,length(iv));
                      copymemory(@tempiv[0],@iv[0],length(tempiv));
-                     if bencrypt(BCRYPT_AES_ALGORITHM,encrypted,@decrypted[0],aeskey,tempiv)>0 then result:=true;
+                     if bencrypt(BCRYPT_AES_ALGORITHM,decrypted,@encrypted[0],aeskey,tempiv)>0 then result:=true;
 
              end
      	else
@@ -91,10 +95,10 @@ type
      		//hKey = &k3Des.hKey;
      		cbIV := sizeof(iv) div 2;
                      log('cbmemory:'+inttostr(cbmemory));
-                     log('des encrypted:'+ByteToHexaString (decrypted));
+                     log('des decrypted:'+ByteToHexaString (decrypted));
                      setlength(tempiv,length(iv));
                      copymemory(@tempiv[0],@iv[0],length(tempiv));
-                     if bencrypt(BCRYPT_3DES_ALGORITHM,encrypted,@decrypted[0],deskey,tempiv)>0 then result:=true;
+                     if bencrypt(BCRYPT_3DES_ALGORITHM,decrypted,@encrypted[0],deskey,tempiv)>0 then result:=true;
              end;
 
      end;

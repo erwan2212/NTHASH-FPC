@@ -273,9 +273,9 @@ begin
   status := BCryptEncrypt(hkey, @decrypted[0], sizeof(decrypted), 0, @initializationVector[0], cbiv, @encrypted[0], length(encrypted), result, 0);
   if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));exit;end;
   log('resultlen:'+inttostr(result));
-  log(ByteToHexaString  (decrypted ));
+  log('encrypted:'+ByteToHexaString  (encrypted  ));
   //log(strpas (pwidechar(@decrypted[0]) ));
-  copymemory(output,@decrypted[0],result);
+  copymemory(output,@encrypted[0],result);
   //https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
   //0xC0000023  STATUS_BUFFER_TOO_SMALL
 end;
@@ -324,7 +324,7 @@ begin
   status := BCryptDecrypt(hkey, @encryped[0], sizeof(encryped), 0, @initializationVector[0], cbiv, @decrypted[0], length(decrypted), result, 0);
   if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));exit;end;
   log('resultlen:'+inttostr(result));
-  log(ByteToHexaString  (decrypted ));
+  log('decrypted:'+ByteToHexaString  (decrypted ));
   log(strpas (pwidechar(@decrypted[0]) ));
   copymemory(output,@decrypted[0],result);
   //https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
