@@ -17,6 +17,8 @@ function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,
 //function bdecryptDES(encrypedPass:puchar;encryptedPassLen:ulong;gDesKey,initializationVector:puchar):ULONG;
 //function bdecryptAES(encrypedPass:puchar;encryptedPassLen:ulong;gAesKey,initializationVector:puchar):ULONG;
 
+function bencrypt(algo:lpcwstr;decrypted:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
+
 function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
 function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;overload;
 
@@ -227,6 +229,57 @@ begin
 
 
 end;
+
+function bencrypt(algo:lpcwstr;decrypted:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
+var
+  hProvider:BCRYPT_ALG_HANDLE=0;
+  encrypted:array[0..1023] of byte;
+  hkey:BCRYPT_KEY_HANDLE=0;
+  status:NTSTATUS;
+  encryptedPassLen,cbiv:ULONG;
+  //gInitializationVector:array[0..15] of uchar;
+begin
+  result:=0;
+  cbiv:=0;
+  log('algo:'+strpas(algo) );
+  {
+  log('encrypted size:'+inttostr(sizeof(encryped) ));
+  log('decrypted size:'+inttostr(sizeof(decrypted) ));
+  log('decrypted length:'+inttostr(length(decrypted) ));
+  log('sizeof(gkey):'+inttostr(sizeof(gkey)));
+  log('sizeof(iv):'+inttostr(sizeof(initializationVector )));
+  }
+  status:=BCryptOpenAlgorithmProvider(hProvider, algo, nil, 0);
+  //log('hProvider:'+inttostr(hProvider));
+  if status<>0 then begin log('BCryptOpenAlgorithmProvider NOT OK');exit;end;
+  if algo=BCRYPT_AES_ALGORITHM then
+     begin
+       status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @BCRYPT_CHAIN_MODE_CFB_[1], sizeof(BCRYPT_CHAIN_MODE_CFB_), 0);
+       cbiv:=sizeof(initializationVector );
+     end;
+  if algo=BCRYPT_3DES_ALGORITHM then
+     begin
+       status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @BCRYPT_CHAIN_MODE_CBC_[1], sizeof(BCRYPT_CHAIN_MODE_CBC_), 0);
+       cbiv:=sizeof(initializationVector ) div 2;
+     end;
+  //writeln('cbiv:'+inttostr(cbiv));
+  if status<>0 then begin log('BCryptSetProperty NOT OK:'+inttohex(status,sizeof(status)));exit;end;
+  status:=BCryptGenerateSymmetricKey(hProvider, hkey, nil, 0, @gKey[0], sizeof(gKey), 0);
+  if status<>0 then begin log('BCryptGenerateSymmetricKey NOT OK:'+inttohex(status,sizeof(status)));exit;end;
+  //writeln('hkey:'+inttostr(hkey));
+  //fillchar(decrypted,sizeof(decrypted ),0);
+  fillchar(encrypted,length(encrypted ),0);
+  //status := BCryptDecrypt(hkey, @encryped[0], sizeof(encryped), 0, @initializationVector[0], cbiv, @decrypted[0], sizeof(decrypted), result, 0);
+  status := BCryptEncrypt(hkey, @decrypted[0], sizeof(decrypted), 0, @initializationVector[0], cbiv, @encrypted[0], length(encrypted), result, 0);
+  if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));exit;end;
+  log('resultlen:'+inttostr(result));
+  log(ByteToHexaString  (decrypted ));
+  //log(strpas (pwidechar(@decrypted[0]) ));
+  copymemory(output,@decrypted[0],result);
+  //https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
+  //0xC0000023  STATUS_BUFFER_TOO_SMALL
+end;
+
 
 function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
 var

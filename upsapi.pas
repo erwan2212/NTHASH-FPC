@@ -5,7 +5,7 @@ unit upsapi;
 interface
 
 uses
-  Classes, SysUtils,windows;
+  Classes, SysUtils,windows,utils;
 
 type phmodule=^hmodule;
 
@@ -146,10 +146,9 @@ result:=0;
       for count:=0 to cbneeded div sizeof(dword) - 1 do
           begin
           //beware of 32bit process onto 64bits processes...
-          hProcess := OpenProcess( PROCESS_QUERY_INFORMATION or
-                                   PROCESS_VM_READ,
+          hProcess := OpenProcess( PROCESS_QUERY_INFORMATION or PROCESS_VM_READ,
                                    FALSE, pids[count] );
-          //EnumProcessModules (hprocess,@modules[0],cb,cbneeded2);
+          //log( inttostr(pids[count])+' '+inttostr(hprocess));
           if GetModuleBaseNameA( hProcess, 0, szProcessName,sizeof(szProcessName))<>0 then
              begin
              if search='' then writeln(inttostr(pids[count])+ ' '+szProcessName );
@@ -162,7 +161,8 @@ result:=0;
           closehandle(hProcess);
              //else writeln(getlasterror);
           end; //for count:=0...
-      end;//if EnumProcesses...
+      end//if EnumProcesses...
+      else log('EnumProcesses failed, '+inttostr(getlasterror));
 end;
 
 function EnableDebugPrivilege(PrivName: string; CanDebug: Boolean): Boolean;

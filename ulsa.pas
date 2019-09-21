@@ -63,6 +63,41 @@ type
         end;
      KIWI_BCRYPT_HANDLE_KEY=_KIWI_BCRYPT_HANDLE_KEY;
 
+ function encryptLSA(cbmemory:ulong;decrypted:array of byte;var encrypted:tbytes):boolean;
+     const
+       BCRYPT_AES_ALGORITHM                    = 'AES';
+       BCRYPT_3DES_ALGORITHM                   = '3DES';
+     var
+       cbIV,i:ulong;
+       status:ntstatus;
+       tempiv:tbytes;
+     begin
+       //fillchar(decrypted,sizeof(decrypted),0); //will nullify the array?
+       for i:=0 to length(encrypted)-1 do encrypted[i]:=0;
+
+       if (cbMemory mod 8)<>0 then     //multiple of 8
+     	begin
+     		//hKey = &kAes.hKey;
+     		cbIV := sizeof(iv);
+                     log('cbmemory:'+inttostr(cbmemory));
+                     log('aes encrypted:'+ByteToHexaString (decrypted));
+                     setlength(tempiv,length(iv));
+                     copymemory(@tempiv[0],@iv[0],length(tempiv));
+                     if bencrypt(BCRYPT_AES_ALGORITHM,encrypted,@decrypted[0],aeskey,tempiv)>0 then result:=true;
+
+             end
+     	else
+     	begin
+     		//hKey = &k3Des.hKey;
+     		cbIV := sizeof(iv) div 2;
+                     log('cbmemory:'+inttostr(cbmemory));
+                     log('des encrypted:'+ByteToHexaString (decrypted));
+                     setlength(tempiv,length(iv));
+                     copymemory(@tempiv[0],@iv[0],length(tempiv));
+                     if bencrypt(BCRYPT_3DES_ALGORITHM,encrypted,@decrypted[0],deskey,tempiv)>0 then result:=true;
+             end;
+
+     end;
 
 function decryptLSA(cbmemory:ulong;encrypted:array of byte;var decrypted:tbytes):boolean;
 const

@@ -1,4 +1,5 @@
 {$mode delphi}{$H+}
+//{$r uac.res}
 
 program NTHASH;
 
@@ -1034,7 +1035,11 @@ ZeroMemory(@StartupInfo, SizeOf(TStartupInfoW));
     StartupInfo,ProcessInformation,
     TIntegrityLevel(i),
     strtoint(pid ));
-    if result then break;
+    if result then
+       begin
+       log('pid:'+inttostr(ProcessInformation.dwProcessId ));
+       break;
+       end;
     end;
 end;
 
@@ -1150,7 +1155,7 @@ begin
   p:=pos('/enumcred2',cmdline);
 if p>0 then
    begin
-   uvaults.VaultInit ;
+   //uvaults.VaultInit ;
    uvaults.patch (lsass_pid ); //calling enumvault seems to bring back an encrypted blob
    exit;
    end;
