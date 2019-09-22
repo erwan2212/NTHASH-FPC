@@ -9,8 +9,8 @@
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="1110"/>
-        <CursorPos X="89" Y="1125"/>
+        <TopLine Value="586"/>
+        <CursorPos Y="594"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -117,7 +117,7 @@
         <EditorIndex Value="2"/>
         <TopLine Value="83"/>
         <CursorPos X="31" Y="99"/>
-        <UsageCount Value="172"/>
+        <UsageCount Value="208"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit11>
@@ -143,7 +143,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="247"/>
         <CursorPos X="18" Y="259"/>
-        <UsageCount Value="86"/>
+        <UsageCount Value="82"/>
       </Unit14>
       <Unit15>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\struct.inc"/>
@@ -158,21 +158,21 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="499"/>
         <CursorPos X="3" Y="511"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="7"/>
       </Unit16>
       <Unit17>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\redef.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="327"/>
         <CursorPos X="150" Y="347"/>
-        <UsageCount Value="85"/>
+        <UsageCount Value="81"/>
       </Unit17>
       <Unit18>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="1191"/>
         <CursorPos Y="1202"/>
-        <UsageCount Value="97"/>
+        <UsageCount Value="93"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit18>
       <Unit19>
@@ -189,130 +189,130 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1221"/>
         <CursorPos X="3" Y="1233"/>
-        <UsageCount Value="102"/>
+        <UsageCount Value="98"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit20>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="764" Column="63" TopLine="745"/>
+        <Caret Line="550" Column="30" TopLine="540"/>
       </Position1>
       <Position2>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1103" Column="20" TopLine="1087"/>
+        <Caret Line="1254" Column="31" TopLine="1243"/>
       </Position2>
       <Position3>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1144" Column="30" TopLine="1124"/>
+        <Caret Line="862" Column="17" TopLine="852"/>
       </Position3>
       <Position4>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1235" Column="48" TopLine="1215"/>
+        <Caret Line="1260" Column="29" TopLine="1250"/>
       </Position4>
       <Position5>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1104" Column="19" TopLine="1092"/>
+        <Caret Line="862" Column="30" TopLine="844"/>
       </Position5>
       <Position6>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="786" Column="101" TopLine="775"/>
+        <Caret Line="797" Column="122" TopLine="786"/>
       </Position6>
       <Position7>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="36" Column="26" TopLine="23"/>
+        <Caret Line="1125" Column="80" TopLine="1110"/>
       </Position7>
       <Position8>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="791" Column="81" TopLine="770"/>
+        <Caret Line="1086" Column="46" TopLine="1075"/>
       </Position8>
       <Position9>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1107" Column="24" TopLine="1096"/>
+        <Caret Line="1216" Column="23" TopLine="1204"/>
       </Position9>
       <Position10>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="793" Column="103" TopLine="774"/>
+        <Caret Line="1122" Column="20" TopLine="1108"/>
       </Position10>
       <Position11>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="790" Column="69" TopLine="779"/>
+        <Caret Line="536" Column="10" TopLine="674"/>
       </Position11>
       <Position12>
-        <Filename Value="usamlib.pas"/>
-        <Caret Line="141" Column="49" TopLine="180"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1088" Column="3" TopLine="1065"/>
       </Position12>
       <Position13>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="677" Column="72" TopLine="665"/>
+        <Caret Line="681" Column="76" TopLine="669"/>
       </Position13>
       <Position14>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="668" TopLine="651"/>
+        <Caret Line="108" Column="22" TopLine="96"/>
       </Position14>
       <Position15>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="550" Column="5" TopLine="549"/>
+        <Caret Line="1088" Column="83" TopLine="1076"/>
       </Position15>
       <Position16>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="634" Column="25" TopLine="623"/>
+        <Caret Line="1260" Column="61" TopLine="1244"/>
       </Position16>
       <Position17>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="635" Column="77" TopLine="624"/>
+        <Caret Line="1257" Column="77" TopLine="1248"/>
       </Position17>
       <Position18>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="634" Column="25" TopLine="623"/>
+        <Caret Line="1087" Column="74" TopLine="1074"/>
       </Position18>
       <Position19>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="668" Column="38" TopLine="657"/>
+        <Caret Line="723" Column="45" TopLine="590"/>
       </Position19>
       <Position20>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="683" Column="38" TopLine="678"/>
+        <Caret Line="1259" Column="45" TopLine="1248"/>
       </Position20>
       <Position21>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1124" Column="16" TopLine="1108"/>
+        <Caret Line="957" Column="86" TopLine="944"/>
       </Position21>
       <Position22>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="550" Column="17" TopLine="546"/>
+        <Caret Line="754" TopLine="748"/>
       </Position22>
       <Position23>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1124" Column="32" TopLine="1113"/>
+        <Caret Line="1088" Column="26" TopLine="1075"/>
       </Position23>
       <Position24>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1254" Column="44" TopLine="1243"/>
+        <Caret Line="1127" Column="49" TopLine="1113"/>
       </Position24>
       <Position25>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="550" Column="30" TopLine="540"/>
+        <Caret Line="542" Column="137" TopLine="534"/>
       </Position25>
       <Position26>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1254" Column="31" TopLine="1243"/>
+        <Caret Line="550" Column="31" TopLine="582"/>
       </Position26>
       <Position27>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="862" Column="17" TopLine="852"/>
+        <Caret Line="836" Column="52" TopLine="911"/>
       </Position27>
       <Position28>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1260" Column="29" TopLine="1250"/>
+        <Caret Line="439" Column="32" TopLine="425"/>
       </Position28>
       <Position29>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="862" Column="30" TopLine="844"/>
+        <Caret Line="583" Column="50" TopLine="571"/>
       </Position29>
       <Position30>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="797" Column="122" TopLine="786"/>
+        <Caret Line="912" Column="36" TopLine="909"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>

