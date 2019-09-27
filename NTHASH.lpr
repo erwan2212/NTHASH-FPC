@@ -1137,7 +1137,7 @@ begin
   si.cb := sizeof(si);
   si.dwFlags := STARTF_USESHOWWINDOW;
   si.wShowWindow := 1;
-  bret:=CreateProcessWithLogonW(pwidechar('admin'),pwidechar('.'),pwidechar(''),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar('c:\windows\system32\cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
+  bret:=CreateProcessWithLogonW(pwidechar(widestring(user)),pwidechar(widestring(domain)),pwidechar(widestring('dummy')),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar('c:\windows\system32\cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
   if bret=false then writeln('failed: '+inttostr(getlasterror));
 
   if bret=true then

@@ -342,6 +342,8 @@ const
   PTRN_WN10_1703_CredpCloneCredential:array [0..7] of byte =($45, $8b, $e6, $41, $83, $e4, $01, $75);
   PTRN_WN10_1803_CredpCloneCredential:array [0..7] of byte =($45, $8b, $fe, $41, $83, $e7, $01, $75);
   PTRN_WN10_1809_CredpCloneCredential:array [0..8] of byte =($45, $8b, $e6, $41, $83, $e4, $01, $0f, $84);
+  //
+  PTRN_WN60_CredpCloneCredential_x86:array [0..7] of byte =($89, $4d, $18, $83, $65, $18, $01, $75);
 var
   pattern:array of byte;
 begin
@@ -396,10 +398,15 @@ begin
          CopyMemory (@pattern[0],@PTRN_WN10_1809_CredpCloneCredential[0],length(PTRN_WN10_1809_CredpCloneCredential));
          offset:=7;
          end;
-     end
-     else
+     end;
+     if LowerCase (osarch )='x86' then
      begin
-     //
+     if (copy(winver,1,3)='6.0') or (copy(winver,1,3)='6.1') then
+         begin
+         setlength(pattern,length(PTRN_WN60_CredpCloneCredential_x86));
+         CopyMemory (@pattern[0],@PTRN_WN60_CredpCloneCredential_x86[0],length(PTRN_WN60_CredpCloneCredential_x86));
+         offset:=7;
+         end;
      end;
 result:=pattern;
 end;
@@ -447,7 +454,9 @@ begin
      end;
   if (lowercase(osarch)='x86') then
      begin
-     //nothing needed here
+        setlength(after,sizeof(PATC_WALL_CredpCloneCredentialJmpShort));
+        setlength(backup,sizeof(PATC_WALL_CredpCloneCredentialJmpShort));
+        copymemory(@after[0],@PATC_WALL_CredpCloneCredentialJmpShort[0],sizeof(PATC_WALL_CredpCloneCredentialJmpShort));
      end;
 
   pattern:=Init_Pattern(patch_pos ) ;
