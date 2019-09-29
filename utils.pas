@@ -37,6 +37,7 @@ procedure log(msg:qword;status:dword=0);overload;
 //function HashByteToString(hash:tbyte16):string;
 function ByteToHexaString(hash:array of byte):string;
 function HexaStringToByte(hash:string):tbyte16;
+function HexaStringToByte2(hash:string):tbytes;
 
 function BytetoAnsiString(input:array of byte):string;
 function AnsiStringtoByte(input:string):tbytes;
@@ -133,6 +134,27 @@ try
 i:=1;
 //setlength(result,length(hash));
   while I<min(32,length(hash)){sizeof(hash)*2} do
+      begin
+      tmp:=copy(hash,i,2);
+      result[i div 2]:=strtoint('$'+tmp);
+      inc(i,2);
+      end;
+except
+on e:exception do log('AnsiStringtoByte'+e.Message );
+end;
+end;
+
+function HexaStringToByte2(hash:string):tbytes;
+var
+  i:word;
+  tmp:string;
+begin
+try
+i:=1;
+//log('hash:'+hash);
+//log('length(hash) div 2:'+inttostr(length(hash) div 2));
+setlength(result,length(hash) div 2);
+  while I<length(hash) do
       begin
       tmp:=copy(hash,i,2);
       result[i div 2]:=strtoint('$'+tmp);

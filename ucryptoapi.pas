@@ -22,8 +22,8 @@ function bencrypt(algo:lpcwstr;decrypted:array of byte;output:pointer;const gKey
 function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
 function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;overload;
 
-function CryptUnProtectData_(filename:string;var dataBytes:tbytes):boolean;overload;
-function CryptUnProtectData_(buffer:tbytes;var output:tbytes):boolean;overload;
+function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const AdditionalEntropy: string=''):boolean;overload;
+function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 
 
 type
@@ -134,7 +134,7 @@ begin
 
 end;
 
-function CryptUnProtectData_(filename:string;var dataBytes:tbytes):boolean;overload;
+function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 var
   plainBlob,decryptedBlob:_MY_BLOB;
   outfile:thandle=0;
@@ -143,21 +143,40 @@ var
   text:string;
   buffer:array[0..4095] of byte;
   bytesread:cardinal;
+  //
+  entropyBlob: DATA_BLOB;
+  pEntropy: Pointer;
 begin
   result:=false;
   fillchar(plainBlob,sizeof(plainBlob),0);
   fillchar(decryptedBlob,sizeof(decryptedBlob),0);
 
-  outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-  if outfile<=0 then exit;
+  if not FileExists(filename) then log('filename does not exist');
+
+  outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
+  //if outfile=thandle(-1) then outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or FILE_ATTRIBUTE_HIDDEN , 0);
+  //if outfile=thandle(-1) then outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or FILE_ATTRIBUTE_HIDDEN or FILE_ATTRIBUTE_ARCHIVE, 0);
+  //if outfile=thandle(-1) then outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL or FILE_ATTRIBUTE_HIDDEN or FILE_ATTRIBUTE_ARCHIVE or FILE_ATTRIBUTE_SYSTEM, 0);
+  if outfile=thandle(-1) then log('CreateFile:'+inttostr(getlasterror));
+  if outfile=thandle(-1) then exit;
   result:=readfile(outfile ,buffer,4096,bytesread,nil);
+  if (result=false) or (bytesread=0) then log('readfile:'+inttostr(getlasterror)+' '+inttostr(outfile));
   log('bytesread:'+inttostr(bytesread));
+
+  if AdditionalEntropy <> '' then
+    begin
+        entropyBlob.pbData := Pointer(AdditionalEntropy);
+        entropyBlob.cbData := Length(AdditionalEntropy)*SizeOf(Char);
+        pEntropy := @entropyBlob;
+    end
+    else
+        pEntropy := nil;
 
   plainBlob.pbData := @buffer[0];
   //plainBlob.pbData:=getmem(bytesread);
   //copymemory(plainBlob.pbData,@buffer[0],bytesread);
   plainBlob.cbData := bytesread;
-  //writeln(length(dataBytes));
+  log('plainBlob.cbData:'+inttostr(plainBlob.cbData) );
 
   //test
   {
@@ -168,16 +187,17 @@ begin
   }
 
   decryptedBlob.pbData :=getmem(4096); //@databytes[0];
-  result:=CryptunProtectData(@plainBlob, nil, nil, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
-  //writeln('CryptunProtectData:'+booltostr(result));
-  log('cbData:'+inttostr(decryptedBlob.cbData) );
+  //3rd param is entropy
+  //5th param is password
+  result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
+  log('decryptedBlob.cbData:'+inttostr(decryptedBlob.cbData) );
   //log(strpas(pchar(decryptedBlob.pbData)));
   if result=true then
     begin
     setlength(databytes,decryptedBlob.cbData);
     CopyMemory(@databytes[0],decryptedBlob.pbData,decryptedBlob.cbData);
     end;
-  //if result=false then writeln('lasterror:'+inttostr(getlasterror));
+  if result=false then log('CryptUnProtectData_ lasterror:'+inttostr(getlasterror));
 
 
 
@@ -185,19 +205,30 @@ begin
 
 end;
 
-function CryptUnProtectData_(buffer:tbytes;var output:tbytes):boolean;overload;
+function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 var
   plainBlob,decryptedBlob:_MY_BLOB;
   byteswritten:dword=0;
   //
   text:string;
   //buffer:array[0..4095] of byte;
-
+  //
+  entropyBlob: DATA_BLOB;
+  pEntropy: Pointer;
 begin
   result:=false;
 
   fillchar(plainBlob,sizeof(plainBlob),0);
   fillchar(decryptedBlob,sizeof(decryptedBlob),0);
+
+  if AdditionalEntropy <> '' then
+    begin
+        entropyBlob.pbData := Pointer(AdditionalEntropy);
+        entropyBlob.cbData := Length(AdditionalEntropy)*SizeOf(Char);
+        pEntropy := @entropyBlob;
+    end
+    else
+        pEntropy := nil;
 
 
   plainBlob.pbData := @buffer[0];
@@ -216,10 +247,8 @@ begin
 
   decryptedBlob.pbData :=getmem(4096); //@databytes[0];
   //3rd param entropy
-  result:=CryptunProtectData(@plainBlob, nil, nil, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
-  //writeln('CryptunProtectData:'+booltostr(result));
+  result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
   log('decryptedBlob.cbData:'+inttostr(decryptedBlob.cbData) );
-  //log(strpas(pchar(decryptedBlob.pbData)));
   if result=true then
     begin
     setlength(output,decryptedBlob.cbData);

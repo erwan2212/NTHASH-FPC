@@ -278,7 +278,6 @@ var
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
-
   sysdir:pchar;
   syskey,samkey,ntlmhash:tbyte16;
 
@@ -1198,7 +1197,8 @@ begin
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1);
   log('NTHASH /enumvault',1);
-  log('NTHASH /cryptunprotectdata /input:filename',1);
+  log('NTHASH /cryptunprotectdata /binary:filename',1);
+  log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string',1);
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
@@ -1323,7 +1323,7 @@ begin
   p:=pos('/input:',cmdline);
   if p>0 then
        begin
-       input:=copy(cmdline,p,255);
+       input:=copy(cmdline,p,length(cmdline)-p);
        input:=stringreplace(input,'/input:','',[rfReplaceAll, rfIgnoreCase]);
        delete(input,pos(' ',input),255);
        end;
@@ -1577,8 +1577,11 @@ begin
   p:=pos('/cryptunprotectdata',cmdline);
   if p>0 then
      begin
-     if input='' then exit;
-      if CryptUnProtectData_(input,buffer)=false
+     if (input='') and (binary='') then exit;
+     if binary <>'' then if CryptUnProtectData_(binary,buffer)=false
+         then log('CryptUnProtectData_ NOT OK',1)
+         else log('Decrypted:'+BytetoAnsiString (buffer),1);
+     if input <>'' then if CryptUnProtectData_(HexaStringToByte2 (input) ,buffer)=false
          then log('CryptUnProtectData_ NOT OK',1)
          else log('Decrypted:'+BytetoAnsiString (buffer),1);
      end;
