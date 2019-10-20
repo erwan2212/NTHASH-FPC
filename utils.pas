@@ -102,6 +102,7 @@ var
   i:word;
   dummy:string='';
 begin
+if sizeof(input)=0 then exit;
 try
 //writeln(sizeof(input));
   for i:=0 to sizeof(input)-1 do  dummy:=dummy+chr(input[i]);

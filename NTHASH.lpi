@@ -30,7 +30,7 @@
         <CommandLineParams Value="/getsyskey"/>
       </local>
     </RunParams>
-    <Units Count="12">
+    <Units Count="13">
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -80,6 +80,10 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="uLSA"/>
       </Unit11>
+      <Unit12>
+        <Filename Value="uchrome.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit12>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -90,7 +94,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);..\jwa\branches\2.3\Includes"/>
-      <OtherUnitFiles Value="..\jwa\branches\2.3\Win32API"/>
+      <OtherUnitFiles Value="..\jwa\branches\2.3\Win32API;..\..\databases\mORMot-1.18"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
@@ -102,6 +106,12 @@
       <TargetCPU Value="x86_64"/>
       <TargetOS Value="win64"/>
     </CodeGeneration>
+    <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="False"/>
+        <StripSymbols Value="True"/>
+      </Debugging>
+    </Linking>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="3">

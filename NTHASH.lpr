@@ -3,9 +3,9 @@
 
 program NTHASH;
 
-uses windows, classes, sysutils, dos, usamlib, usid, upsapi, uimagehlp,
-  uadvapi32, utils, untdll, umemory, ucryptoapi, usamutils, uofflinereg,
-  uvaults, uLSA;
+uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,uadvapi32,
+   untdll,utils,  umemory, ucryptoapi, usamutils, uofflinereg,
+  uvaults, uLSA, uchrome;
 
 type _LUID =record
      LowPart:DWORD;
@@ -1626,5 +1626,14 @@ begin
    begin
    pth(user,password,domain);
    end;
+  p:=pos('/chrome',cmdline);
+  if p>0 then
+   begin
+   decrypt_chrome;
+   end;
 end.
+
+//todo
+//{ "masterkey", "lsasrv!g_MasterKeyCacheList", 0, NULL }, // kuhl_m_sekurlsa_enum_logon_callback_masterkeys },
+//{ "masterkey", "dpapisrv!g_MasterKeyCacheList", 0, NULL }, // kuhl_m_sekurlsa_enum_logon_callback_masterkeys },
 
