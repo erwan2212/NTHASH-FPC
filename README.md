@@ -20,6 +20,7 @@ NTHASH /getsyskey [/offline] <br/>
 NTHASH /getlsakeys <br/>
 NTHASH /wdigest <br/>
 NTHASH /logonpasswords <br/>
+NTHASH /pth /user:username /password:myhash /domain:mydomain <br/>
 NTHASH /enumcred <br/>
 NTHASH /enumcred2 <br/>
 NTHASH /enumvault <br/>
