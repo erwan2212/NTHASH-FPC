@@ -5,7 +5,7 @@ program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,uadvapi32,
    untdll,utils,  umemory, ucryptoapi, usamutils, uofflinereg,
-  uvaults, uLSA, uchrome;
+  uvaults, uLSA, uchrome, ufirefox;
 
 type _LUID =record
      LowPart:DWORD;
@@ -1186,7 +1186,7 @@ begin
 end;
 
 begin
-  log('NTHASH 1.3 by erwan2212@gmail.com',1);
+  log('NTHASH 1.4 by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   log('Windows Version:'+winver,1);
@@ -1222,6 +1222,8 @@ begin
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1);
   log('NTHASH /enumvault',1);
+  log('NTHASH /chrome',1);
+  log('NTHASH /firefox',1);
   log('NTHASH /bytestostring /input:hexabytes',1);
   log('NTHASH /stringtobytes /input:string',1);
   log('NTHASH /enumproc',1);
@@ -1630,6 +1632,11 @@ begin
   if p>0 then
    begin
    decrypt_chrome;
+   end;
+  p:=pos('/firefox',cmdline);
+  if p>0 then
+   begin
+   decrypt_firefox;
    end;
 end.
 

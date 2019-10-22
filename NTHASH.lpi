@@ -30,7 +30,7 @@
         <CommandLineParams Value="/getsyskey"/>
       </local>
     </RunParams>
-    <Units Count="13">
+    <Units Count="14">
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -84,6 +84,10 @@
         <Filename Value="uchrome.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit12>
+      <Unit13>
+        <Filename Value="ufirefox.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit13>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -94,7 +98,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);..\jwa\branches\2.3\Includes"/>
-      <OtherUnitFiles Value="..\jwa\branches\2.3\Win32API;..\..\databases\mORMot-1.18"/>
+      <OtherUnitFiles Value="..\jwa\branches\2.3\Win32API;..\..\databases\mORMot-1.18;..\..\system\ikjson"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>

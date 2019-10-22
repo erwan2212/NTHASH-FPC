@@ -4,13 +4,13 @@
     <PathDelim Value="\"/>
     <Version Value="10"/>
     <BuildModes Active="Default"/>
-    <Units Count="30">
+    <Units Count="32">
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="1616"/>
-        <CursorPos X="47" Y="1629"/>
+        <TopLine Value="1214"/>
+        <CursorPos X="23" Y="1226"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -18,7 +18,7 @@
       <Unit1>
         <Filename Value="upsapi.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="17"/>
+        <EditorIndex Value="15"/>
         <CursorPos X="59" Y="150"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
@@ -36,7 +36,7 @@
       <Unit3>
         <Filename Value="uadvapi32.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="15"/>
+        <EditorIndex Value="13"/>
         <CursorPos X="10" Y="343"/>
         <UsageCount Value="212"/>
         <Loaded Value="True"/>
@@ -45,7 +45,7 @@
       <Unit4>
         <Filename Value="utils.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="6"/>
         <TopLine Value="88"/>
         <CursorPos X="30" Y="105"/>
         <UsageCount Value="211"/>
@@ -62,7 +62,7 @@
       <Unit6>
         <Filename Value="umemory.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="18"/>
+        <EditorIndex Value="16"/>
         <TopLine Value="36"/>
         <CursorPos X="10" Y="14"/>
         <UsageCount Value="213"/>
@@ -72,7 +72,7 @@
       <Unit7>
         <Filename Value="ucryptoapi.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="9"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="237"/>
         <CursorPos X="54" Y="208"/>
         <UsageCount Value="236"/>
@@ -82,7 +82,7 @@
       <Unit8>
         <Filename Value="usamutils.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="13"/>
+        <EditorIndex Value="11"/>
         <TopLine Value="324"/>
         <CursorPos X="84" Y="332"/>
         <UsageCount Value="203"/>
@@ -92,7 +92,7 @@
       <Unit9>
         <Filename Value="uofflinereg.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="14"/>
+        <EditorIndex Value="12"/>
         <TopLine Value="131"/>
         <CursorPos Y="150"/>
         <UsageCount Value="201"/>
@@ -102,7 +102,7 @@
       <Unit10>
         <Filename Value="uvaults.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="167"/>
         <CursorPos X="90" Y="175"/>
         <UsageCount Value="249"/>
@@ -113,7 +113,7 @@
         <Filename Value="ulsa.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="uLSA"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="4"/>
         <CursorPos X="17" Y="131"/>
         <UsageCount Value="208"/>
         <Loaded Value="True"/>
@@ -123,15 +123,14 @@
         <Filename Value="uchrome.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="47"/>
-        <CursorPos X="64" Y="57"/>
-        <UsageCount Value="22"/>
+        <CursorPos X="21" Y="13"/>
+        <UsageCount Value="26"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit12>
       <Unit13>
         <Filename Value="usamlib.pas"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="21"/>
         <CursorPos X="21" Y="29"/>
         <UsageCount Value="100"/>
@@ -140,7 +139,7 @@
       </Unit13>
       <Unit14>
         <Filename Value="usid.pas"/>
-        <EditorIndex Value="16"/>
+        <EditorIndex Value="14"/>
         <CursorPos Y="18"/>
         <UsageCount Value="100"/>
         <Loaded Value="True"/>
@@ -176,7 +175,7 @@
       </Unit18>
       <Unit19>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="8"/>
         <TopLine Value="14807"/>
         <CursorPos X="3" Y="14815"/>
         <UsageCount Value="233"/>
@@ -185,7 +184,7 @@
       </Unit19>
       <Unit20>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaBCrypt.pas"/>
-        <EditorIndex Value="12"/>
+        <EditorIndex Value="10"/>
         <TopLine Value="735"/>
         <CursorPos X="23" Y="740"/>
         <UsageCount Value="108"/>
@@ -202,7 +201,7 @@
       </Unit21>
       <Unit22>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\defines.inc"/>
-        <EditorIndex Value="11"/>
+        <EditorIndex Value="9"/>
         <TopLine Value="440"/>
         <CursorPos X="27" Y="457"/>
         <UsageCount Value="180"/>
@@ -211,18 +210,17 @@
       <Unit23>
         <Filename Value="..\..\databases\mORMot-1.18\SynCommons.pas"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="2413"/>
-        <CursorPos X="3" Y="2424"/>
+        <TopLine Value="25660"/>
+        <CursorPos X="31" Y="25672"/>
         <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit23>
       <Unit24>
         <Filename Value="..\..\databases\mORMot-1.18\SynSQLite3Static.pas"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="142"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="141"/>
         <CursorPos X="75" Y="111"/>
-        <UsageCount Value="11"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="13"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit24>
       <Unit25>
@@ -240,152 +238,160 @@
       </Unit26>
       <Unit27>
         <Filename Value="..\..\databases\mORMot-1.18\Synopse.inc"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="226"/>
         <CursorPos X="6" Y="242"/>
-        <UsageCount Value="11"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="13"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit27>
       <Unit28>
         <Filename Value="..\..\databases\mORMot-1.18\SynSQLite3.pas"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="249"/>
-        <CursorPos X="3" Y="284"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2875"/>
+        <CursorPos X="3" Y="2710"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit28>
       <Unit29>
         <Filename Value="..\..\databases\mORMot-1.18\SynDBSQLite3.pas"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="171"/>
-        <CursorPos X="17" Y="149"/>
+        <TopLine Value="188"/>
+        <CursorPos X="40" Y="177"/>
         <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit29>
+      <Unit30>
+        <Filename Value="ufirefox.pas"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="328"/>
+        <CursorPos X="11" Y="21"/>
+        <UsageCount Value="24"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit30>
+      <Unit31>
+        <Filename Value="..\..\databases\mORMot-1.18\SynDB.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1389"/>
+        <CursorPos X="14" Y="1399"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit31>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="28" HistoryIndex="27">
       <Position1>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="841" Column="98" TopLine="830"/>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="77" Column="10" TopLine="56"/>
       </Position1>
       <Position2>
-        <Filename Value="ulsa.pas"/>
-        <Caret Line="131" Column="3" TopLine="116"/>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="76"/>
       </Position2>
       <Position3>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="23" Column="5"/>
+        <Caret Line="8" Column="32"/>
       </Position3>
       <Position4>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="27" Column="6" TopLine="4"/>
+        <Caret Line="59" Column="75" TopLine="44"/>
       </Position4>
       <Position5>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="8" Column="11" TopLine="7"/>
+        <Caret Line="56" Column="39" TopLine="43"/>
       </Position5>
       <Position6>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="57" Column="25" TopLine="36"/>
+        <Caret Line="8" Column="50"/>
       </Position6>
       <Position7>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="9" Column="49"/>
+        <Caret Line="64" Column="41" TopLine="47"/>
       </Position7>
       <Position8>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Column="16"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="50" Column="96" TopLine="27"/>
       </Position8>
       <Position9>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="10" Column="13"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="62" Column="11" TopLine="39"/>
       </Position9>
       <Position10>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="67" Column="37" TopLine="54"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="119" Column="5" TopLine="97"/>
       </Position10>
       <Position11>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="37" Column="9" TopLine="35"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="149" Column="5" TopLine="127"/>
       </Position11>
       <Position12>
-        <Filename Value="utils.pas"/>
-        <Caret Line="155" Column="3" TopLine="142"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="13" Column="33" TopLine="31"/>
       </Position12>
       <Position13>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="9" Column="3"/>
+        <Caret Line="66" Column="33" TopLine="57"/>
       </Position13>
       <Position14>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="61" Column="11"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="139" Column="66" TopLine="126"/>
       </Position14>
       <Position15>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="15" Column="48"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="140" Column="51" TopLine="128"/>
       </Position15>
       <Position16>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="6" Column="54"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="135" Column="21" TopLine="131"/>
       </Position16>
       <Position17>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="7" Column="11"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="146" TopLine="134"/>
       </Position17>
       <Position18>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="15" Column="23"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="145" TopLine="135"/>
       </Position18>
       <Position19>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="73" Column="20" TopLine="56"/>
+        <Caret Line="76" Column="27" TopLine="57"/>
       </Position19>
       <Position20>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="76" Column="27" TopLine="56"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="149" Column="24" TopLine="136"/>
       </Position20>
       <Position21>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="77" Column="10" TopLine="56"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="151" Column="32" TopLine="140"/>
       </Position21>
       <Position22>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="76"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="153" Column="33" TopLine="142"/>
       </Position22>
       <Position23>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="8" Column="32"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="154" Column="18" TopLine="143"/>
       </Position23>
       <Position24>
-        <Filename Value="..\..\databases\mORMot-1.18\SynSQLite3Static.pas"/>
-        <Caret Line="93" Column="12" TopLine="91"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="153" Column="31" TopLine="143"/>
       </Position24>
       <Position25>
-        <Filename Value="..\..\databases\mORMot-1.18\Synopse.inc"/>
-        <Caret Line="4" Column="76"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="157" Column="32" TopLine="145"/>
       </Position25>
       <Position26>
-        <Filename Value="..\..\databases\mORMot-1.18\Synopse.inc"/>
-        <Caret Line="50" Column="64" TopLine="45"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="15" Column="51"/>
       </Position26>
       <Position27>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="59" Column="75" TopLine="44"/>
+        <Caret Line="76" Column="27" TopLine="58"/>
       </Position27>
       <Position28>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="56" Column="39" TopLine="43"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="14" Column="8" TopLine="7"/>
       </Position28>
-      <Position29>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="8" Column="50"/>
-      </Position29>
-      <Position30>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="64" Column="41" TopLine="47"/>
-      </Position30>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

@@ -10,7 +10,7 @@ uses
   {synsqlite3static,}
   //or dynamic
   SynSQLite3,
-  syndb,syndbsqlite3, syncommons,
+  syndb,syndbsqlite3,
   shlobj,
   ucryptoapi,utils;
 
