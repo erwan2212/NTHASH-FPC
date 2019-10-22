@@ -8,9 +8,8 @@
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <TopLine Value="1187"/>
-        <CursorPos X="21" Y="1198"/>
+        <CursorPos X="45" Y="1201"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -122,9 +121,10 @@
       <Unit12>
         <Filename Value="uchrome.pas"/>
         <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <CursorPos X="21" Y="13"/>
-        <UsageCount Value="26"/>
+        <CursorPos X="3" Y="4"/>
+        <UsageCount Value="27"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit12>
@@ -150,28 +150,28 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="265"/>
         <CursorPos X="6" Y="277"/>
-        <UsageCount Value="56"/>
+        <UsageCount Value="55"/>
       </Unit15>
       <Unit16>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\struct.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="2207"/>
         <CursorPos X="6" Y="2219"/>
-        <UsageCount Value="91"/>
+        <UsageCount Value="90"/>
       </Unit16>
       <Unit17>
         <Filename Value="C:\FPC\3.0.0\source\rtl\inc\systemh.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="499"/>
         <CursorPos X="3" Y="511"/>
-        <UsageCount Value="48"/>
+        <UsageCount Value="47"/>
       </Unit17>
       <Unit18>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\redef.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="327"/>
         <CursorPos X="150" Y="347"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit18>
       <Unit19>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
@@ -196,7 +196,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1221"/>
         <CursorPos X="3" Y="1233"/>
-        <UsageCount Value="27"/>
+        <UsageCount Value="26"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit21>
       <Unit22>
@@ -212,7 +212,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="25660"/>
         <CursorPos X="31" Y="25672"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit23>
       <Unit24>
@@ -228,13 +228,13 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="51"/>
         <CursorPos X="3" Y="63"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit25>
       <Unit26>
         <Filename Value="C:\FPC\3.0.0\source\rtl\objpas\typinfo.pp"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit26>
       <Unit27>
         <Filename Value="..\..\databases\mORMot-1.18\Synopse.inc"/>
@@ -264,9 +264,8 @@
         <Filename Value="ufirefox.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="328"/>
-        <CursorPos X="11" Y="21"/>
-        <UsageCount Value="24"/>
+        <CursorPos X="3" Y="4"/>
+        <UsageCount Value="25"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit30>
@@ -279,119 +278,127 @@
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit31>
     </Units>
-    <JumpHistory Count="28" HistoryIndex="27">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="77" Column="10" TopLine="56"/>
+        <Caret Line="76"/>
       </Position1>
       <Position2>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="76"/>
+        <Caret Line="8" Column="32"/>
       </Position2>
       <Position3>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="8" Column="32"/>
+        <Caret Line="59" Column="75" TopLine="44"/>
       </Position3>
       <Position4>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="59" Column="75" TopLine="44"/>
+        <Caret Line="56" Column="39" TopLine="43"/>
       </Position4>
       <Position5>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="56" Column="39" TopLine="43"/>
+        <Caret Line="8" Column="50"/>
       </Position5>
       <Position6>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="8" Column="50"/>
+        <Caret Line="64" Column="41" TopLine="47"/>
       </Position6>
       <Position7>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="64" Column="41" TopLine="47"/>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="50" Column="96" TopLine="27"/>
       </Position7>
       <Position8>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="50" Column="96" TopLine="27"/>
+        <Caret Line="62" Column="11" TopLine="39"/>
       </Position8>
       <Position9>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="62" Column="11" TopLine="39"/>
+        <Caret Line="119" Column="5" TopLine="97"/>
       </Position9>
       <Position10>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="119" Column="5" TopLine="97"/>
+        <Caret Line="149" Column="5" TopLine="127"/>
       </Position10>
       <Position11>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="149" Column="5" TopLine="127"/>
+        <Caret Line="13" Column="33" TopLine="31"/>
       </Position11>
       <Position12>
-        <Filename Value="ufirefox.pas"/>
-        <Caret Line="13" Column="33" TopLine="31"/>
-      </Position12>
-      <Position13>
         <Filename Value="uchrome.pas"/>
         <Caret Line="66" Column="33" TopLine="57"/>
+      </Position12>
+      <Position13>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="139" Column="66" TopLine="126"/>
       </Position13>
       <Position14>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="139" Column="66" TopLine="126"/>
+        <Caret Line="140" Column="51" TopLine="128"/>
       </Position14>
       <Position15>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="140" Column="51" TopLine="128"/>
+        <Caret Line="135" Column="21" TopLine="131"/>
       </Position15>
       <Position16>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="135" Column="21" TopLine="131"/>
+        <Caret Line="146" TopLine="134"/>
       </Position16>
       <Position17>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="146" TopLine="134"/>
+        <Caret Line="145" TopLine="135"/>
       </Position17>
       <Position18>
-        <Filename Value="ufirefox.pas"/>
-        <Caret Line="145" TopLine="135"/>
-      </Position18>
-      <Position19>
         <Filename Value="uchrome.pas"/>
         <Caret Line="76" Column="27" TopLine="57"/>
+      </Position18>
+      <Position19>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="149" Column="24" TopLine="136"/>
       </Position19>
       <Position20>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="149" Column="24" TopLine="136"/>
+        <Caret Line="151" Column="32" TopLine="140"/>
       </Position20>
       <Position21>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="151" Column="32" TopLine="140"/>
+        <Caret Line="153" Column="33" TopLine="142"/>
       </Position21>
       <Position22>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="153" Column="33" TopLine="142"/>
+        <Caret Line="154" Column="18" TopLine="143"/>
       </Position22>
       <Position23>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="154" Column="18" TopLine="143"/>
+        <Caret Line="153" Column="31" TopLine="143"/>
       </Position23>
       <Position24>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="153" Column="31" TopLine="143"/>
+        <Caret Line="157" Column="32" TopLine="145"/>
       </Position24>
       <Position25>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="157" Column="32" TopLine="145"/>
+        <Caret Line="15" Column="51"/>
       </Position25>
       <Position26>
-        <Filename Value="ufirefox.pas"/>
-        <Caret Line="15" Column="51"/>
-      </Position26>
-      <Position27>
         <Filename Value="uchrome.pas"/>
         <Caret Line="76" Column="27" TopLine="58"/>
+      </Position26>
+      <Position27>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="14" Column="8" TopLine="7"/>
       </Position27>
       <Position28>
         <Filename Value="ufirefox.pas"/>
-        <Caret Line="14" Column="8" TopLine="7"/>
+        <Caret Line="13" Column="41" TopLine="4"/>
       </Position28>
+      <Position29>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="4" Column="19" TopLine="2"/>
+      </Position29>
+      <Position30>
+        <Filename Value="ufirefox.pas"/>
+        <Caret Line="144" Column="3"/>
+      </Position30>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

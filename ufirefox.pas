@@ -1,6 +1,7 @@
 unit ufirefox;
 
 {$mode delphi}
+{.$define static}
 
 interface
 
@@ -8,9 +9,9 @@ uses
   windows,Classes, SysUtils,SHFolder,base64,
   uLkJSON,
   //static
-  {synsqlite3static,}
+  {$ifdef static}synsqlite3static,{$endif}
   //or dynamic
-  SynSQLite3,
+  {$ifndef static}SynSQLite3,{$endif}
   syndb,syndbsqlite3;
 
 procedure decrypt_firefox;
@@ -139,9 +140,11 @@ var
   Rows: ISQLDBRows;
 begin
   //DB := TSQLite3Database.Create;
-  //if dynamic
-  sqlite3 := TSQLite3LibraryDynamic.Create(SQLITE_LIBRARY_DEFAULT_NAME);
-  //
+//if dynamic
+{$ifndef static}
+sqlite3 := TSQLite3LibraryDynamic.Create(SQLITE_LIBRARY_DEFAULT_NAME);
+{$endif}
+//
   props:=TSQLDBSQLite3ConnectionProperties.Create(MainProfilePath,'','','');
   try
     //DB.Open(MainProfilePath);
@@ -381,7 +384,6 @@ if FileExists(MainProfilePath) then
   else MainProfilePath := pchar(FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\' + MainProfile  + '\signons.sqlite');
   if fileexists(MainProfilePath) then
   begin
-  writeln('start 4');
   if NSS_Init(pchar(configdir)) = 0 then
   begin
     KeySlot := PK11_GetInternalKeySlot;
