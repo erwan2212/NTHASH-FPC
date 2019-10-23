@@ -90,6 +90,7 @@ var
 begin
 try
 setlength(result,length(input));
+//log('AnsiStringtoByte len:'+inttostr(length(input)));
 for i:=1 to length(input) do result[i-1]:=ord(input[i]);
 
 except
@@ -119,6 +120,7 @@ var
   dummy:string='';
 begin
 try
+//writeln(sizeof(hash));
   for i:=0 to sizeof(hash)-1 do  dummy:=dummy+inttohex(hash[i],2);
   result:=dummy;
 except

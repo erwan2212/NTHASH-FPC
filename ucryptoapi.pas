@@ -112,7 +112,7 @@ begin
 
   plainBlob.pbData := @dataBytes[0];
   plainBlob.cbData := length(dataBytes);
-  //writeln(length(dataBytes));
+  log('length in:'+inttostr(length(dataBytes)));
 
   //test
   {

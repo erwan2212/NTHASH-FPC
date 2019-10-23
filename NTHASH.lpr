@@ -1080,7 +1080,7 @@ var
   i:byte;
 begin
 result:=false;
-for i:=3 downto 0 do
+for i:=4 downto 0 do
   begin
   if ImpersonateAsSystemW_Vista (TIntegrityLevel(i),pid) then begin result:=true;exit;end;
   end;
@@ -1097,7 +1097,7 @@ ZeroMemory(@StartupInfo, SizeOf(TStartupInfoW));
   FillChar(StartupInfo, SizeOf(TStartupInfoW), 0);
   StartupInfo.cb := SizeOf(TStartupInfoW);
   StartupInfo.lpDesktop := 'WinSta0\Default';
-  for i:=3 downto 0 do
+  for i:=4 downto 0 do
     begin
     result:= CreateProcessAsSystemW_Vista(PWideChar(WideString(ApplicationName)),PWideChar(WideString('')),NORMAL_PRIORITY_CLASS,
     nil,pwidechar(widestring(GetCurrentDir)),
@@ -1107,9 +1107,10 @@ ZeroMemory(@StartupInfo, SizeOf(TStartupInfoW));
     if result then
        begin
        log('pid:'+inttostr(ProcessInformation.dwProcessId )+' integrity:'+inttostr(i));
-       break;
+       exit;
        end;
     end; //for i:=3 downto 0 do
+  log('createprocessaspid failed,'+inttostr(getlasterror),1)
 end;
 
 function callback_SamUsers(param:pointer=nil):dword;stdcall;
@@ -1232,8 +1233,8 @@ begin
   log('NTHASH /enumvault',1);
   log('NTHASH /chrome [/user:path_to_folder_containing_login_data]',1);
   log('NTHASH /firefox [/user:path_to_database]',1);
-  log('NTHASH /bytestostring /input:hexabytes',1);
-  log('NTHASH /stringtobytes /input:string',1);
+  log('NTHASH /bytetostring /input:hexabytes',1);
+  log('NTHASH /stringtobyte /input:string',1);
   log('NTHASH /enumproc',1);
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
@@ -1358,14 +1359,14 @@ begin
   p:=pos('/binary:',cmdline);
   if p>0 then
        begin
-       binary:=copy(cmdline,p,255);
+       binary:=copy(cmdline,p,255); //length(cmdline)-p
        binary:=stringreplace(binary,'/binary:','',[rfReplaceAll, rfIgnoreCase]);
        delete(binary,pos(' ',binary),255);
        end;
   p:=pos('/input:',cmdline);
   if p>0 then
        begin
-       input:=copy(cmdline,p,length(cmdline)-p);
+       input:=copy(cmdline,p,255);
        input:=stringreplace(input,'/input:','',[rfReplaceAll, rfIgnoreCase]);
        delete(input,pos(' ',input),255);
        end;

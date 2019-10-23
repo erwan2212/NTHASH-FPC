@@ -293,12 +293,12 @@ result:=false;
     if AdjustTokenPrivileges(hToken, False, NewState, SizeOf(TTokenPrivileges), prev, ReturnLength) then
     begin
     result:=true;
-      {
+
       if GetLastError = ERROR_NOT_ALL_ASSIGNED then
-        WriteLn('Change privilege failed: Not all assigned')
-      else
-        WriteLn('Privileged');
-      }
+        //WriteLn('Change privilege failed: Not all assigned')
+      result:=false; //finally not ... :)
+      //else WriteLn('Privileged');
+
     end;
     //else writeln(getlasterror);
    end;
@@ -431,7 +431,8 @@ begin
                           PIntegrityLevel := (MEDIUM_INTEGRITY_SID)
                         else if IntegrityLevel = LowIntegrityLevel then
                           PIntegrityLevel := (LOW_INTEGRITY_SID);
-                        writeln(strpas(PIntegrityLevel));
+
+                        //writeln(strpas(PIntegrityLevel));
                         if ConvertStringSidToSidw(PIntegrityLevel, Sid) then
                         begin
                           //writeln('ConvertStringSidToSidW OK');
