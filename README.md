@@ -1,5 +1,6 @@
 # NTHASH-FPC <br/>
 A tribute to Mimikatz... <br/>
+And generally speaking a tool to handle windows passwords and perform lateral movement </br>
 <br/>
 Command line as below: <br/>
 NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx <br/>
@@ -24,6 +25,8 @@ NTHASH /pth /user:username /password:myhash /domain:mydomain <br/>
 NTHASH /enumcred <br/>
 NTHASH /enumcred2 <br/>
 NTHASH /enumvault <br/>
+NTHASH /chrome <br/>
+NTHASH /firefox <br/>
 NTHASH /cryptunprotectdata /binary:filename <br/>
 NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
@@ -87,10 +90,11 @@ for /F "tokens=1" %%K in ('
 Note that some apps (like cmd.exe) will crash right after initialization with a c0000142. <br/>
 Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...
 
-todo: <br/>
+todo/news: <br/>
 -decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1 <br/>
 -deal with new AES cipher used in latest win10 1607 : done in 1.2 <br/>
 -enum Lsasrv.dll!LogonSessionList: done in 1.3 <br/>
 -enum Wdigest.dll!l_LogSessList: done in 1.3 <br/>
--decrypt dpapi encrypted vault and/or credentials ? <br/>
--patch LogonSessionList and perform pth? <br/>
+-decrypt dpapi encrypted vault and/or credentials : done in 1.4 <br/>
+-patch LogonSessionList and perform pth: done in 1.4 <br/>
+-decrypt chrome and firefox passwords: done in 1.4 <br/>
