@@ -14,7 +14,7 @@ uses
   {$ifndef static}SynSQLite3,{$endif}
   syndb,syndbsqlite3;
 
-procedure decrypt_firefox;
+procedure decrypt_firefox(db:string='');
 
 implementation
 
@@ -250,14 +250,14 @@ end;
 end;
 
 
-procedure decrypt_firefox;
+procedure decrypt_firefox(db:string='');
 
 
 var
   NSSModule,glueLib, UserenvModule, hToken              : THandle;
   ProfilePath, MainProfile,isrelative                         : array [0..MAX_PATH] of char;
   ProfilePathLen                  : dword;
-  FirefoxProfilePath, MainProfilePath       : pchar;
+  FirefoxProfilePath, database       : pchar;
   ProgramPath:string;
   configdir        : string;
   KeySlot                                                     : pointer;
@@ -318,6 +318,8 @@ writeln(ProgramPath);
   @NSS_Shutdown := GetProcAddress(NSSModule, 'NSS_Shutdown');
   @PK11_FreeSlot := GetProcAddress(NSSModule, 'PK11_FreeSlot');
 
+  if database='' then
+  begin
   UserenvModule := LoadLibrary('userenv.dll');
   @GetUserProfileDirectory := GetProcAddress(UserenvModule, 'GetUserProfileDirectoryA');
   OpenProcessToken(GetCurrentProcess, TOKEN_QUERY, hToken);
@@ -330,14 +332,20 @@ writeln(ProgramPath);
   if strpas(isrelative)='0'
     then configdir:=MainProfile
     else configdir:=FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\'  +  MainProfile;
-  writeln(configdir);
+  end;
+
+  if db<>'' then configdir :=ExtractFileDir (db);
+  if configdir<>'' then writeln('configdir:'+configdir);
+  //readln;
 
 //**************  signongs3.txt ****************************
   if strpas(isrelative)='0'
-    then MainProfilePath :=pchar(MainProfile+ '\signons3.txt')
-    else MainProfilePath := pchar(FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\' + MainProfile  + '\signons3.txt');
-if FileExists(MainProfilePath) then
+    then database :=pchar(MainProfile+ '\signons3.txt')
+    else database := pchar(FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\' + MainProfile  + '\signons3.txt');
+ if (db<>'') and (pos('.txt',lowercase(db))>0) then database:=pchar(db);
+ if FileExists(database) then
  begin
+  writeln('db:'+database);
   if NSS_Init(pchar(configdir)) = 0 then
   begin
     KeySlot := PK11_GetInternalKeySlot;
@@ -345,7 +353,7 @@ if FileExists(MainProfilePath) then
     begin
       if PK11_Authenticate(KeySlot, True, nil) = 0 then
       begin
-      decrypt_txt(MainProfilePath );
+      decrypt_txt(database );
       end; //if PK11_Authenticate(KeySlot, True, nil) = 0 then
       PK11_FreeSlot(KeySlot);
     end; //if KeySlot <> nil then
@@ -354,12 +362,15 @@ if FileExists(MainProfilePath) then
   exit;
   end; //if FileExists(MainProfilePath) then
 
+
   //************* JSON **********************************************
   if strpas(isrelative)='0'
-  then MainProfilePath :=pchar(MainProfile+ '\logins.json')
-  else MainProfilePath := pchar(FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\' + MainProfile  + '\logins.json');
-  if fileexists(MainProfilePath) then
+  then database :=pchar(MainProfile+ '\logins.json')
+  else database := pchar(FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\' + MainProfile  + '\logins.json');
+  if (db<>'') and (pos('.json',lowercase(db))>0) then database:=pchar(db);
+  if fileexists(database) then
   begin
+  writeln('db:'+database);
   if NSS_Init(pchar(configdir)) = 0 then
   begin
     KeySlot := PK11_GetInternalKeySlot;
@@ -369,7 +380,7 @@ if FileExists(MainProfilePath) then
       //will fail is there is a master password
       //then use PK11_CheckUserPassword(keyslot, password)
       begin
-      decrypt_json(MainProfilePath);
+      decrypt_json(database);
       end; //if PK11_Authenticate(KeySlot, True, nil) = 0 then
       PK11_FreeSlot(KeySlot);
     end; //if KeySlot <> nil then
@@ -380,10 +391,12 @@ if FileExists(MainProfilePath) then
 
   //*************  sqlite *******************************************
   if strpas(isrelative)='0'
-  then MainProfilePath :=pchar(MainProfile+ '\signons.sqlite')
-  else MainProfilePath := pchar(FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\' + MainProfile  + '\signons.sqlite');
-  if fileexists(MainProfilePath) then
+  then database :=pchar(MainProfile+ '\signons.sqlite')
+  else database := pchar(FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\' + MainProfile  + '\signons.sqlite');
+  if (db<>'') and (pos('.sqlite',lowercase(db))>0) then database:=pchar(db);
+  if fileexists(database) then
   begin
+  writeln('db:'+database);
   if NSS_Init(pchar(configdir)) = 0 then
   begin
     KeySlot := PK11_GetInternalKeySlot;
@@ -391,7 +404,7 @@ if FileExists(MainProfilePath) then
     begin
       if PK11_Authenticate(KeySlot, True, nil) = 0 then
       begin
-      decrypt_sqlite(MainProfilePath );
+      decrypt_sqlite(database );
       end;//if PK11_Authenticate(KeySlot, True, nil)
   PK11_FreeSlot(KeySlot);
   end;//if KeySlot <> nil then

