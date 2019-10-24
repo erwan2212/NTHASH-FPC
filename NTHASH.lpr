@@ -5,7 +5,7 @@ program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,uadvapi32,
    untdll,utils,  umemory, ucryptoapi, usamutils, uofflinereg,
-  uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport;
+  uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport,wtsapi32;
 
 type _LUID =record
      LowPart:DWORD;
@@ -1243,6 +1243,7 @@ begin
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runas',1);
+  log('NTHASH /runts /user:session_id [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /enumpriv',1);
   log('NTHASH /enumproc',1);
   log('NTHASH /killproc /pid:12345',1);
@@ -1617,6 +1618,20 @@ begin
         then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
+  p:=pos('/runas',cmdline);
+  if p>0 then
+   begin
+   runas;
+   goto fin;
+   end;
+  p:=pos('/runts',cmdline);
+  if p>0 then
+   begin
+   if user='' then exit;
+   if binary='' then binary:='c:\windows\system32\cmd.exe';
+   writeln(BoolToStr (runTSprocess(strtoint(user),binary),true));
+   goto fin;
+   end;
   p:=pos('/cryptunprotectdata',cmdline);
   if p>0 then
      begin
@@ -1650,11 +1665,6 @@ begin
   if p>0 then
    begin
    decrypt_firefox(user);
-   end;
-  p:=pos('/runas',cmdline);
-  if p>0 then
-   begin
-   runas;
    end;
   fin:
   p:=pos('/wait',cmdline);
