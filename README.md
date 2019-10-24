@@ -99,6 +99,7 @@ Wierdly enough, loading notepad.exe with this method and then launching cmd.exe 
 <b>runas</b> will launch a process in elevated mode. <br/>
 
 <b>runts</b> will launch a process in the context of another TS session. <br/>
+Note that this one needs the setcbprivilege so you will have to find a token with such privilege first (like winlogon.exe). <br/>
 
 todo/news: <br/>
 -decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1 <br/>
