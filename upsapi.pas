@@ -80,6 +80,57 @@ const
   PROC_THREAD_ATTRIBUTE_PARENT_PROCESS = $00020000;
   EXTENDED_STARTUPINFO_PRESENT         = $00080000;
 
+type
+  PTOKEN_USER = ^TOKEN_USER;
+  _TOKEN_USER = record
+    User: TSidAndAttributes;
+  end;
+  TOKEN_USER = _TOKEN_USER;
+
+  function GetProcessUserAndDomain(dwProcessID: DWORD;var UserName, Domain: AnsiString): Boolean;
+    var
+      hToken: THandle;
+      cbBuf: Cardinal;
+      tokUser: PTOKEN_USER;
+      sidNameUse: SID_NAME_USE;
+      hProcess: THandle;
+      UserSize, DomainSize: DWORD;
+      bSuccess: Boolean;
+    begin
+      Result := False;
+      hProcess := OpenProcess(PROCESS_QUERY_INFORMATION, False, dwProcessID);
+      if hProcess <> 0 then begin
+        if OpenProcessToken(hProcess, TOKEN_QUERY, hToken) then begin
+          bSuccess := GetTokenInformation(hToken, TokenUser, nil, 0, cbBuf);
+          tokUser := nil;
+          while (not bSuccess) and
+              (GetLastError = ERROR_INSUFFICIENT_BUFFER) do begin
+            ReallocMem(tokUser, cbBuf);
+            bSuccess := GetTokenInformation(hToken, TokenUser, tokUser, cbBuf, cbBuf);
+          end;// while (not bSuccess) and...
+          FileClose(hToken); { *Converti depuis CloseHandle* }
+          if not bSuccess then
+            Exit;
+          UserSize := 0;
+          DomainSize := 0;
+          LookupAccountSid(nil, tokUser.User.Sid, nil, UserSize, nil, DomainSize, sidNameUse);
+          if (UserSize <> 0) and (DomainSize <> 0) then begin
+            SetLength(UserName, UserSize);
+            SetLength(Domain, DomainSize);
+            if LookupAccountSid(nil, tokUser.User.Sid, PAnsiChar(UserName), UserSize,
+                PAnsiChar(Domain), DomainSize, sidNameUse) then begin
+              Result := True;
+              UserName := StrPas(PAnsiChar(UserName));
+              Domain := StrPas(PAnsiChar(Domain));
+            end;// if LookupAccountSid(nil, tokUser.User.Sid, PAnsiChar(UserName), UserSize,
+          end;// if (UserSize <> 0) and (DomainSize <> 0) then begin
+          if bSuccess then
+            FreeMem(tokUser);
+        end;// if OpenProcessToken(hProcess, TOKEN_QUERY, hToken) then begin
+        FileClose(hProcess); { *Converti depuis CloseHandle* }
+      end;// if hProcess <> 0 then begin
+    end;// function TDGProcessList.GetProcessUserAndDomain(dwProcessID: DWORD;
+
 function _killproc(pid:dword):boolean;
 var
   hProcess:thandle;
@@ -137,6 +188,7 @@ var
   pids,modules:array[0..1023] of dword;
   hProcess:thandle;
   szProcessName:array[0..259] of char;
+  username,domain,tmp:string;
 begin
 result:=0;
    cb:=sizeof(dword)*1024;
@@ -151,7 +203,13 @@ result:=0;
           //log( inttostr(pids[count])+' '+inttostr(hprocess));
           if GetModuleBaseNameA( hProcess, 0, szProcessName,sizeof(szProcessName))<>0 then
              begin
-             if search='' then writeln(inttostr(pids[count])+ ' '+szProcessName );
+             if search='' then
+                begin
+                if GetProcessUserAndDomain (pids[count],username,domain)=true
+                   then tmp:=domain+'\'+username
+                   else tmp:='';
+                writeln(inttostr(pids[count])+ #9+szProcessName+#9+tmp );
+                end; //if search='' then
              if lowercase(search)=lowercase(strpas(szProcessName) ) then
                 begin
                 result:=pids[count];

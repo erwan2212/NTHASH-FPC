@@ -42,6 +42,8 @@ function enumprivileges:boolean;
 function ImpersonateUser(const User, PW: string): Boolean;
 function GetCurrUserName: string;
 
+
+
 function ImpersonateAsSystemW_Vista(IntegrityLevel: TIntegrityLevel;pid:cardinal): Boolean;
 
 function CreateProcessAsLogon(const User, PW, Application, CmdLine: WideString): LongWord;
@@ -185,7 +187,6 @@ const
   SYSTEM_INTEGRITY_SID: PWideChar = ('S-1-16-16384');
 
   SE_GROUP_INTEGRITY = $00000020;
-
 
 type
   _TOKEN_MANDATORY_LABEL = record
@@ -594,6 +595,8 @@ begin
     CloseHandle(TokenHandle);
   end;
 end;
+
+
 
 end.
 

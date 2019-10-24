@@ -5,7 +5,7 @@ program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,uadvapi32,
    untdll,utils,  umemory, ucryptoapi, usamutils, uofflinereg,
-  uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport,wtsapi32;
+  uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport,wtsapi32, uwmi;
 
 type _LUID =record
      LowPart:DWORD;
@@ -1183,14 +1183,14 @@ begin
     //and finally resume...
     ResumeThread(pi.hThread );
     end // if stats.AuthenticationId<>0 then
-    else _killproc(pi.dwProcessId);
+    else upsapi._killproc(pi.dwProcessId);
     end; //if bret=true then
 end;
 
 
 
 begin
-  log('NTHASH 1.4 by erwan2212@gmail.com',1);
+  log('NTHASH 1.5 by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   log('Windows Version:'+winver,1);
@@ -1200,7 +1200,7 @@ begin
   log('IsAdministratorAccount:'+BoolToStr (IsAdministratorAccount,true),1);
   log('IsElevated:'+BoolToStr (IsElevated,true),1);
   log('DebugPrivilege:'+BoolToStr (EnableDebugPriv,true),1);
-  lsass_pid:=_EnumProc('lsass.exe');
+  lsass_pid:=upsapi._EnumProc('lsass.exe');
   log('LSASS PID:'+inttostr(lsass_pid ),1);
   getmem(sysdir,Max_Path );
   GetSystemDirectory(sysdir, MAX_PATH - 1);
@@ -1235,7 +1235,6 @@ begin
   log('NTHASH /firefox [/user:path_to_database]',1);
   log('NTHASH /bytetostring /input:hexabytes',1);
   log('NTHASH /stringtobyte /input:string',1);
-  log('NTHASH /enumproc',1);
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string',1);
@@ -1246,7 +1245,10 @@ begin
   log('NTHASH /runts /user:session_id [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /enumpriv',1);
   log('NTHASH /enumproc',1);
+  log('NTHASH /enumprocwmi [/server:hostname]',1);
+  log('NTHASH /runwmi binary:x:\folder\bin.exe [/server:hostname]',1);
   log('NTHASH /killproc /pid:12345',1);
+  log('NTHASH /killprocwmi /pid:12345 [/server:hostname]',1);
   log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpproc /pid:12345',1);
   log('NTHASH /a_command /verbose',1);
@@ -1343,6 +1345,14 @@ begin
      if enumprivileges=false then writeln('enumprivileges NOT OK');
      goto fin;
      end;
+  p:=pos('/server:',cmdline);
+  if p>0 then
+       begin
+       server:=copy(cmdline,p,255);
+       server:=stringreplace(server,'/server:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(server,pos(' ',server),255);
+       //log(server);
+       end;
   p:=pos('/pid:',cmdline);
   if p>0 then
        begin
@@ -1362,7 +1372,9 @@ begin
        begin
        binary:=copy(cmdline,p,255); //length(cmdline)-p
        binary:=stringreplace(binary,'/binary:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(binary,pos(' ',binary),255);
+       //delete(binary,pos(' ',binary),255);
+       delete(binary,pos('/',binary),255);
+       binary:=trim(binary);
        end;
   p:=pos('/input:',cmdline);
   if p>0 then
@@ -1441,10 +1453,30 @@ begin
         else log('getsyskey NOT OK' ,1);
      goto fin;
      end;
+  p:=pos('/enumprocwmi',cmdline);
+    if p>0 then
+       begin
+       uwmi._EnumProc (server);
+       goto fin;
+       end;
+    p:=pos('/runwmi',cmdline);
+      if p>0 then
+         begin
+         if binary='' then exit;
+         uwmi._Create (server,binary);
+         goto fin;
+         end;
+    p:=pos('/killprocwmi',cmdline);
+        if p>0 then
+           begin
+           if pid='' then exit;
+           uwmi._Killproc  (server,strtoint(pid));
+           goto fin;
+           end;
   p:=pos('/enumproc',cmdline);
     if p>0 then
        begin
-       _EnumProc ;
+       upsapi._EnumProc ;
        goto fin;
        end;
     p:=pos('/enummod',cmdline);
@@ -1465,7 +1497,7 @@ begin
   if p>0 then
      begin
      if pid='' then exit;
-     if _killproc(strtoint(pid)) then log('OK',1) else log('NOT OK',1);
+     if upsapi._killproc(strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
   p:=pos('/dumpsam',cmdline);
@@ -1474,14 +1506,6 @@ begin
      if dumpsam (lsass_pid ,'') then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
-  p:=pos('/server:',cmdline);
-  if p>0 then
-       begin
-       server:=copy(cmdline,p,255);
-       server:=stringreplace(server,'/server:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(server,pos(' ',server),255);
-       //log(server);
-       end;
   p:=pos('/user:',cmdline);
     if p>0 then
          begin
