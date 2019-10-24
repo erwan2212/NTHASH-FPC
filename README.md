@@ -1,6 +1,8 @@
 # NTHASH-FPC <br/>
 A tribute to Mimikatz... <br/>
-And generally speaking a tool to handle windows passwords and perform lateral movement </br>
+And generally speaking a tool to handle windows passwords and perform lateral movement. <br/>
+https://attack.mitre.org/matrices/enterprise/windows/ is definitely worth reading as well. <br/>
+
 <br/>
 Command line as below: <br/>
 NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx <br/>
