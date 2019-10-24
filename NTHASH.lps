@@ -9,8 +9,8 @@
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="1611"/>
-        <CursorPos X="50" Y="1631"/>
+        <TopLine Value="1612"/>
+        <CursorPos X="33" Y="1623"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -116,7 +116,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="79"/>
         <CursorPos X="37" Y="92"/>
-        <UsageCount Value="72"/>
+        <UsageCount Value="79"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit12>
       <Unit13>
@@ -125,16 +125,17 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="321"/>
         <CursorPos X="76" Y="338"/>
-        <UsageCount Value="70"/>
+        <UsageCount Value="77"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit13>
       <Unit14>
         <Filename Value="urunelevatedsupport.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="275"/>
-        <CursorPos X="30" Y="59"/>
-        <UsageCount Value="63"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="45"/>
+        <CursorPos X="57" Y="57"/>
+        <UsageCount Value="70"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit14>
       <Unit15>
@@ -282,15 +283,15 @@
       </Unit33>
       <Unit34>
         <Filename Value="wtsapi32.pas"/>
-        <EditorIndex Value="1"/>
-        <TopLine Value="547"/>
-        <CursorPos X="58" Y="562"/>
-        <UsageCount Value="10"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="543"/>
+        <CursorPos X="10" Y="540"/>
+        <UsageCount Value="14"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit34>
     </Units>
-    <JumpHistory Count="3" HistoryIndex="2">
+    <JumpHistory Count="7" HistoryIndex="6">
       <Position1>
         <Filename Value="NTHASH.lpr"/>
         <Caret Line="1202" Column="45" TopLine="1184"/>
@@ -303,6 +304,22 @@
         <Filename Value="wtsapi32.pas"/>
         <Caret Line="323" Column="10" TopLine="311"/>
       </Position3>
+      <Position4>
+        <Filename Value="urunelevatedsupport.pas"/>
+        <Caret Line="58" Column="59" TopLine="42"/>
+      </Position4>
+      <Position5>
+        <Filename Value="urunelevatedsupport.pas"/>
+        <Caret Line="27" Column="52" TopLine="25"/>
+      </Position5>
+      <Position6>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1632" Column="31" TopLine="1612"/>
+      </Position6>
+      <Position7>
+        <Filename Value="wtsapi32.pas"/>
+        <Caret Line="323" Column="10" TopLine="311"/>
+      </Position7>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

@@ -24,7 +24,7 @@ procedure CheckForElevatedTask;
 // Runs OnElevateProc under full administrator rights
 function RunElevated(const AParameters: String; const AWnd: HWND = 0; const AProcessMessages: TProcessMessagesMeth = nil): Cardinal; overload;
 
-procedure runas();
+procedure runas(binary:string='';param:string='');
 
 function  IsAdministrator: Boolean;
 function  IsAdministratorAccount: Boolean;
@@ -43,7 +43,7 @@ const
 
 function CheckTokenMembership(TokenHandle: THANDLE; SidToCheck: Pointer; var IsMember: BOOL): BOOL; stdcall; external advapi32 name 'CheckTokenMembership';
 
-procedure runas();
+procedure runas(binary:string='';param:string='');
 var
   SEI: SHELLEXECUTEINFOA;
 begin
@@ -55,8 +55,13 @@ begin
   {$ENDIF}
   //SEI.Wnd := AWnd;
   SEI.lpVerb := 'runas';
-  SEI.lpFile := PChar('c:\windows\system32\cmd.exe');
-  SEI.lpParameters := PChar('/k cd "'+GetCurrentDir+'"');
+  if binary='' then
+     begin
+       binary:='c:\windows\system32\cmd.exe';
+       param:= '/k cd "'+GetCurrentDir+'"';
+     end;
+  SEI.lpFile := PChar(binary);
+  SEI.lpParameters := PChar(param);
   SEI.nShow := SW_NORMAL;
   //sei.lpDirectory :=pchar(GetCurrentDir);
 

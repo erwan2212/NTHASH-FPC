@@ -1242,7 +1242,7 @@ begin
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
-  log('NTHASH /runas',1);
+  log('NTHASH /runas [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runts /user:session_id [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /enumpriv',1);
   log('NTHASH /enumproc',1);
@@ -1621,7 +1621,7 @@ begin
   p:=pos('/runas',cmdline);
   if p>0 then
    begin
-   runas;
+   runas(binary);
    goto fin;
    end;
   p:=pos('/runts',cmdline);
