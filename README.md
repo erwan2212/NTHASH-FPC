@@ -1,6 +1,8 @@
 # NTHASH-FPC <br/>
-A tribute to Mimikatz... <br/>
-And generally speaking a tool to handle windows passwords and perform lateral movement </br>
+A tribute to https://github.com/gentilkiwi/mimikatz... <br/>
+And generally speaking a tool to handle windows passwords and perform lateral movement. <br/>
+https://attack.mitre.org/matrices/enterprise/windows/ is definitely worth reading as well. <br/>
+
 <br/>
 Command line as below: <br/>
 NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx <br/>
@@ -30,16 +32,23 @@ NTHASH /firefox <br/>
 NTHASH /cryptunprotectdata /binary:filename <br/>
 NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
-NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
-NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
-NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe] <br/>
+NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe] <br/>
+NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe] <br/>
+NTHASH /runas [/binary:x:\folder\bin.exe] <br/>
+NTHASH /runts /user:session_id [/binary:x:\folder\bin.exe] <br/>
 NTHASH /enumpriv <br/>
 NTHASH /enumproc <br/>
+NTHASH /enumprocwmi [/server:hostname]  <br/>
+NTHASH /runwmi binary:x:\folder\bin.exe [/server:hostname]  <br/>
+NTHASH /killprocwmi /pid:12345 [/server:hostname]  <br/>     
 NTHASH /killproc /pid:12345 <br/>
 NTHASH /enummod /pid:12345 <br/>
 NTHASH /dumpprocess /pid:12345 <br/>
 NTHASH /a_command /verbose <br/>
 NTHASH /a_command /system <br/>
+
+<br/>
 
 <b>changentlm</b>, using a legacy api, may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607. <br/>
 Credits goes to https://github.com/vletoux/NTLMInjector <br/>
@@ -89,6 +98,11 @@ for /F "tokens=1" %%K in ('
 <b>runaschild</b> can be used to run a process as a child of another existing/parent process. <br/>
 Note that some apps (like cmd.exe) will crash right after initialization with a c0000142. <br/>
 Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...
+
+<b>runas</b> will launch a process in elevated mode. <br/>
+
+<b>runts</b> will launch a process in the context of another TS session. <br/>
+Note that this one needs the setcbprivilege so you will have to find a token with such privilege first (like winlogon.exe). <br/>
 
 todo/news: <br/>
 -decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1 <br/>
