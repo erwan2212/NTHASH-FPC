@@ -45,6 +45,8 @@ NTHASH /dumpprocess /pid:12345 <br/>
 NTHASH /a_command /verbose <br/>
 NTHASH /a_command /system <br/>
 
+<br/>
+
 <b>changentlm</b>, using a legacy api, may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607. <br/>
 Credits goes to https://github.com/vletoux/NTLMInjector <br/>
 
