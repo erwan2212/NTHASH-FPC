@@ -33,6 +33,8 @@ NTHASH /cryptprotectdata /input:string <br/>
 NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runas [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runts /user:session_id [/binary: x:\folder\bin.exe] <br/>
 NTHASH /enumpriv <br/>
 NTHASH /enumproc <br/>
 NTHASH /killproc /pid:12345 <br/>
@@ -89,6 +91,10 @@ for /F "tokens=1" %%K in ('
 <b>runaschild</b> can be used to run a process as a child of another existing/parent process. <br/>
 Note that some apps (like cmd.exe) will crash right after initialization with a c0000142. <br/>
 Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...
+
+<b>runas</b> will launch a process in elevated mode. <br/>
+
+<b>runts</b> will launch a process in the context of another TS session. <br/>
 
 todo/news: <br/>
 -decrypt sam hashes online (rather than patching lsass) and offline : done in v1.1 <br/>
