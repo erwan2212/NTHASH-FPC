@@ -1,5 +1,5 @@
 # NTHASH-FPC <br/>
-A tribute to Mimikatz... <br/>
+A tribute to https://github.com/gentilkiwi/mimikatz... <br/>
 And generally speaking a tool to handle windows passwords and perform lateral movement. <br/>
 https://attack.mitre.org/matrices/enterprise/windows/ is definitely worth reading as well. <br/>
 
