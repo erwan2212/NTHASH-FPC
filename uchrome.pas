@@ -52,19 +52,27 @@ if db='' then
    begin
    path:=(GetSpecialFolder($1c));  //CSIDL_LOCAL_APPDATA
    path:=path+'\Google\Chrome\User Data\Default';
+   //
+   if not FileExists(path+'\login data') then
+   begin
+     writeln('The database does not exist. Please create one.');
+     Exit;
+   end;
+   {$i-}DeleteFile(pchar(path+'\login data.db'));{$i+}
+   copyfile(pchar(path+'\login data'),pchar(path+'\login data.db'),false);
    end;
 
-if db<>'' then path:= (db);
+if db<>'' then
+   begin
+   path:= ExtractFileDir (db);
+   {$i-}DeleteFile(pchar(path+'\login data.db'));{$i+}
+   copyfile(pchar(db),pchar(path+'\login data.db'),false);
+   end;
+
 writeln('path:'+path);
+writeln('db:'+path+'\login data.db');
 
-  if not FileExists(path+'\login data') then
-  begin
-    writeln('The database does not exist. Please create one.');
-    Exit;
-  end;
-
-  {$i-}DeleteFile(pchar(path+'\login data.db'));{$i+}
-  copyfile(pchar(path+'\login data'),pchar(path+'\login data.db'),false);
+if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');exit;end;
 
   try
     //if dynamic
@@ -72,7 +80,6 @@ writeln('path:'+path);
     sqlite3 := TSQLite3LibraryDynamic.Create(SQLITE_LIBRARY_DEFAULT_NAME);
     {$endif}
     //
-    writeln('db:'+path+'\login data.db');
     props:=TSQLDBSQLite3ConnectionProperties.Create(pchar(path+'\login data.db'),'','','');
 
     setlength(b,230);
