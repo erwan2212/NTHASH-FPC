@@ -27,8 +27,8 @@ NTHASH /pth /user:username /password:myhash /domain:mydomain <br/>
 NTHASH /enumcred <br/>
 NTHASH /enumcred2 <br/>
 NTHASH /enumvault <br/>
-NTHASH /chrome <br/>
-NTHASH /firefox <br/>
+NTHASH /chrome [/binary:path_to_database]<br/>
+NTHASH /firefox [/binary:path_to_database]<br/>
 NTHASH /cryptunprotectdata /binary:filename <br/>
 NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
