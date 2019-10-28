@@ -37,11 +37,14 @@ NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runas [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runts /user:session_id [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname] <br/>
 NTHASH /enumpriv <br/>
-NTHASH /enumproc <br/>
-NTHASH /killproc /pid:12345 <br/>
-NTHASH /enummod /pid:12345 <br/>
 NTHASH /dumpprocess /pid:12345 <br/>
+NTHASH /bytetostring /input:hexabytes
+NTHASH /stringtobyte /input:string
+NTHASH /base64encodew /input:string
+NTHASH /base64encode /input:string
+NTHASH /base64decode /input:base64string
 NTHASH /a_command /verbose <br/>
 NTHASH /a_command /system <br/>
 
