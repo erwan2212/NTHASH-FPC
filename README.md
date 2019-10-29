@@ -40,11 +40,11 @@ NTHASH /runts /user:session_id [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname] <br/>
 NTHASH /enumpriv <br/>
 NTHASH /dumpprocess /pid:12345 <br/>
-NTHASH /bytetostring /input:hexabytes
-NTHASH /stringtobyte /input:string
-NTHASH /base64encodew /input:string
-NTHASH /base64encode /input:string
-NTHASH /base64decode /input:base64string
+NTHASH /bytetostring /input:hexabytes <br/>
+NTHASH /stringtobyte /input:string <br/>
+NTHASH /base64encodew /input:string <br/>
+NTHASH /base64encode /input:string <br/>
+NTHASH /base64decode /input:base64string <br/>
 NTHASH /a_command /verbose <br/>
 NTHASH /a_command /system <br/>
 
