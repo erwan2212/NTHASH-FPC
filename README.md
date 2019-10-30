@@ -27,24 +27,24 @@ NTHASH /pth /user:username /password:myhash /domain:mydomain <br/>
 NTHASH /enumcred <br/>
 NTHASH /enumcred2 <br/>
 NTHASH /enumvault <br/>
-NTHASH /chrome <br/>
-NTHASH /firefox <br/>
+NTHASH /chrome [/binary:path_to_database]<br/>
+NTHASH /firefox [/binary:path_to_database]<br/>
 NTHASH /cryptunprotectdata /binary:filename <br/>
 NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
-NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe] <br/>
-NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe] <br/>
-NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe] <br/>
-NTHASH /runas [/binary:x:\folder\bin.exe] <br/>
-NTHASH /runts /user:session_id [/binary:x:\folder\bin.exe] <br/>
+NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runas [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runts /user:session_id [/binary: x:\folder\bin.exe] <br/>
+NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname] <br/>
 NTHASH /enumpriv <br/>
-NTHASH /enumproc <br/>
-NTHASH /enumprocwmi [/server:hostname]  <br/>
-NTHASH /runwmi binary:x:\folder\bin.exe [/server:hostname]  <br/>
-NTHASH /killprocwmi /pid:12345 [/server:hostname]  <br/>     
-NTHASH /killproc /pid:12345 <br/>
-NTHASH /enummod /pid:12345 <br/>
 NTHASH /dumpprocess /pid:12345 <br/>
+NTHASH /bytetostring /input:hexabytes <br/>
+NTHASH /stringtobyte /input:string <br/>
+NTHASH /base64encodew /input:string <br/>
+NTHASH /base64encode /input:string <br/>
+NTHASH /base64decode /input:base64string <br/>
 NTHASH /a_command /verbose <br/>
 NTHASH /a_command /system <br/>
 
