@@ -286,13 +286,14 @@ type i_logsesslist=record
 
 var
   lsass_pid:dword=0;
-  p:dword;
+  p,ret,dw:dword;
   rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input:string;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
   sysdir:pchar;
   syskey,samkey,ntlmhash:tbyte16;
+  sessions:asession;
   label fin;
 
 
@@ -1240,17 +1241,23 @@ begin
   log('NTHASH 1.5 by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
+  getmem(sysdir,Max_Path );
+  GetSystemDirectory(sysdir, MAX_PATH - 1);
+  debug:=EnableDebugPriv('SeDebugPrivilege');
+  lsass_pid:=upsapi._EnumProc('lsass.exe');
+  //
+  if ((paramcount=1) and (pos('/context',cmdline)>0)) then
+  begin
   log('Windows Version:'+winver,1);
   log('Architecture:'+osarch,1);
   log('Username:'+GetCurrUserName,1);
   //log('IsAdministrator:'+BoolToStr (IsAdministrator),1);
   log('IsAdministratorAccount:'+BoolToStr (IsAdministratorAccount,true),1);
   log('IsElevated:'+BoolToStr (IsElevated,true),1);
-  log('DebugPrivilege:'+BoolToStr (EnableDebugPriv,true),1);
-  lsass_pid:=upsapi._EnumProc('lsass.exe');
+  log('DebugPrivilege:'+BoolToStr (debug,true),1);
   log('LSASS PID:'+inttostr(lsass_pid ),1);
-  getmem(sysdir,Max_Path );
-  GetSystemDirectory(sysdir, MAX_PATH - 1);
+
+  end;
   //
   //RunElevated('');
   //
@@ -1298,17 +1305,19 @@ begin
   log('NTHASH /runaschild /pid:12345 [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runas [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runts /user:session_id [/binary:x:\folder\bin.exe]',1);
+  //log('NTHASH /enumts [/server:hostname]',1);
   log('NTHASH /enumpriv',1);
-  //log('NTHASH /enumproc',1);
+  log('NTHASH /enumproc',1);
   //log('NTHASH /killproc /pid:12345',1);
   //log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpproc /pid:12345',1);
   //**************************************
   //log('NTHASH /enumprocwmi [/server:hostname]',1);
   //log('NTHASH /killprocwmi /pid:12345 [/server:hostname]',1);
-  log('NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname]',1);
+  log('NTHASH /runwmi /binary:x:\folder\bin.exe [/sPassworderver:hostname]',1);
   //log('NTHASH /dirwmi /input:path [/server:hostname]',1);
   //***************************************
+  log('NTHASH /context',1);
   log('NTHASH /a_command /verbose',1);
   log('NTHASH /a_command /system',1);
   end;
@@ -1587,6 +1596,26 @@ begin
              goto fin;
              end;
    }
+//*********TS**************************
+
+p:=pos('/enumts',cmdline); //can be done with taskkill
+  if p>0 then
+     begin
+     ret:= wtssessions(server,sessions);
+         if ret=0 then
+            begin
+            for dw:=low(sessions) to high(sessions) do
+                begin
+                with sessions[dw] do
+                begin
+                writeln(WTSSessionid +#9+ WTSWinStationName+#9+WTSState+#9+WTSUserName+#9+WinstaLogonTime+#9+WinstaIdleTime );
+                end; //with
+                end;//for dw:=low(sessions) to high(sessions) do
+            end; //if ret=0 then
+       if ret>0 then writeln(inttostr(ret)+','+inttostr(getlasterror));
+     goto fin;
+     end;
+
 //*********PROCESS ********************
   p:=pos('/enumproc',cmdline); //can be done with taskkill
     if p>0 then
@@ -1779,6 +1808,8 @@ begin
    begin
    if user='' then exit;
    if binary='' then binary:='c:\windows\system32\cmd.exe';
+   //writeln('SeTcbPrivilege:'+BoolToStr ( EnableDebugPriv('SeTcbPrivilege'),true));
+   //writeln('SeAssignPrimaryTokenPrivilege:'+BoolToStr ( EnableDebugPriv('SeAssignPrimaryTokenPrivilege'),true));
    writeln(BoolToStr (runTSprocess(strtoint(user),binary),true));
    goto fin;
    end;

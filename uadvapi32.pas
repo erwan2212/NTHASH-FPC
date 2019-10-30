@@ -36,7 +36,7 @@ type
 
 function GenerateNTLMHash(mypassword:string):string;
 function GenerateNTLMHashByte(mypassword:string):tbyte16__;
-function EnableDebugPriv:boolean;
+function EnableDebugPriv(priv:string):boolean;
 function enumprivileges:boolean;
 
 function ImpersonateUser(const User, PW: string): Boolean;
@@ -274,7 +274,7 @@ end; //if lib <> 0 then
 end;
 
 
-function EnableDebugPriv:boolean;
+function EnableDebugPriv(priv:string):boolean;
 var
   NewState,prev: TTokenPrivileges;
   luid: TLargeInteger;
@@ -285,7 +285,7 @@ result:=false;
   //TOKEN_ADJUST_PRIVILEGES is just not enough...
   if OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, hToken) then
   begin
-   if LookupPrivilegeValue(nil, PChar('SeDebugPrivilege'), luid) then
+   if LookupPrivilegeValue(nil, PChar(priv), luid) then
    begin
     NewState.PrivilegeCount:= 1;
     NewState.Privileges[0].Luid := luid;

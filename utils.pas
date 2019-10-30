@@ -52,6 +52,7 @@ function ByteSwap16(w: word): word;
 var
   verbose:boolean=false;
   winver,osarch:string;
+  debug:boolean=false;
 
 implementation
 

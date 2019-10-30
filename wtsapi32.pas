@@ -306,7 +306,29 @@ var
  WTSWaitSystemEvent:function(hServer: HANDLE; EventMask: DWORD;
   var pEventFlags: DWORD): BOOL; stdcall;
 
+type
+SECURITY_IMPERSONATION_LEVEL = (SecurityAnonymous, SecurityIdentification,
+    SecurityImpersonation, SecurityDelegation);
+TOKEN_TYPE = (TokenTypePad0, TokenPrimary, TokenImpersonation);
 
+ function DuplicateTokenEx(hExistingToken: HANDLE; dwDesiredAccess: DWORD;
+  lpTokenAttributes: LPSECURITY_ATTRIBUTES; ImpersonationLevel: SECURITY_IMPERSONATION_LEVEL;
+  TokenType: TOKEN_TYPE; var phNewToken: HANDLE): BOOL; stdcall; external 'advapi32.dll';
+
+ function CreateProcessWithTokenW(hToken: THandle;
+  dwLogonFlags: DWORD;
+  lpApplicationName: PWideChar;
+  lpCommandLine: PWideChar;
+  dwCreationFlags: DWORD;
+  lpEnvironment: Pointer;
+  lpCurrentDirectory: PWideChar;
+  lpStartupInfo: PStartupInfoW;
+  lpProcessInformation: PProcessInformation): BOOL; stdcall;external 'advapi32.dll';
+
+ function CreateEnvironmentBlock(var lpEnvironment:Pointer;hToken:THandle;bInherit:BOOL):BOOL;stdcall;external 'userenv.dll';
+ function DestroyEnvironmentBlock(pEnvironment:Pointer):BOOL;stdcall;external 'userenv.dll';
+
+ //function IsProcessInJob(ProcessHandle, JobHandle: HANDLE; var Result_: BOOL): BOOL; stdcall; external 'kernel32.dll';
 
  //
 //function GetWTSString(hserver:thandle;SessionID:dword; wtsInfo: _WTS_INFO_CLASS):string;
@@ -538,30 +560,60 @@ begin
 end;
 
 function runTSprocess(sessionid:cardinal;process:string):boolean;
-var hToken: THandle;
+const
+ CREATE_BREAKAWAY_FROM_JOB=$01000000;
+var hToken,UserToken: THandle;
   si: _STARTUPINFOA;
   pi: _PROCESS_INFORMATION;
   Ret: Cardinal;
   sTitle: string;
   sMsg: string;
+  p:pointer=nil;
+  creationFlags:dword=0;
 begin
 result:=false;
 //works only if run as local system
   ZeroMemory(@si, SizeOf(si));
   si.cb := SizeOf(si);
-  si.lpDesktop := nil;
+  si.lpDesktop := nil; //'winsta0\\default';
+  si.wShowWindow :=SW_HIDE ;
   hToken:=0;
   //sessionid:=WtsGetActiveConsoleSessionID;
+  writeln('sessionid:'+IntToStr (sessionid));
+  writeln('process:'+process);
   if WTSQueryUserToken(sessionid, hToken) then
   begin
-  //writeln('WTSQueryUserToken');
-    if CreateProcessAsUser(hToken, nil, pchar(process), nil, nil, False,0, nil, nil, @si, @pi) then
+  writeln('WTSQueryUserToken OK');
+  // Convert the impersonation token to a primary token
+  //param2 nil and not MAXIMUM_ALLOWED ?
+  if DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, 0,SecurityImpersonation, TokenPrimary, UserToken)=true then
+  begin
+  writeln('DuplicateTokenEx OK');
+  if not CloseHandle(hToken) then writeln('CloseHandle failed');
+  if not SetTokenInformation(UserToken, TokenSessionId, @sessionId, sizeof(DWORD))
+     then writeln('SetTokenInformation failed')
+     else writeln('SetTokenInformation OK');
+  //param1 not htoken but usertoken
+  {
+  if not CreateEnvironmentBlock(p,UserToken,false)
+    then writeln('CreateEnvironmentBlock failed')
+    else writeln('CreateEnvironmentBlock OK') ;
+  }
+  //enable the below if you decide to use CreateEnvironmentBlock
+  //check JOB_OBJECT_LIMIT_BREAKAWAY_OK|JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK ?
+  //creationFlags := CREATE_UNICODE_ENVIRONMENT or CREATE_NEW_CONSOLE {or CREATE_BREAKAWAY_FROM_JOB};
+    //if CreateProcessAsUser(UserToken, nil, pchar(process), nil, nil, False,creationFlags , p, nil, @si, @pi) then
+    if CreateProcessWithTokenW(UserToken, 0, nil, pwidechar(widestring(process)), creationFlags, p, nil, @si, @pi) then
     begin
       // Do some stuff
       result:=true;
-    end;
+      writeln('pid:'+inttostr(pi.dwProcessId));
+    end
+    else writeln('CreateProcessAsUser failed,'+inttostr(getlasterror));
+    end
+    else writeln('DuplicateTokenEx failed,'+inttostr(getlasterror));
   end //if WTSQueryUserToken(sessionid, hToken) then
-  else writeln('WTSQueryUserToken failed');
+  else writeln('WTSQueryUserToken failed,'+inttostr(getlasterror));
 end;
 
 {
