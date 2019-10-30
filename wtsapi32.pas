@@ -306,6 +306,13 @@ var
  WTSWaitSystemEvent:function(hServer: HANDLE; EventMask: DWORD;
   var pEventFlags: DWORD): BOOL; stdcall;
 
+  {
+  BOOL WINAPI WTSStartRemoteControlSessionA(LPSTR, ULONG, BYTE, USHORT);
+  BOOL WINAPI WTSStartRemoteControlSessionW(LPWSTR, ULONG, BYTE, USHORT);
+  #define     WTSStartRemoteControlSession WINELIB_NAME_AW(WTSStartRemoteControlSession)
+  BOOL WINAPI WTSStopRemoteControlSession(ULONG);
+  }
+
 type
 SECURITY_IMPERSONATION_LEVEL = (SecurityAnonymous, SecurityIdentification,
     SecurityImpersonation, SecurityDelegation);
