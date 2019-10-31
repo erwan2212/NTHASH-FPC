@@ -17,7 +17,6 @@ NTHASH /getusers [/server:hostname] <br/>
 NTHASH /getdomains [/server:hostname <br/>
 NTHASH /dumpsam <br/>
 NTHASH /dumphashes [/offline] <br/>
-NTHASH /dumphash /rid:123 [/offline] <br/>
 NTHASH /getsamkey [/offline] <br/>
 NTHASH /getsyskey [/offline] <br/>
 NTHASH /getlsakeys <br/>
@@ -27,8 +26,15 @@ NTHASH /pth /user:username /password:myhash /domain:mydomain <br/>
 NTHASH /enumcred <br/>
 NTHASH /enumcred2 <br/>
 NTHASH /enumvault <br/>
-NTHASH /chrome [/binary:path_to_database]<br/>
-NTHASH /firefox [/binary:path_to_database]<br/>
+NTHASH /chrome [/binary:path_to_database] <br/>
+NTHASH /ccookies [/binary:path_to_database] <br/>
+NTHASH /firefox [/binary:path_to_database] <br/>
+NTHASH /fcookies [/binary:path_to_database] <br/>
+NTHASH /bytetostring /input:hexabytes <br/>
+NTHASH /stringtobyte /input:string <br/>
+NTHASH /base64encodew /input:string <br/>
+NTHASH /base64encode /input:string <br/>
+NTHASH /base64decode /input:base64string <br/>
 NTHASH /cryptunprotectdata /binary:filename <br/>
 NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
@@ -37,14 +43,11 @@ NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runas [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runts /user:session_id [/binary: x:\folder\bin.exe] <br/>
-NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname] <br/>
 NTHASH /enumpriv <br/>
-NTHASH /dumpprocess /pid:12345 <br/>
-NTHASH /bytetostring /input:hexabytes <br/>
-NTHASH /stringtobyte /input:string <br/>
-NTHASH /base64encodew /input:string <br/>
-NTHASH /base64encode /input:string <br/>
-NTHASH /base64decode /input:base64string <br/>
+NTHASH /enumproc <br/>
+NTHASH /dumpproc /pid:12345 <br/>
+NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname] <br/>
+NTHASH /context <br/>
 NTHASH /a_command /verbose <br/>
 NTHASH /a_command /system <br/>
 
