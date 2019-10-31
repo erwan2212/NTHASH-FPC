@@ -322,6 +322,7 @@ TOKEN_TYPE = (TokenTypePad0, TokenPrimary, TokenImpersonation);
   lpTokenAttributes: LPSECURITY_ATTRIBUTES; ImpersonationLevel: SECURITY_IMPERSONATION_LEVEL;
   TokenType: TOKEN_TYPE; var phNewToken: HANDLE): BOOL; stdcall; external 'advapi32.dll';
 
+ {
  function CreateProcessWithTokenW(hToken: THandle;
   dwLogonFlags: DWORD;
   lpApplicationName: PWideChar;
@@ -331,6 +332,18 @@ TOKEN_TYPE = (TokenTypePad0, TokenPrimary, TokenImpersonation);
   lpCurrentDirectory: PWideChar;
   lpStartupInfo: PStartupInfoW;
   lpProcessInformation: PProcessInformation): BOOL; stdcall;external 'advapi32.dll';
+ }
+
+ type
+  TCreateProcessWithTokenW=function(hToken: THandle;
+  dwLogonFlags: DWORD;
+  lpApplicationName: PWideChar;
+  lpCommandLine: PWideChar;
+  dwCreationFlags: DWORD;
+  lpEnvironment: Pointer;
+  lpCurrentDirectory: PWideChar;
+  lpStartupInfo: PStartupInfoW;
+  lpProcessInformation: PProcessInformation): BOOL; stdcall;
 
  function CreateEnvironmentBlock(var lpEnvironment:Pointer;hToken:THandle;bInherit:BOOL):BOOL;stdcall;external 'userenv.dll';
  function DestroyEnvironmentBlock(pEnvironment:Pointer):BOOL;stdcall;external 'userenv.dll';
@@ -577,7 +590,11 @@ var hToken,UserToken: THandle;
   sMsg: string;
   p:pointer=nil;
   creationFlags:dword=0;
+  CreateProcessWithTokenW:pointer;
 begin
+//
+  CreateProcessWithTokenW:=getprocaddress(loadlibrary('advapi32.dll'),'CreateProcessWithTokenW');
+//
 result:=false;
 //works only if run as local system
   ZeroMemory(@si, SizeOf(si));
@@ -610,7 +627,7 @@ result:=false;
   //check JOB_OBJECT_LIMIT_BREAKAWAY_OK|JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK ?
   //creationFlags := CREATE_UNICODE_ENVIRONMENT or CREATE_NEW_CONSOLE {or CREATE_BREAKAWAY_FROM_JOB};
     //if CreateProcessAsUser(UserToken, nil, pchar(process), nil, nil, False,creationFlags , p, nil, @si, @pi) then
-    if CreateProcessWithTokenW(UserToken, 0, nil, pwidechar(widestring(process)), creationFlags, p, nil, @si, @pi) then
+    if TCreateProcessWithTokenW(CreateProcessWithTokenW)(UserToken, 0, nil, pwidechar(widestring(process)), creationFlags, p, nil, @si, @pi) then
     begin
       // Do some stuff
       result:=true;

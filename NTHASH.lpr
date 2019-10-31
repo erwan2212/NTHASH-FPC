@@ -1,6 +1,10 @@
 {$mode delphi}{$H+}
 //{$r uac.res}
 
+//define {$DEFINE DYNAMIC_LINK} in jediapilib.inc : NOT
+//define {$DEFINE DYNAMIC_LINK} in JwaBCrypt : OK  - for CPU32 only - to allow xp...
+
+
 program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,uadvapi32,
@@ -1316,7 +1320,7 @@ begin
   //**************************************
   //log('NTHASH /enumprocwmi [/server:hostname]',1);
   //log('NTHASH /killprocwmi /pid:12345 [/server:hostname]',1);
-  log('NTHASH /runwmi /binary:x:\folder\bin.exe [/sPassworderver:hostname]',1);
+  log('NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname]',1);
   //log('NTHASH /dirwmi /input:path [/server:hostname]',1);
   //***************************************
   log('NTHASH /context',1);
