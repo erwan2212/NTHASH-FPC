@@ -1288,7 +1288,9 @@ begin
   log('NTHASH /enumvault',1);
   //***************************************************
   log('NTHASH /chrome [/binary:path_to_database]',1);
+  log('NTHASH /ccookies [/binary:path_to_database]',1);
   log('NTHASH /firefox [/binary:path_to_database]',1);
+  log('NTHASH /fcookies [/binary:path_to_database]',1);
   //****************************************************
   log('NTHASH /bytetostring /input:hexabytes',1);
   log('NTHASH /stringtobyte /input:string',1);
@@ -1838,11 +1840,25 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
    begin
    decrypt_chrome(binary);
+   goto fin;
+   end;
+  p:=pos('/ccookies',cmdline);
+  if p>0 then
+   begin
+   uchrome.decrypt_cookies(binary);
+   goto fin;
    end;
   p:=pos('/firefox',cmdline);
   if p>0 then
    begin
    decrypt_firefox(binary);
+   goto fin;
+   end;
+  p:=pos('/fcookies',cmdline);
+  if p>0 then
+   begin
+   ufirefox.decrypt_cookies(binary);
+   goto fin;
    end;
   //***********************************************************
   fin:

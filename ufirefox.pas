@@ -15,6 +15,7 @@ uses
   syndb,syndbsqlite3;
 
 procedure decrypt_firefox(db:string='');
+procedure decrypt_cookies(db:string='');
 
 implementation
 
@@ -127,6 +128,44 @@ if PK11SDR_Decrypt(@EncryptedSECItem, @DecryptedSECItem, nil) = 0 then
             SetLength(decrypted, DecryptedSECItem.SECItemLen);
             end;
 end;
+
+procedure decode_cookies(MainProfilePath:pchar);
+const
+SQLITE_ROW        = 100; //in sqlite3.pas
+var
+ value,res1,res2:string;
+ //
+  //DB: TSQLite3Database;
+  //Stmt  : TSQLite3Statement;
+  Props: TSQLDBSQLite3ConnectionProperties ;
+  Rows: ISQLDBRows;
+begin
+  //DB := TSQLite3Database.Create;
+//if dynamic
+{$ifndef static}
+sqlite3 := TSQLite3LibraryDynamic.Create(SQLITE_LIBRARY_DEFAULT_NAME);
+{$endif}
+//
+  props:=TSQLDBSQLite3ConnectionProperties.Create(MainProfilePath,'','','');
+  try
+    //DB.Open(MainProfilePath);
+    //Stmt := DB.Prepare('SELECT hostname,encryptedUsername,encryptedPassword,length(encryptedPassword) from moz_logins');
+    rows:= props.Execute('SELECT datetime(creationTime/1000000-11644473600,''unixepoch'') as creationTime,baseDomain,name,value,cast(issecure as TEXT) as issecure,cast(ishttponly as TEXT) as ishttponly from moz_cookies order by creationTime desc',[]);
+    try
+      //while Stmt.Step = SQLITE_ROW do
+      writeln('creationTime;baseDomain;name;value;issecure;ishttponly');
+      while rows.step do
+      begin
+      writeln(rows.ColumnString (0)+';'+rows.ColumnString (2)+';'+rows.ColumnString (3)+';'+rows.ColumnString (4)+';'+rows.ColumnString (5));
+      end;
+    finally
+      //Stmt.Free;
+    end;
+  finally
+    //DB.Free;
+  end;
+end;
+
 
 procedure decrypt_sqlite(MainProfilePath:pchar);
 const
@@ -318,6 +357,8 @@ writeln(ProgramPath);
   @NSS_Shutdown := GetProcAddress(NSSModule, 'NSS_Shutdown');
   @PK11_FreeSlot := GetProcAddress(NSSModule, 'PK11_FreeSlot');
 
+  database:='';
+
   if database='' then
   begin
   UserenvModule := LoadLibrary('userenv.dll');
@@ -412,6 +453,63 @@ writeln(ProgramPath);
   NSS_Shutdown;
   end;//if NSS_Init(pchar(configdir)) = 0 then
   exit;
+  end; //sqlite
+//*******************************************************************
+
+  end;
+
+procedure decrypt_cookies(db:string='');
+
+
+var
+  UserenvModule, hToken              : THandle;
+  ProfilePath, MainProfile,isrelative                         : array [0..MAX_PATH] of char;
+  ProfilePathLen                  : dword;
+  FirefoxProfilePath,database       : pchar;
+
+  configdir        : string;
+  //
+
+begin
+  //
+  database:='';
+  //
+
+
+  if database='' then
+  begin
+  writeln('ok0');
+  UserenvModule := LoadLibrary('userenv.dll');
+  writeln('ok1');
+  @GetUserProfileDirectory := GetProcAddress(UserenvModule, 'GetUserProfileDirectoryA');
+  OpenProcessToken(GetCurrentProcess, TOKEN_QUERY, hToken);
+  ProfilePathLen := MAX_PATH;
+  ZeroMemory(@ProfilePath, MAX_PATH);
+  GetUserProfileDirectory(hToken, @ProfilePath, ProfilePathLen);
+  FirefoxProfilePath := pchar(FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\'  + 'profiles.ini');
+  GetPrivateProfileString('Profile0', 'Path', '', MainProfile, MAX_PATH, FirefoxProfilePath);
+  GetPrivateProfileString('Profile0', 'isrelative', '', isrelative, MAX_PATH, FirefoxProfilePath);
+  if strpas(isrelative)='0'
+    then configdir:=MainProfile
+    else configdir:=FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\'  +  MainProfile;
+  end;
+
+  if db<>'' then configdir :=ExtractFileDir (db);
+  if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');exit;end;
+  if configdir<>'' then writeln('configdir:'+configdir);
+  //readln;
+
+
+  //*************  sqlite *******************************************
+  if strpas(isrelative)='0'
+  then database :=pchar(MainProfile+ '\cookies.sqlite')
+  else database := pchar(FolderPath(CSIDL_APPDATA) + '\Mozilla\Firefox\' + MainProfile  + '\cookies.sqlite');
+  if (db<>'') and (pos('.sqlite',lowercase(db))>0) then database:=pchar(db);
+  if fileexists(database) then
+  begin
+  writeln('db:'+database);
+
+  decode_cookies(database );
   end; //sqlite
 //*******************************************************************
 
