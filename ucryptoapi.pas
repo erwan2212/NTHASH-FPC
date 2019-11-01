@@ -76,6 +76,7 @@ BCRYPT_CHAIN_MODE_ECB_:widestring       = 'ChainingModeECB';
 BCRYPT_CHAIN_MODE_CFB_:widestring       = 'ChainingModeCFB';
 BCRYPT_CHAINING_MODE_:widestring        = 'ChainingMode';
 
+//https://stackoverflow.com/questions/13145112/secure-way-to-store-password-in-windows
 
 function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
 var
@@ -87,7 +88,7 @@ begin
   plainBlob.pbData := dataBytes;
   plainBlob.cbData := sizeof(dataBytes);
 
-  result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @encryptedBlob);
+  result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, 0 {CRYPTPROTECT_LOCAL_MACHINE}, @encryptedBlob);
   if result=true then
      begin
      setlength(output,encryptedBlob.cbData);
@@ -123,7 +124,7 @@ begin
   Move(Pointer(Text)^, plainBlob.pbData^, plainBlob.cbData);
   }
 
-  result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @encryptedBlob);
+  result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, 0 {CRYPTPROTECT_LOCAL_MACHINE}, @encryptedBlob);
   log('cbData:'+inttostr(encryptedBlob.cbData) );
   if result=true then
      begin
@@ -245,10 +246,12 @@ begin
   Move(Pointer(Text)^, plainBlob.pbData^, plainBlob.cbData);
   }
 
-  decryptedBlob.pbData :=getmem(4096); //@databytes[0];
+  decryptedBlob.pbData :=nil; //getmem(4096); //@databytes[0];
   //3rd param is entropy
   //5th param is password
-  result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
+  result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, 0{CRYPTPROTECT_LOCAL_MACHINE}, @decryptedBlob);
+  if result=false then result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
+
   log('decryptedBlob.cbData:'+inttostr(decryptedBlob.cbData) );
   //log(strpas(pchar(decryptedBlob.pbData)));
   if result=true then
@@ -302,9 +305,11 @@ begin
   Move(Pointer(Text)^, plainBlob.pbData^, plainBlob.cbData);
   }
 
-  decryptedBlob.pbData :=getmem(4096); //@databytes[0];
+  decryptedBlob.pbData :=nil; //getmem(4096); //@databytes[0];
   //3rd param entropy
-  result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
+  result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, 0{CRYPTPROTECT_LOCAL_MACHINE}, @decryptedBlob);
+  if result=false then result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
+
   log('decryptedBlob.cbData:'+inttostr(decryptedBlob.cbData) );
   if result=true then
     begin

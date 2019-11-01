@@ -1896,3 +1896,5 @@ DPAPI decrypted data always begins with the following sequence of bytes, so you 
 01 00 00 00 D0 8C 9D DF 01 15 D1 11 8C 7A 00 C0 4F C2 97 EB
 0x01, 0x00, 0x00, 0x00, 0xD0, 0x8C, 0x9D, 0xDF, 0x01, 0x15, 0xD1, 0x11, 0x8C, 0x7A, 0x00, 0xC0
 }
+
+//check https://docs.microsoft.com/fr-fr/windows/win32/api/wincrypt/nf-wincrypt-cryptbinarytostringa?redirectedfrom=MSDN
