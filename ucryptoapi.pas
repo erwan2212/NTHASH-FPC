@@ -25,6 +25,7 @@ function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;over
 function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 
+function decodeblob(filename:string):boolean;
 
 type
  PCREDENTIAL_ATTRIBUTEW = ^_CREDENTIAL_ATTRIBUTEW;
@@ -134,6 +135,64 @@ begin
 
 end;
 
+function decodeblob(filename:string):boolean;
+const
+marker:array[0..15] of byte=($D0,$8C,$9D,$DF,$01,$15,$D1,$11,$8C,$7A,$00,$C0,$4F,$C2,$97,$EB);
+var
+  buffer:array[0..4095] of byte;
+  outfile:thandle=0;
+  bytesread:cardinal;
+  i,offset:byte;
+  guid:tguid;
+  dw:dword;
+  pw:pwidechar;
+begin
+  outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
+  if outfile=thandle(-1) then log('CreateFile:'+inttostr(getlasterror));
+  if outfile=thandle(-1) then exit;
+  bytesread:=0;
+  result:=readfile(outfile ,buffer,4096,bytesread,nil);
+  closehandle(outfile);
+  if result=false then exit;
+  if bytesread=0 then exit;
+  offset:=0;
+  for i:=0 to 32 do
+      begin
+        if CompareMem (@buffer[i],@marker[0],16) then begin offset:=i;break;end;
+      end;
+  if offset=0 then exit;
+  //
+  CopyMemory( @dw,@buffer[offset-4],sizeof(dw));
+  writeln('dwVersion:'+inttohex(dw,4));
+  //
+  CopyMemory( @guid,@buffer[offset],sizeof(guid));
+  writeln('GuidProvider:'+GUIDToString(guid));
+  inc(offset,16);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwMasterKeyVersion:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  CopyMemory( @guid,@buffer[offset],sizeof(guid));
+  writeln('GuidMasterKey:'+GUIDToString(guid));
+  inc(offset,16);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwFlags:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwDescriptionLen:'+inttostr(dw));
+  inc(offset,4);
+  //
+  if dw>0 then
+     begin
+     pw:=AllocMem (dw);
+     copymemory(pw,@buffer[offset],dw);
+     writeln('szDescription:'+strpas(pw));
+     end;
+end;
+
 function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 var
   plainBlob,decryptedBlob:_MY_BLOB;
@@ -198,8 +257,6 @@ begin
     CopyMemory(@databytes[0],decryptedBlob.pbData,decryptedBlob.cbData);
     end;
   if result=false then log('CryptUnProtectData_ lasterror:'+inttostr(getlasterror));
-
-
 
   closehandle(outfile);
 

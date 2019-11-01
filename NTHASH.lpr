@@ -1839,6 +1839,11 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
          then log('CryptUnProtectData_ NOT OK',1)
          else log('CryptUnProtectData_ OK - written : encrypted.blob',1);
      end;
+  p:=pos('/decodeblob',cmdline);
+    if p>0 then
+       begin
+       decodeblob (binary);
+       end;
   //********* BROWSER ****************************************
   p:=pos('/chrome',cmdline);
   if p>0 then
