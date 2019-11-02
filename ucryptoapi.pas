@@ -143,10 +143,11 @@ var
   buffer:array[0..4095] of byte;
   outfile:thandle=0;
   bytesread:cardinal;
-  i,offset:byte;
+  i,offset:word;
   guid:tguid;
   dw:dword;
   pw:pwidechar;
+  bytes:tbytes;
 begin
   outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
   if outfile=thandle(-1) then log('CreateFile:'+inttostr(getlasterror));
@@ -185,12 +186,84 @@ begin
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('dwDescriptionLen:'+inttostr(dw));
   inc(offset,4);
-  //
   if dw>0 then
      begin
      pw:=AllocMem (dw);
      copymemory(pw,@buffer[offset],dw);
-     writeln('szDescription:'+strpas(pw));
+     //writeln('szDescription:'+(  StringReplace ( string(widestring(pw)),'#13#10','',[]) ));
+     writeln('szDescription:'+(  string(widestring(pw)) ));
+     inc(offset,dw);
+     end;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('algCrypt:'+inttohex(dw,sizeof(dw)));
+  inc(offset,4);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwAlgCryptLen:'+inttohex(dw,sizeof(dw)));
+  inc(offset,4);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwSaltLen:'+inttohex(dw,sizeof(dw)));
+  inc(offset,4);
+  if dw>0 then
+     begin
+     SetLength(bytes,dw);;
+     CopyMemory (@bytes[0],@buffer[offset],dw);
+     writeln('pbSalt:'+ByteToHexaString(bytes));
+     inc(offset,dw);
+     end;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwHmacKeyLen:'+inttohex(dw,sizeof(dw)));
+  inc(offset,4);
+  if dw>0 then
+     begin
+     SetLength(bytes,dw);;
+     CopyMemory (@bytes[0],@buffer[offset],dw);
+     writeln('pbHmackKey:'+ByteToHexaString(bytes));
+     inc(offset,dw);
+     end;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('algHash:'+inttohex(dw,sizeof(dw)));
+  inc(offset,4);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('algHadwAlgHashLensh:'+inttohex(dw,sizeof(dw)));
+  inc(offset,4);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwHmac2KeyLen:'+inttohex(dw,sizeof(dw)));
+  inc(offset,4);
+  if dw>0 then
+     begin
+     SetLength(bytes,dw);;
+     CopyMemory (@bytes[0],@buffer[offset],dw);
+     writeln('pbHmack2Key:'+ByteToHexaString(bytes));
+     inc(offset,dw);
+     end;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwDataLen:'+inttohex(dw,sizeof(dw)));
+  inc(offset,4);
+  if dw>0 then
+     begin
+     SetLength(bytes,dw);;
+     CopyMemory (@bytes[0],@buffer[offset],dw);
+     writeln('pbData:'+ByteToHexaString(bytes));
+     inc(offset,dw);
+     end;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwSignLen:'+inttohex(dw,sizeof(dw)));
+  inc(offset,4);
+  if dw>0 then
+     begin
+     SetLength(bytes,dw);;
+     CopyMemory (@bytes[0],@buffer[offset],dw);
+     writeln('pbSign:'+ByteToHexaString(bytes));
+     inc(offset,dw);
      end;
 end;
 
