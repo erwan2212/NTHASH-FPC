@@ -1843,7 +1843,14 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
     if p>0 then
        begin
        decodeblob (binary);
+       goto fin;
        end;
+  p:=pos('/decodemk',cmdline);
+      if p>0 then
+         begin
+         decodemk (binary);
+         goto fin;
+         end;
   //********* BROWSER ****************************************
   p:=pos('/chrome',cmdline);
   if p>0 then

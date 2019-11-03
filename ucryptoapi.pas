@@ -26,6 +26,7 @@ function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const Addition
 function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 
 function decodeblob(filename:string):boolean;
+function decodemk(filename:string):boolean;
 
 type
  PCREDENTIAL_ATTRIBUTEW = ^_CREDENTIAL_ATTRIBUTEW;
@@ -136,6 +137,97 @@ begin
 
 end;
 
+function decodemk(filename:string):boolean;
+var
+  buffer:array[0..4095] of byte;
+  outfile:thandle=0;
+  bytesread:cardinal;
+  MasterKeyLen,offset:word;
+  dw:dword;
+  pw:pwidechar;
+  bytes:tbytes;
+begin
+  //
+  outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
+  if outfile=thandle(-1) then log('CreateFile:'+inttostr(getlasterror));
+  if outfile=thandle(-1) then exit;
+  bytesread:=0;
+  result:=readfile(outfile ,buffer,4096,bytesread,nil);
+  closehandle(outfile);
+  //
+  offset:=0;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwVersion:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  inc(offset,8); //dummy
+  //
+  pw:=AllocMem ($48);
+  CopyMemory(pw,@buffer[offset],$48);
+  writeln('szGuid:'+string(widestring(pw)));
+  inc(offset,$48);
+  //
+  inc(offset,8); //dummy
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwFlags:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwMasterKeyLen:'+inttohex(dw,4));
+  inc(offset,4);
+  MasterKeyLen:=dw-32;
+  //
+  inc(offset,4); //dummy
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwBackupKeyLen:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  inc(offset,4); //dummy
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwCredHistLen:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  inc(offset,4); //dummy
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwDomainKeyLen:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  inc(offset,4); //dummy
+  //
+  writeln('MasterKey');
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('dwVersion:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  SetLength(bytes,16);;
+  CopyMemory (@bytes[0],@buffer[offset],16);
+  writeln('Salt:'+ByteToHexaString(bytes));
+  inc(offset,16);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('rounds:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('algHash:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  writeln('algCrypt:'+inttohex(dw,4));
+  inc(offset,4);
+  //
+  SetLength(bytes,MasterKeyLen);;
+  CopyMemory (@bytes[0],@buffer[offset],MasterKeyLen);
+  writeln('pbKey:'+ByteToHexaString(bytes));
+  inc(offset,MasterKeyLen);
+  //
+end;
+
 function decodeblob(filename:string):boolean;
 const
 marker:array[0..15] of byte=($D0,$8C,$9D,$DF,$01,$15,$D1,$11,$8C,$7A,$00,$C0,$4F,$C2,$97,$EB);
@@ -149,6 +241,7 @@ var
   pw:pwidechar;
   bytes:tbytes;
 begin
+  //
   outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
   if outfile=thandle(-1) then log('CreateFile:'+inttostr(getlasterror));
   if outfile=thandle(-1) then exit;
@@ -157,6 +250,7 @@ begin
   closehandle(outfile);
   if result=false then exit;
   if bytesread=0 then exit;
+  //
   offset:=0;
   for i:=0 to 32 do
       begin
