@@ -442,7 +442,7 @@ begin
                                                 //RtlCopyMemory(pointer(hash), buffer, min(hashLen, hashWanted));
                                                 log('hashLen:'+inttostr(hashLen));
                                                 log('hashashWantedhLen:'+inttostr(hashWanted));
-                                                log(inttohex(hHash,sizeof(pointer)));
+                                                //log(inttohex(hHash,sizeof(pointer)));
                                                 setlength(output,min(hashLen, hashWanted));
                                                 CopyMemory (@output[0], buffer, min(hashLen, hashWanted));
                                                 //log('HASH:'+ByteToHexaString (buffer^),1);

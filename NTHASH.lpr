@@ -311,6 +311,7 @@ var
   mystringsid:pchar;
   sysdir:pchar;
   syskey,samkey,ntlmhash:tbyte16;
+  output_:tbytes;
   sessions:asession;
   label fin;
 
@@ -1511,6 +1512,7 @@ begin
   log('NTHASH /cryptprotectdata /input:string',1);
   log('NTHASH /decodeblob /binary:filename',1);
   log('NTHASH /decodemk /binary:filename',1);
+  log('NTHASH /getsha1hash /input:password',1);
   //****************************************************
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
@@ -2073,6 +2075,14 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
          decodemk (binary);
          goto fin;
          end;
+  p:=pos('/getsha1hash',cmdline);
+      if p>0 then
+           begin
+
+           if crypto_hash ($00008004,pointer(HexaStringToByte2(input)),24,output_,20)
+              then log(ByteToHexaString(output_),1);
+           goto fin;
+           end;
   //********* BROWSER ****************************************
   p:=pos('/chrome',cmdline);
   if p>0 then
