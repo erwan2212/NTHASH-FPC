@@ -40,7 +40,7 @@ function HexaStringToByte(hash:string):tbyte16;
 function HexaStringToByte2(hash:string):tbytes;
 
 function BytetoAnsiString(input:array of byte):string;
-function AnsiStringtoByte(input:string):tbytes;
+function AnsiStringtoByte(input:string;unicode:boolean=false):tbytes;
 
 Function SplitUserSID(user:pchar;var domain:string;var rid:dword):boolean;
 function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
@@ -85,14 +85,29 @@ begin
 result := RightStr(StringOfChar(pad,length) + value, length );
 end;
 
-function AnsiStringtoByte(input:string):tbytes;
+function AnsiStringtoByte(input:string;unicode:boolean=false):tbytes;
 var
   i:word;
 begin
 try
+
+if unicode=false then
+begin
 setlength(result,length(input));
 //log('AnsiStringtoByte len:'+inttostr(length(input)));
 for i:=1 to length(input) do result[i-1]:=ord(input[i]);
+end;
+
+if unicode=true then
+begin
+setlength(result,length(input)*2);
+//log('AnsiStringtoByte len:'+inttostr(length(input)));
+for i:=1 to length(input)  do
+    begin
+    result[(i-1)*2]:=ord(input[i]);
+    //Inc(PInteger(@i)^, 1);
+    end;
+end;
 
 except
 on e:exception do log('AnsiStringtoByte'+e.Message );
@@ -121,7 +136,8 @@ var
   dummy:string='';
 begin
 try
-//writeln(sizeof(hash));
+//writeln('sizeof(hash):'+inttostr(sizeof(hash)));
+//writeln('length(hash):'+inttostr(length(hash)));
   for i:=0 to sizeof(hash)-1 do  dummy:=dummy+inttohex(hash[i],2);
   result:=dummy;
 except

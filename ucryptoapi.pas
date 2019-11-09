@@ -28,6 +28,8 @@ function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEnt
 function decodeblob(filename:string):boolean;
 function decodemk(filename:string):boolean;
 
+function crypto_hash(algid:alg_id;data:lpbyte;dataLen:DWORD; var output:tbytes;hashWanted:DWORD):boolean;
+
 type
  PCREDENTIAL_ATTRIBUTEW = ^_CREDENTIAL_ATTRIBUTEW;
   _CREDENTIAL_ATTRIBUTEW = record
@@ -76,6 +78,13 @@ BCRYPT_CHAIN_MODE_CBC_:widestring       = 'ChainingModeCBC';
 BCRYPT_CHAIN_MODE_ECB_:widestring       = 'ChainingModeECB';
 BCRYPT_CHAIN_MODE_CFB_:widestring       = 'ChainingModeCFB';
 BCRYPT_CHAINING_MODE_:widestring        = 'ChainingMode';
+
+
+procedure RtlCopyMemory(Destination: PVOID; Source: PVOID; Length: SIZE_T); stdcall;
+begin
+  Move(Source^, Destination^, Length);
+end;
+
 
 //https://stackoverflow.com/questions/13145112/secure-way-to-store-password-in-windows
 
@@ -361,6 +370,94 @@ begin
      end;
 end;
 
+{
+function crypto_hash_hmac(calgid:DWORD; key:LPCVOID;keyLen:DWORD; message:LPCVOID; messageLen:DWORD; hash:LPVOID;hashWanted:DWORD ):boolean;
+var
+	 status:BOOL = FALSE;
+	 hashLen:DWORD;
+	 hProv:HCRYPTPROV;
+	 hKey:HCRYPTKEY;
+	 hHash:HCRYPTHASH;
+	 HmacInfo:HMAC_INFO; // = (calgid, nil, 0, nil, 0);
+	 buffer:PBYTE;
+begin
+  fillchar(HmacInfo ,sizeof(HmacInfo ),0);
+  HmacInfo.HashAlgid :=calgid ;
+	if CryptAcquireContext(hProv, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
+	begin
+		if(kull_m_crypto_hkey(hProv, CALG_RC2, key, keyLen, CRYPT_IPSEC_HMAC_KEY, &hKey, NULL)) then
+		begin
+			if(CryptCreateHash(hProv, CALG_HMAC, hKey, 0, hHash))
+			begin
+				if(CryptSetHashParam(hHash, HP_HMAC_INFO, (LPCBYTE) &HmacInfo, 0)) then
+					if(CryptHashData(hHash, (LPCBYTE) message, messageLen, 0)) then
+                                        begin
+						if(CryptGetHashParam(hHash, HP_HASHVAL, NULL, &hashLen, 0)) then
+						begin
+							if(buffer = (PBYTE) LocalAlloc(LPTR, hashLen)) then
+							begin
+								status = CryptGetHashParam(hHash, HP_HASHVAL, buffer, &hashLen, 0);
+								RtlCopyMemory(hash, buffer, min(hashLen, hashWanted));
+								LocalFree(buffer);
+							end; //if buffer
+						end;//CryptGetHashParam
+						CryptDestroyHash(hHash);
+                                                end; //CryptHashData
+			end; //CryptCreateHash
+			CryptDestroyKey(hKey);
+		end; //kull_m_crypto_hkey
+		CryptReleaseContext(hProv, 0);
+	end; //CryptAcquireContext
+	return status;
+end;
+}
+
+function crypto_hash(algid:alg_id;data:lpbyte;dataLen:DWORD;  var output:tbytes;hashWanted:DWORD):boolean;
+var
+  hProv:HCRYPTPROV;
+  hashLen:DWORD;
+  buffer:PBYTE;
+  status:bool = FALSE;
+  hHash: HCRYPTHASH;
+begin
+  result:=false;
+  if CryptAcquireContext(hProv, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
+  	begin
+        log('CryptAcquireContext OK');
+  		if CryptCreateHash(hProv, algid, 0, 0, hHash) then
+  		begin
+                log('CryptCreateHash OK');
+  			if CryptHashData(hHash, data, dataLen, 0) then
+  			begin
+                        log('CryptHashData OK');
+  				if CryptGetHashParam(hHash, HP_HASHVAL, nil, hashLen, 0) then
+  				begin
+                                log('CryptGetHashParam OK:'+inttostr(hashLen));
+                                buffer:=Pointer(LocalAlloc(LPTR, hashLen));
+  					if buffer<>nil  then
+  					begin
+                                        log('LocalAlloc OK');
+  						result := CryptGetHashParam(hHash, HP_HASHVAL, buffer, hashLen, 0);
+                                                log('CryptGetHashParam:'+BoolToStr(result));
+                                                //RtlCopyMemory(pointer(hash), buffer, min(hashLen, hashWanted));
+                                                log('hashLen:'+inttostr(hashLen));
+                                                log('hashashWantedhLen:'+inttostr(hashWanted));
+                                                log(inttohex(hHash,sizeof(pointer)));
+                                                setlength(output,min(hashLen, hashWanted));
+                                                CopyMemory (@output[0], buffer, min(hashLen, hashWanted));
+                                                //log('HASH:'+ByteToHexaString (buffer^),1);
+                                                //
+                                                LocalFree(thandle(buffer));
+  					end;//if(buffer = (PBYTE) LocalAlloc(LPTR, hashLen))
+  				end; //CryptGetHashParam
+  			end; //CryptHashData
+  			CryptDestroyHash(hHash);
+  		end; //CryptCreateHash
+  		CryptReleaseContext(hProv, 0);
+        end; //CryptAcquireContext
+
+end;
+
 function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 var
   plainBlob,decryptedBlob:_MY_BLOB;
@@ -414,6 +511,7 @@ begin
   }
 
   decryptedBlob.pbData :=nil; //getmem(4096); //@databytes[0];
+
   //3rd param is entropy
   //5th param is password
   result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, 0{CRYPTPROTECT_LOCAL_MACHINE}, @decryptedBlob);
@@ -583,7 +681,8 @@ begin
   if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));exit;end;
   log('resultlen:'+inttostr(result));
   log('decrypted:'+ByteToHexaString  (decrypted ));
-  log(strpas (pwidechar(@decrypted[0]) ));
+  //log(strpas (pwidechar(@decrypted[0]) ));
+  if output=nil then output:=allocmem(result);
   copymemory(output,@decrypted[0],result);
   //https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
   //0xC0000023  STATUS_BUFFER_TOO_SMALL
@@ -862,10 +961,7 @@ begin
 
 end;
 
-procedure RtlCopyMemory(Destination: PVOID; Source: PVOID; Length: SIZE_T); stdcall;
-begin
-  Move(Source^, Destination^, Length);
-end;
+
 
 
 

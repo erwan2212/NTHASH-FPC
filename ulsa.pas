@@ -111,18 +111,27 @@ var
   cbIV,i:ulong;
   status:ntstatus;
   tempiv:tbytes;
+  len:ulong;
+  buffer:array of byte;
 begin
+  log('length(decrypted):'+inttostr(length(decrypted)));
   //fillchar(decrypted,sizeof(decrypted),0); //will nullify the array?
-  for i:=0 to length(decrypted)-1 do decrypted[i]:=0;
+  if length(decrypted)>0 then for i:=0 to length(decrypted)-1 do decrypted[i]:=0;
+  //
+  setlength(buffer,cbmemory );
+  CopyMemory (@buffer[0],@encrypted [0],cbmemory );
+  //
   if (cbMemory mod 8)<>0 then     //multiple of 8
 	begin
 		//hKey = &kAes.hKey;
 		cbIV := sizeof(iv);
                 log('cbmemory:'+inttostr(cbmemory));
-                log('aes encrypted:'+ByteToHexaString (encrypted));
+                log('aes encrypted:'+ByteToHexaString (buffer));
                 setlength(tempiv,length(iv));
                 copymemory(@tempiv[0],@iv[0],length(tempiv));
-                if bdecrypt(BCRYPT_AES_ALGORITHM,encrypted,@decrypted[0],aeskey,tempiv)>0 then result:=true;
+                len:= bdecrypt(BCRYPT_AES_ALGORITHM,buffer,@decrypted[0],aeskey,tempiv);
+                //if len<length(decrypted) then setlength(decrypted,len);
+                result:=len>0;
 
         end
 	else
@@ -130,12 +139,15 @@ begin
 		//hKey = &k3Des.hKey;
 		cbIV := sizeof(iv) div 2;
                 log('cbmemory:'+inttostr(cbmemory));
-                log('des encrypted:'+ByteToHexaString (encrypted));
+                log('des encrypted:'+ByteToHexaString (buffer));
                 setlength(tempiv,length(iv));
                 copymemory(@tempiv[0],@iv[0],length(tempiv));
-                if bdecrypt(BCRYPT_3DES_ALGORITHM,encrypted,@decrypted[0],deskey,tempiv)>0 then result:=true;
+                len:= bdecrypt(BCRYPT_3DES_ALGORITHM,buffer,@decrypted[0],deskey,tempiv);
+                //if len<length(decrypted) then setlength(decrypted,len);
+                result:=len>0;
         end;
-
+        //log('length(decrypted):'+inttostr(length(decrypted)));
+        //log('decrypted:'+ByteToHexaString  (decrypted ));
 end;
 
 //dd lsasrv!h3DesKey
