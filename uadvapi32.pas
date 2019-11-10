@@ -46,6 +46,8 @@ function GetCurrUserName: string;
 
 function ImpersonateAsSystemW_Vista(IntegrityLevel: TIntegrityLevel;pid:cardinal): Boolean;
 
+function impersonatepid(pid:dword):boolean;
+
 function CreateProcessAsLogon(const User, PW, Application, CmdLine: WideString): LongWord;
 
 function CreateProcessAsSystemW_Vista(
@@ -200,6 +202,7 @@ type
   _LSA_UNICODE_STRING = record
     Length: USHORT;
     MaximumLength: USHORT;
+    //in x64 an extra dword fiedl may be needed to align to 8 bytes !!!!!!!!!
     Buffer: PWSTR;
   end;
   PLSA_UNICODE_STRING=  ^_LSA_UNICODE_STRING;
@@ -596,7 +599,16 @@ begin
   end;
 end;
 
-
+function impersonatepid(pid:dword):boolean;
+var
+  i:byte;
+begin
+result:=false;
+for i:=4 downto 0 do
+  begin
+  if ImpersonateAsSystemW_Vista (TIntegrityLevel(i),pid) then begin result:=true;exit;end;
+  end;
+end;
 
 end.
 

