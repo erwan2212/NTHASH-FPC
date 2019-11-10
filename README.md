@@ -115,3 +115,9 @@ todo/news: <br/>
 -decrypt dpapi encrypted vault and/or credentials : done in 1.4 <br/>
 -patch LogonSessionList and perform pth: done in 1.4 <br/>
 -decrypt chrome and firefox passwords: done in 1.4 <br/>
+-decrypt firefox and chrome passwords/cookies : done in 1.5 </br>
+-dpapi command to dump all masterkeys : done in 1.6 </br>
+-todo : work out LsaRetrievePrivateData </br>
+-todo : work out LsaICryptUnprotectData thru dll injection </br>
+-todo : work out masterkey decryption based on sha1 user password </br>
+-todo : work out credential blob decryption based on decrypted masterkey </br>
