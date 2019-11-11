@@ -32,6 +32,7 @@ NTHASH /firefox [/binary:path_to_database] <br/>
 NTHASH /fcookies [/binary:path_to_database] <br/>
 NTHASH /bytetostring /input:hexabytes <br/>
 NTHASH /stringtobyte /input:string <br/>
+NTHASH /widestringtobyte /input:string <br/>
 NTHASH /base64encodew /input:string <br/>
 NTHASH /base64encode /input:string <br/>
 NTHASH /base64decode /input:base64string <br/>
