@@ -38,7 +38,9 @@ NTHASH /base64decode /input:base64string <br/>
 NTHASH /cryptunprotectdata /binary:filename <br/>
 NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
-NTHASH /lsasecrets /input:secret <br/>
+NTHASH /getlsasecret /input:secret <br/>
+NTHASH /dpapimk <br/>
+NTHASH /dpapi_system <br/>
 NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
