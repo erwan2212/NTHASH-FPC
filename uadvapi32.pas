@@ -115,8 +115,9 @@ type
 
 //SystemFunction004
 //extern NTSTATUS WINAPI RtlEncryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
-//SystemFunction005
+//SystemFunction005  -> use to decrypt lsasecrets on NT5
 //extern NTSTATUS WINAPI RtlDecryptDESblocksECB(IN PCCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key, OUT PCRYPTO_BUFFER output);
+function RtlDecryptDESblocksECB(const data:_CRYPTO_BUFFER;const key:_CRYPTO_BUFFER;var output:_CRYPTO_BUFFER):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction005';
 //SystemFunction032 or SystemFunction033?
 //extern NTSTATUS WINAPI RtlEncryptDecryptRC4(IN OUT PCRYPTO_BUFFER data, IN PCCRYPTO_BUFFER key);
 function RtlEncryptDecryptRC4(var  data:_CRYPTO_BUFFER;   const key:_CRYPTO_BUFFER):dword ;StdCall;external 'advapi32.dll' name 'SystemFunction032';
@@ -206,6 +207,27 @@ type
     Buffer: PWSTR;
   end;
   PLSA_UNICODE_STRING=  ^_LSA_UNICODE_STRING;
+
+function DecryptDESblocksECB(data,key:tbytes;var output:tbytes):boolean;
+var
+  _data,_key,_output:_CRYPTO_BUFFER;
+  status:dword;
+begin
+//in only
+        fillchar(_data,sizeof(_data),0);
+        _data.Length :=length(data);
+        _data.MaximumLength :=length(data);
+        _data.Buffer :=@data[0];
+        //in only
+        fillchar(_key,sizeof(_key),0);
+        _key.Length:=length(key);
+        _key.MaximumLength:=length(key);
+        _key.Buffer:=@key[0] ;  //usually a hash
+        status:=RtlDecryptDESblocksECB(_data,_key,_output);
+        //if status<>0 then log('RtlDecryptDESblocksECB NOT OK',0) else log('RtlDecryptDESblocksECB OK',0);
+        result:=status=0;
+        if status=0 then CopyMemory(@output [0],_output.Buffer ,_output.Length ) ;
+end;
 
 function GenerateNTLMHash(mypassword:string):string;
 type

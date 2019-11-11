@@ -204,6 +204,7 @@ var
   data:PLSA_UNICODE_STRING =nil;
   pol:LSA_HANDLE ;
 begin
+  result:=false;
 log('Key:'+key);
 
 ZeroMemory(@lObjectAttributes, sizeof(lObjectAttributes));
@@ -250,8 +251,9 @@ if ( status<>ERROR_SUCCESS ) then
    	log(strpas(data^.buffer),0);
         SetLength(output ,data^.Length);
         CopyMemory(@output [0],data^.Buffer,data^.Length) ;
+        result:=true;
    	end
-   	else  log('no data',1);
+   	else  log('no data',0);
 
    end;
 
@@ -263,10 +265,11 @@ if ( status<>ERROR_SUCCESS ) then
                 exit;
    end;
 
-result:=status=0;
+
 
 end;
 
+//using bcrypt functions
  function encryptLSA(cbmemory:ulong;decrypted:array of byte;var encrypted:tbytes):boolean;
      const
        BCRYPT_AES_ALGORITHM                    = 'AES';
@@ -304,6 +307,7 @@ end;
 
      end;
 
+ //using bcrypt functions
 function decryptLSA(cbmemory:ulong;encrypted:array of byte;var decrypted:tbytes):boolean;
 const
   BCRYPT_AES_ALGORITHM                    = 'AES';

@@ -12,10 +12,7 @@ uses
 
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;
 
-//function bdecrypt(algo:lpcwstr;encryped:array of byte;const gKey,initializationVector:array of byte):ULONG;
 function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
-//function bdecryptDES(encrypedPass:puchar;encryptedPassLen:ulong;gDesKey,initializationVector:puchar):ULONG;
-//function bdecryptAES(encrypedPass:puchar;encryptedPassLen:ulong;gAesKey,initializationVector:puchar):ULONG;
 
 function bencrypt(algo:lpcwstr;decrypted:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
 
@@ -61,8 +58,46 @@ PCredentialArray = array of PCREDENTIALW;
 
 implementation
 
+type _NT6_CLEAR_SECRET =record
+	SecretSize:DWORD;
+	unk0:DWORD;
+	unk1:DWORD;
+	unk2:DWORD;
+	Secret:array[0..0] of byte;
+        end;
+NT6_CLEAR_SECRET=_NT6_CLEAR_SECRET;
+PNT6_CLEAR_SECRET=^NT6_CLEAR_SECRET;
 
+//#define LAZY_NT6_IV_SIZE	32
+//#define ANYSIZE_ARRAY 1
+type _NT6_HARD_SECRET =record
+	version:DWORD;
+	KeyId:GUID;
+	algorithm:DWORD;
+	flag:DWORD;
+	lazyiv:array [0..32-1] of byte;
+	//union
+	clearSecret:NT6_CLEAR_SECRET;
+	encryptedSecret:array [0..0] of byte;
+        end;
+ NT6_HARD_SECRET=_NT6_HARD_SECRET;
+ PNT6_HARD_SECRET=^NT6_HARD_SECRET;
 
+ type _PUBLICKEYSTRUC =record
+            bType:BYTE;
+            bVersion:BYTE;
+            reserved:WORD;
+            aiKeyAlg:ALG_ID;
+ end;
+ BLOBHEADER=_PUBLICKEYSTRUC;
+ PUBLICKEYSTRUC=_PUBLICKEYSTRUC;
+
+ type _GENERICKEY_BLOB =record
+	 Header:BLOBHEADER;
+	 dwKeyLen:DWORD;
+end;
+   GENERICKEY_BLOB=_GENERICKEY_BLOB;
+   PGENERICKEY_BLOB=^GENERICKEY_BLOB;
 
 type
   //{$align 8}
@@ -420,6 +455,7 @@ var
   status:bool = FALSE;
   hHash: HCRYPTHASH;
 begin
+  //writeln(inttohex(CALG_SHA1,4));writeln(inttohex(CALG_MD4,4));writeln(inttohex(CALG_MD5,4));
   result:=false;
   if CryptAcquireContext(hProv, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
   	begin
@@ -688,7 +724,7 @@ begin
   //0xC0000023  STATUS_BUFFER_TOO_SMALL
 end;
 
-function bdecryptDES(encrypedPass:array of byte;gDesKey,initializationVector:array of byte):ULONG;
+function _bdecryptDES(encrypedPass:array of byte;gDesKey,initializationVector:array of byte):ULONG;
 var
   hDesProvider:BCRYPT_ALG_HANDLE;
   decryptedPass:array[0..1023] of byte; //puchar;
@@ -706,7 +742,7 @@ begin
 end;
 
 
-function bdecryptAES(encrypedPass:array of byte;gAesKey,initializationVector:array of byte):ULONG;
+function _bdecryptAES(encrypedPass:array of byte;gAesKey,initializationVector:array of byte):ULONG;
 var
   hprovider:BCRYPT_ALG_HANDLE;
   decryptedPass:array[0..1023] of byte; //puchar;
@@ -796,8 +832,100 @@ begin
   end;
 end;
 
+function crypto_hkey(hProv:HCRYPTPROV; calgid:ALG_ID; key:LPCVOID; keyLen:DWORD; flags:DWORD; var hKey:HCRYPTKEY; var hSessionProv:HCRYPTPROV):boolean;
+var
+  status:BOOL = FALSE;
+  keyBlob:PGENERICKEY_BLOB;
+  szBlob:DWORD;
+begin
+
+        szBlob := sizeof(GENERICKEY_BLOB) + keyLen;
+
+	if(calgid <> CALG_3DES) then
+	begin
+          keyBlob:=Pointer(LocalAlloc(LPTR, szBlob));
+		if(keyBlob <>nil) then
+		begin
+			keyBlob^.Header.bType := PLAINTEXTKEYBLOB;
+			keyBlob^.Header.bVersion := CUR_BLOB_VERSION;
+			keyBlob^.Header.reserved := 0;
+			keyBlob^.Header.aiKeyAlg := calgid;
+			keyBlob^.dwKeyLen := keyLen;
+			//RtlCopyMemory((PBYTE) keyBlob + sizeof(GENERICKEY_BLOB), key, keyBlob->dwKeyLen);
+                        CopyMemory(pointer(nativeuint(keyBlob) + sizeof(GENERICKEY_BLOB)),key,keyBlob^.dwKeyLen);
+                        status := CryptImportKey(hProv, pbyte(keyBlob), szBlob, 0, flags, hKey);
+			LocalFree(thandle(keyBlob));
+		end;
+	//}
+	//else if(hSessionProv)
+	//	status = kull_m_crypto_hkey_session(calgid, key, keyLen, flags, hKey, hSessionProv);
+        //end;
+        end;
+
+	result:= status;
+end;
+
+//hardSecretBlob = PNT6_HARD_SECRET
+function lsadump_sec_aes256(hardSecretBlob:tbytes; hardSecretBlobSize:dword;lazyiv:tbytes;sysKey:tbytes):boolean;
+const
+  CALG_SHA_256 = $0000800c;
+  CALG_SHA_384 = $0000800d;
+  CALG_SHA_512 = $0000800e;
+  LAZY_NT6_IV_SIZE=32;
+  AES_256_KEY_SIZE=256 div 8;
+  //CALG_SHA_256 = (ALG_CLASS_HASH or ALG_TYPE_ANY or 12);
+  CALG_AES_128 = (ALG_CLASS_DATA_ENCRYPT or ALG_TYPE_BLOCK or 14);
+  CALG_AES_192 = (ALG_CLASS_DATA_ENCRYPT or ALG_TYPE_BLOCK or 15);
+  CALG_AES_256 = (ALG_CLASS_DATA_ENCRYPT or ALG_TYPE_BLOCK or 16);
+
+var
+ hContext:HCRYPTPROV;
+ hHash:HCRYPTHASH;
+ hKey:HCRYPTKEY;
+ pKey:PBYTE = nil;
+ i, szNeeded:DWORD;
+ keyBuffer:array [0..AES_256_KEY_SIZE-1] of byte;
+ status:BOOL = FALSE;
+ hSessionProv:HCRYPTPROV=0;
+begin
+
+//pKey = sysKey;
+//szNeeded = SYSKEY_LENGTH;
+
+  if(CryptAcquireContext(hContext, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) then
+		begin
+			if(CryptCreateHash(hContext, CALG_SHA_256, 0, 0, hHash)) then
+			begin
+				CryptHashData(hHash, pKey, szNeeded, 0);
+				for i:= 0 to 1000-1 do	CryptHashData(hHash, @lazyiv[0], LAZY_NT6_IV_SIZE, 0);
+
+				szNeeded := sizeof(keyBuffer);
+				if(CryptGetHashParam(hHash, HP_HASHVAL, keyBuffer, &szNeeded, 0)) then
+				begin
+					if (crypto_hkey(hContext, CALG_AES_256, @keyBuffer[0], sizeof(keyBuffer), 0, hKey, hSessionProv)) then
+                                        //if 1=1 then
+                                        begin
+						i := CRYPT_MODE_ECB;
+						if(CryptSetKeyParam(hKey, KP_MODE, @i, 0)) then
+						begin
+							szNeeded := hardSecretBlobSize - PtrUInt(@NT6_HARD_SECRET(Nil^).encryptedSecret); //FIELD_OFFSET(NT6_HARD_SECRET, encryptedSecret);
+							status := CryptDecrypt(hKey, 0, FALSE, 0, pointer(PNT6_HARD_SECRET(@hardSecretBlob[0])^.encryptedSecret [0]), szNeeded);
+							if(status=false) then log('CryptDecrypt not ok');
+						end
+						else log('CryptSetKeyParam not ok');
+						CryptDestroyKey(hKey);
+					end
+					else log('kull_m_crypto_hkey not ok');
+				end;
+				CryptDestroyHash(hHash);
+			end;
+			CryptReleaseContext(hContext, 0);
+		end;
+
+end;
+
 //------------------------------------------------------------------------------
-function AES128ECB_Decrypt(const Value: RawByteString; const Key: RawByteString): RawByteString;
+function _AES128ECB_Decrypt(const Value: RawByteString; const Key: RawByteString): RawByteString;
 var
   pbData: PByte;
   hCryptProvider: HCRYPTPROV;
@@ -857,7 +985,7 @@ begin
 end;
 
 //------------------------------------------------------------------------------
- function AES128ECB_Encrypt(const Value: RawByteString; const Key: RawByteString): RawByteString;
+ function _AES128ECB_Encrypt(const Value: RawByteString; const Key: RawByteString): RawByteString;
 var
   pbData: PByte;
   hCryptProvider: HCRYPTPROV;
@@ -929,7 +1057,7 @@ end;
 //------------------------------------------------------------------------------
 
 
-procedure doSomeEncryption();
+procedure _doSomeEncryption();
 var
   HASHOBJ: HCRYPTHASH;
   hProv: HCRYPTPROV;
