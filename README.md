@@ -38,6 +38,9 @@ NTHASH /base64decode /input:base64string <br/>
 NTHASH /cryptunprotectdata /binary:filename <br/>
 NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
+NTHASH /getlsasecret /input:secret <br/>
+NTHASH /dpapimk <br/>
+NTHASH /dpapi_system <br/>
 NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
@@ -117,7 +120,8 @@ todo/news: <br/>
 -decrypt chrome and firefox passwords: done in 1.4 <br/>
 -decrypt firefox and chrome passwords/cookies : done in 1.5 </br>
 -dpapi command to dump all masterkeys : done in 1.6 </br>
--todo : work out LsaRetrievePrivateData </br>
+-LsaRetrievePrivateData: done in 1.6</br>
+-todo : work out offline decryption of lsasecrets as well as currval and oldval (using syskey?) </br>
 -todo : work out LsaICryptUnprotectData thru dll injection </br>
 -todo : work out masterkey decryption based on sha1 user password </br>
 -todo : work out credential blob decryption based on decrypted masterkey </br>
