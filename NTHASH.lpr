@@ -1071,6 +1071,8 @@ begin
   log('NTHASH /getsha1hash /input:password',1);
   //log('NTHASH /getmd5hash /input:password',1);
   //log('NTHASH /getmd4hash /input:password',1);
+  //log('NTHASH /getsha256hash /input:password',1);
+  //log('NTHASH /getsha512hash /input:password',1);
   log('NTHASH /getlsasecret /input:secret',1);
   log('NTHASH /dpapi_system /input:secret',1);
   //****************************************************
@@ -1240,21 +1242,27 @@ begin
   if p>0 then
      begin
      if input='' then exit;
-     log('BytetoString:'+BytetoAnsiString (HexaStringToByte (input)),1);
+     //log('BytetoString:'+BytetoAnsiString (HexaStringToByte (input)),1);
+     log('BytetoString',1);
+     log(BytetoAnsiString (HexaStringToByte (input)),1);
      goto fin;
      end;
   p:=pos('/stringtobyte',cmdline);
   if p>0 then
      begin
      if input='' then exit;
-     log('StringtoByte:'+ ByteToHexaString ( AnsiStringtoByte(input)),1);
+     //log('StringtoByte:'+ ByteToHexaString ( AnsiStringtoByte(input)),1);
+     log('StringtoByte',1);
+     log(ByteToHexaString ( AnsiStringtoByte(input)),1);
      goto fin;
      end;
   p:=pos('/widestringtobyte',cmdline);
   if p>0 then
      begin
      if input='' then exit;
-     log('widestringtobyte:'+ ByteToHexaString ( AnsiStringtoByte(input,true)),1);
+     //log('widestringtobyte:'+ ByteToHexaString ( AnsiStringtoByte(input,true)),1);
+     log('widestringtobyte',1);
+     log(ByteToHexaString ( AnsiStringtoByte(input,true)),1);
      goto fin;
      end;
   p:=pos('/base64encodew',cmdline);
@@ -1262,8 +1270,9 @@ begin
      begin
      if input='' then exit;
      input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
-     writeln('input:'+input);
-     log('base64encodew:'+ EncodeStringBase64w (widestring(input)) ,1);
+     //writeln('input:'+input);
+     log('base64encodew',1);
+     log(EncodeStringBase64w (widestring(input)) ,1);
      goto fin;
      end;
   p:=pos('/base64encode',cmdline);
@@ -1271,8 +1280,9 @@ begin
      begin
      if input='' then exit;
      input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
-     writeln('input:'+input);
-     log('base64encode:'+ base64.EncodeStringBase64 ((input)) ,1);
+     //writeln('input:'+input);
+     log('base64encode',1);
+     log(base64.EncodeStringBase64 ((input)) ,1);
      goto fin;
      end;
   {
@@ -1288,7 +1298,8 @@ begin
   if p>0 then
      begin
      if input='' then exit;
-     log('base64decode:'+ base64.DecodeStringBase64 (input) ,1);
+     log('base64decode',1);
+     log(base64.DecodeStringBase64 (input) ,1);
      goto fin;
      end;
   //************************************************************
@@ -1660,9 +1671,30 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
          decodemk (binary);
          goto fin;
          end;
+  p:=pos('/getsha512hash',cmdline);
+          if p>0 then
+             begin
+              if input='' then exit;
+             //SHA_DIGEST_LENGTH=20
+             if crypto_hash ($0000800e,pointer(HexaStringToByte2(input)),length(input) div 2,output_,64)
+             then log(ByteToHexaString(output_),1)
+             else log('NOT OK',1);
+             goto fin;
+             end;
+  p:=pos('/getsha256hash',cmdline);
+      if p>0 then
+         begin
+         if input='' then exit;
+         //SHA_DIGEST_LENGTH=20
+         if crypto_hash ($0000800c,pointer(HexaStringToByte2(input)),length(input) div 2,output_,32)
+         then log(ByteToHexaString(output_),1)
+         else log('NOT OK',1);
+         goto fin;
+         end;
   p:=pos('/getsha1hash',cmdline);
       if p>0 then
            begin
+           if input='' then exit;
            //SHA_DIGEST_LENGTH=20
            if crypto_hash ($00008004,pointer(HexaStringToByte2(input)),length(input) div 2,output_,20)
               then log(ByteToHexaString(output_),1)
@@ -1672,6 +1704,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/getmd5hash',cmdline);
       if p>0 then
            begin
+           if input='' then exit;
            //MD5_DIGEST_LENGTH=16
            if crypto_hash ($00008003,pointer(HexaStringToByte2(input)),length(input) div 2,output_,16)
                   then log(ByteToHexaString(output_),1);
@@ -1680,6 +1713,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/getmd4hash',cmdline);
       if p>0 then
            begin
+           if input='' then exit;
            if crypto_hash ($00008002,pointer(HexaStringToByte2(input)),length(input) div 2,output_,16)
                    then log(ByteToHexaString(output_),1);
            goto fin;
