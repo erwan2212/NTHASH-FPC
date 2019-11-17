@@ -1104,6 +1104,7 @@ begin
   log('buffer length:'+inttostr(length(buffer)));
   log('key length:'+inttostr(length(key))); // The secret key must equal the size of the key.
   {get context for crypt default provider}
+  //https://docs.microsoft.com/fr-fr/windows/win32/seccrypto/prov-rsa-aes?redirectedfrom=MSDN
   //if fail then try again with CRYPT_NEWKEYSET
   //if CryptAcquireContext(hProv, nil, nil, {PROV_RSA_AES} PROV_RSA_FULL, 0{CRYPT_VERIFYCONTEXT}) then
   if CryptAcquireContext(hProv, nil, MS_ENH_RSA_AES_PROV, PROV_RSA_AES {PROV_RSA_FULL}, 0{CRYPT_VERIFYCONTEXT}) then

@@ -1717,7 +1717,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
 
   setlength(output_,length(input) div 2);
   copymemory(@output_[0],pointer(HexaStringToByte2(input)),length(input) div 2);
-  //desx, aes not working
+  //desx, aes and rc5 not working
   //use https://encode-decode.com/rc4-encrypt-online/
   if EnCryptDecrypt (dw,'0123456789abcdef',output_) then
      begin
