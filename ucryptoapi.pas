@@ -11,9 +11,9 @@ uses
 
 
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;
+function EnCryptDecrypt(algid:dword;key: string;var buffer:tbytes;const decrypt:boolean=false):boolean;
 
 function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
-
 function bencrypt(algo:lpcwstr;decrypted:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
 
 function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
@@ -56,7 +56,25 @@ type
 
 PCredentialArray = array of PCREDENTIALW;
 
+//https://docs.microsoft.com/en-us/windows/win32/seccrypto/alg-id
+const
+  CALG_RC2 =    $00006602;
+  CALG_RC4=	$00006801;
+  CALG_RC5=     $0000660d;
+  CALG_DES=	$00006601;
+  CALG_DESX=	$00006604;
+  CALG_3DES=	$00006603;
+  CALG_AES=	$00006611;
+  CALG_AES_128=	$0000660e;
+  CALG_AES_192=	$0000660f;
+  CALG_AES_256=	$00006610;
+  //hash
+  CALG_HMAC=	$00008009;
+  CALG_MAC=	$00008005;
+
 implementation
+
+
 
 type _NT6_CLEAR_SECRET =record
 	SecretSize:DWORD;
@@ -474,7 +492,7 @@ begin
   					begin
                                         log('LocalAlloc OK');
   						result := CryptGetHashParam(hHash, HP_HASHVAL, buffer, hashLen, 0);
-                                                log('CryptGetHashParam:'+BoolToStr(result));
+                                                log('CryptGetHashParam:'+BoolToStr(result,true));
                                                 //RtlCopyMemory(pointer(hash), buffer, min(hashLen, hashWanted));
                                                 log('hashLen:'+inttostr(hashLen));
                                                 log('hashashWantedhLen:'+inttostr(hashWanted));
@@ -661,8 +679,9 @@ begin
   //writeln('hkey:'+inttostr(hkey));
   //fillchar(decrypted,sizeof(decrypted ),0);
   fillchar(encrypted,length(encrypted ),0);
-  //status := BCryptDecrypt(hkey, @encryped[0], sizeof(encryped), 0, @initializationVector[0], cbiv, @decrypted[0], sizeof(decrypted), result, 0);
-  status := BCryptEncrypt(hkey, @decrypted[0], sizeof(decrypted), 0, @initializationVector[0], cbiv, @encrypted[0], length(encrypted), result, 0);
+  if length(initializationVector)>0
+     then status := BCryptEncrypt(hkey, @decrypted[0], sizeof(decrypted), 0, @initializationVector[0], cbiv, @encrypted[0], length(encrypted), result, 0)
+     else status := BCryptEncrypt(hkey, @decrypted[0], sizeof(decrypted), 0, nil, 0, @encrypted[0], length(encrypted), result, 0);
   if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));exit;end;
   log('resultlen:'+inttostr(result));
   log('encrypted:'+ByteToHexaString  (encrypted  ));
@@ -772,10 +791,10 @@ var
   hKey, hDecryptKey: HCRYPTKEY;
   dwKeyCypherMode: DWORD;
   ResultLen: DWORD;
-const
-  PROV_RSA_AES = 24;
-  CALG_AES_128 = $0000660e;
-  AESFinal = True;
+//const
+  //PROV_RSA_AES = 24;
+  //CALG_AES_128 = $0000660e;
+  //AESFinal = True;
 begin
   Result := false;
   // MS_ENH_RSA_AES_PROV
@@ -807,7 +826,7 @@ begin
         CopyMemory(@output[0],@data[0],sizeof(output));
 
         // the calling application sets the DWORD value to the number of bytes to be decrypted. Upon return, the DWORD value contains the number of bytes of the decrypted plaintext.
-        if CryptDecrypt(hDecryptKey, 0, AESFinal, 0, @output[0]{pbData}, ResultLen) then
+        if CryptDecrypt(hDecryptKey, 0, true, 0, @output[0]{pbData}, ResultLen) then
         begin
           log('CryptDecrypt OK',0);
           //SetLength(Result, ResultLen);
@@ -985,7 +1004,7 @@ begin
 end;
 
 //------------------------------------------------------------------------------
- function _AES128ECB_Encrypt(const Value: RawByteString; const Key: RawByteString): RawByteString;
+ function _Encrypt(algid:longword;const Value: RawByteString; const Key: RawByteString): RawByteString;
 var
   pbData: PByte;
   hCryptProvider: HCRYPTPROV;
@@ -999,25 +1018,27 @@ var
   InputLen, ResultLen: DWORD;
 const
   PROV_RSA_AES = 24;
-  CALG_AES_128 = $0000660e;
   AESFinal = True;
 begin
   Result := '';
   // MS_ENH_RSA_AES_PROV
-  if CryptAcquireContext(hCryptProvider, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
+  if CryptAcquireContext(hCryptProvider, nil, nil{MS_ENHANCED_PROV}, PROV_RSA_AES, CRYPT_VERIFYCONTEXT{PROV_RSA_FULL}) then
   begin
+    log('CryptAcquireContext OK');
     KeyBlob.Header.bType := PLAINTEXTKEYBLOB;
     keyBlob.Header.bVersion := CUR_BLOB_VERSION;
     keyBlob.Header.reserved := 0;
-    keyBlob.Header.aiKeyAlg := CALG_AES_128;
+    keyBlob.Header.aiKeyAlg := algid; //CALG_AES_128
     keyBlob.Size := Length(Key);
     CopyMemory(@keyBlob.Data[0], @Key[1], keyBlob.Size);
 
     if CryptImportKey(hCryptProvider, @KeyBlob, SizeOf(KeyBlob), 0, 0, hKey) then
     begin
+      log('CryptImportKey OK');
       if CryptDuplicateKey(hKey, nil, 0, hEncryptKey) then
       begin
-        dwKeyCypherMode := CRYPT_MODE_ECB;
+        log('CryptDuplicateKey OK');
+        dwKeyCypherMode := CRYPT_MODE_CBC;
         CryptSetKeyParam(hEncryptKey, KP_MODE, @dwKeyCypherMode, 0);
 
         InputLen := Length(Value);
@@ -1026,6 +1047,7 @@ begin
         // nil dans pbData => If this parameter contains NULL, this function will calculate the required size for the ciphertext and place that in the value pointed to by the pdwDataLen parameter.
         if CryptEncrypt(hEncryptKey, 0, AESFinal, 0, nil, ResultLen, 0) then
         begin
+          log('CryptEncrypt OK');
           SetLength(Result, ResultLen);
           Move(Value[1], Result[1], Length(Value));
           pbData := Pointer(PAnsiChar(Result));
@@ -1053,6 +1075,177 @@ begin
 
     CryptReleaseContext(hCryptProvider, 0);
   end;
+end;
+
+ //beware of stream cipher vs block cipher
+ function EnCryptDecrypt(algid:dword;key: string;var buffer:tbytes;const decrypt:boolean=false):boolean;
+ const
+   CRYPT_EXPORTABLE = $00000001;
+   CRYPT_NO_SALT    = $10;
+   AES_KEY_SIZE =16; //also AES_BLOCK_SIZE  ? look at https://stackoverflow.com/questions/9091108/cryptencrypt-aes-256-fails-at-encrypting-last-block
+ var
+  hProv: HCRYPTPROV;
+  hash: HCRYPTHASH;
+  hkey: HCRYPTKEY;
+
+  //Buffer: PByte;
+  datalen,buflen: dWord;
+  dwKeyCypherMode,dwsize,dwBLOCKLEN,dwKEYLEN,hash_len: DWORD;
+  hash_buffer,data:tbytes;
+
+  MS_ENH_RSA_AES_PROV:pchar='Microsoft Enhanced RSA and AES Cryptographic Provider'+#0;
+begin
+  result:=false;
+  if decrypt=false
+     then log('buffer:'+BytetoAnsiString(buffer))
+     else log('buffer:'+ByteToHexaString (buffer));
+  log('key:'+key);
+  log('ALG_ID:'+inttohex(algid,sizeof(algid )));
+  log('buffer length:'+inttostr(length(buffer)));
+  log('key length:'+inttostr(length(key))); // The secret key must equal the size of the key.
+  {get context for crypt default provider}
+  //if fail then try again with CRYPT_NEWKEYSET
+  //if CryptAcquireContext(hProv, nil, nil, {PROV_RSA_AES} PROV_RSA_FULL, 0{CRYPT_VERIFYCONTEXT}) then
+  if CryptAcquireContext(hProv, nil, MS_ENH_RSA_AES_PROV, PROV_RSA_AES {PROV_RSA_FULL}, 0{CRYPT_VERIFYCONTEXT}) then
+  begin
+  log('CryptAcquireContext');
+  {create hash-object (MD5 algorithm)}
+  if CryptCreateHash(hProv, CALG_MD5, 0, 0, hash) then
+  begin
+  log('CryptCreateHash');
+  {get hash from password}
+  if CryptHashData(hash, @key[1], Length(key), 0) then
+  begin
+  log('CryptHashData');
+  hash_len:=16;
+  setlength(hash_buffer,hash_len );
+  if CryptGetHashParam(hash, HP_HASHVAL, @hash_buffer[0], hash_len, 0)
+     then log('CryptGetHashParam OK:'+ByteToHexaString (hash_buffer) )
+     else log('CryptGetHashParam NOT OK');
+  {create key from hash by RC4 algorithm}
+  if CryptDeriveKey(hProv, algid, hash, 0 or CRYPT_EXPORTABLE{CRYPT_NO_SALT}, hkey) then
+  begin
+  log('CryptDeriveKey');
+  {
+  AES is a block cipher, and like all block ciphers it can be used in one of several modes,
+  such as ECB, CBC, OCB, CTR.
+  Only the first of these modes - ECB, or electronic code book, which is the fundamental block encryption mode -
+  allows a single block of output to result from the encryption of a single input block.
+  The others are geared towards encoding multiple blocks of input data,
+  and involve additional data (the IV) which means the output is longer than the input.
+  }
+  //if (algid =CALG_AES) or (algid =CALG_AES_128) or (algid=CALG_RC2) then
+  //below only applies to block ciphers
+  //An initialization vector is required if using CBC mode
+  if 1=1 then
+  begin
+  dwKeyCypherMode := CRYPT_MODE_CFB;    //dcrypt2 default is CBC //ms default is CRYPT_MODE_CBC
+  log('KP_MODE:'+inttostr(dwKeyCypherMode));
+  if CryptSetKeyParam(hkey, KP_MODE, @dwKeyCypherMode, 0)=true
+     then log('CryptSetKeyParam KP_MODE OK')
+     else log('CryptSetKeyParam KP_MODE NOT OK,'+inttostr(getlasterror));
+  end;
+  //
+  //look at KP_PADDING, KP_ALGID
+  //
+  dwsize:=sizeof(dwBLOCKLEN);
+  dwBLOCKLEN:=0;
+  //KP_BLOCKLEN size in bits
+  //we get the block length as we can only encrypt up to that size, per pass
+  if CryptGetKeyParam (hkey,KP_BLOCKLEN ,@dwBLOCKLEN,dwsize,0)=true
+     then log('CryptGetKeyParam KP_BLOCKLEN OK,'+inttostr(dwBLOCKLEN div 8))
+     else log('CryptGetKeyParam KP_BLOCKLEN NOT OK');
+  dwsize:=sizeof(dwKEYLEN);
+  dwKEYLEN:=0;
+  if CryptGetKeyParam (hkey,KP_MODE ,@dwKEYLEN,dwsize,0)=true
+     then log('CryptGetKeyParam KP_MODE OK,'+inttostr(dwKEYLEN ))
+     else log('CryptGetKeyParam KP_MODE NOT OK');
+  dwsize:=sizeof(dwKEYLEN);
+  dwKEYLEN:=0;
+  if CryptGetKeyParam (hkey,KP_KEYLEN ,@dwKEYLEN,dwsize,0)=true
+     then log('CryptGetKeyParam KP_KEYLEN OK,'+inttostr(dwKEYLEN div 8))
+     else log('CryptGetKeyParam KP_KEYLEN NOT OK');
+  dwsize:=sizeof(dwKEYLEN);
+  dwKEYLEN:=0;
+  if CryptGetKeyParam (hkey,KP_EFFECTIVE_KEYLEN ,@dwKEYLEN,dwsize,0)=true
+     then log('CryptGetKeyParam KP_EFFECTIVE_KEYLEN OK,'+inttostr(dwKEYLEN div 8))
+     else log('CryptGetKeyParam KP_EFFECTIVE_KEYLEN NOT OK');
+  dwsize:=sizeof(dwKEYLEN);
+  dwKEYLEN:=0;
+  if CryptGetKeyParam (hkey,KP_PADDING ,@dwKEYLEN,dwsize,0)=true
+     then log('CryptGetKeyParam KP_PADDING OK,'+inttostr(dwKEYLEN ))
+     else log('CryptGetKeyParam KP_PADDING NOT OK');
+  {
+  dwKEYLEN:=PKCS5_PADDING; //only one supported...
+  if CryptSetKeyParam(hkey, KP_PADDING, @dwKEYLEN, 0)=true
+     then log('CryptSetKeyParam KP_PADDING OK')
+     else log('CryptSetKeyParam KP_PADDING NOT OK,'+inttostr(getlasterror));
+  }
+  {destroy hash-object}
+  CryptDestroyHash(hash);
+  log('CryptDestroyHash');
+
+        buflen := length(buffer);
+
+        if decrypt =false then
+        begin
+        datalen:=buflen;
+        if CryptEncrypt(hkey, 0, true, 0, nil, datalen, 0)
+           then log('CryptEncrypt OK')
+           else log('CryptEncrypt:NOT OK'+inttostr(getlasterror));
+
+        //lets create a buffer big enough to hold the encrypted data
+        if dwBLOCKLEN<>0 then datalen:=((length(buffer) + dwBLOCKLEN -1) div dwBLOCKLEN) *dwBLOCKLEN ;
+        log('datalen:'+inttostr(datalen));
+        setlength(data,datalen);
+        ZeroMemory(@data[0],datalen);
+        copymemory(@data[0],@buffer[0],buflen);
+
+        {crypt buffer}
+        //https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptencrypt
+        result:= CryptEncrypt(hkey, 0, true, 0, @data[0], buflen, datalen);
+        if result
+           then log('CryptEncrypt:'+inttostr(buflen))
+           else log('CryptEncrypt:NOT OK,'+inttostr(buflen)+','+inttostr(getlasterror));
+
+        //lets push the encrypted buffer back
+        if result=true then
+           begin
+           setlength(buffer,buflen);
+           copymemory(@buffer[0],@data[0],buflen);
+           end;
+        end
+        else //if decrypt =false then
+        begin
+        {decrypt buffer}
+        datalen:=buflen*2;
+        setlength(data,datalen);
+        ZeroMemory(@data[0],datalen);
+        copymemory(@data[0],@buffer[0],buflen);
+        result:=CryptDecrypt(hkey, 0, true, 0, @data[0], buflen);
+          if result
+             then log('CryptDecrypt:'+inttostr(buflen))
+             else log('CryptDecrypt:NOT OK,'+inttostr(buflen)+','+inttostr(getlasterror));
+        //lets push the decrypted buffer back
+        if result=true then
+           begin
+           setlength(buffer,buflen);
+           copymemory(@buffer[0],@data[0],buflen);
+           end;
+
+        end;
+  end // if CryptDeriveKey
+  else log('CryptDeriveKey NOT OK,'+inttostr(getlasterror)); //0x80090008 | 2148073480 NTE_BAD_ALGID
+  end //if CryptHashData
+  else log('CryptHashData NOT OK');
+  end //if CryptCreateHash
+  else log('CryptCreateHash NOT OK');
+  {release the context for crypt default provider}
+  CryptReleaseContext(hProv, 0);
+  log('CryptReleaseContext');
+
+  end //if CryptAcquireContext
+  else log('CryptAcquireContext NOT OK,'+inttostr(getlasterror));
 end;
 //------------------------------------------------------------------------------
 

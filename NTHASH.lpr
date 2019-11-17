@@ -241,13 +241,14 @@ type _CUSTOM_LIST_ENTRY =record   //16 * 8 = 128
 var
   lsass_pid:dword=0;
   p,ret,dw:dword;
-  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input:string;
+  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode:string;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
   sysdir:pchar;
   syskey,samkey,ntlmhash:tbyte16;
-  output_:tbytes;
+  input_,output_:tbytes;
+  _ptr:pointer;
   sessions:asession;
   label fin;
 
@@ -1237,7 +1238,14 @@ begin
        delete(input,pos('/',input),2048);
        input:=trim(input);
        end;
-  //************* ENCODE/DECOE ***********************************************
+  p:=pos('/mode:',cmdline);
+  if p>0 then
+       begin
+       mode:=copy(cmdline,p,255);
+       mode:=stringreplace(mode,'/mode:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(mode,pos(' ',mode),255);
+       end;
+  //************* ENCODE/DECODE ***********************************************
   p:=pos('/bytetostring',cmdline);
   if p>0 then
      begin
@@ -1671,53 +1679,64 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
          decodemk (binary);
          goto fin;
          end;
-  p:=pos('/getsha512hash',cmdline);
+  //************************* HASH ************************************
+  p:=pos('/gethash',cmdline);
           if p>0 then
              begin
               if input='' then exit;
+              if mode='' then exit;
              //SHA_DIGEST_LENGTH=20
-             if crypto_hash ($0000800e,pointer(HexaStringToByte2(input)),length(input) div 2,output_,64)
+             dw:=0;
+             if mode='SHA512' then dw:=$0000800e;
+             if mode='SHA256' then dw:=$0000800c;
+             if mode='SHA384' then dw:=$0000800d;
+             if mode='SHA1' then dw:=$00008004;
+             if mode='MD5' then dw:=$00008003;
+             if mode='MD4' then dw:=$00008002;
+             if mode='MD2' then dw:=$00008001;
+
+             if crypto_hash (dw,pointer(HexaStringToByte2(input)),length(input) div 2,output_,64)
              then log(ByteToHexaString(output_),1)
              else log('NOT OK',1);
              goto fin;
              end;
-  p:=pos('/getsha256hash',cmdline);
-      if p>0 then
-         begin
-         if input='' then exit;
-         //SHA_DIGEST_LENGTH=20
-         if crypto_hash ($0000800c,pointer(HexaStringToByte2(input)),length(input) div 2,output_,32)
-         then log(ByteToHexaString(output_),1)
-         else log('NOT OK',1);
-         goto fin;
-         end;
-  p:=pos('/getsha1hash',cmdline);
-      if p>0 then
-           begin
-           if input='' then exit;
-           //SHA_DIGEST_LENGTH=20
-           if crypto_hash ($00008004,pointer(HexaStringToByte2(input)),length(input) div 2,output_,20)
-              then log(ByteToHexaString(output_),1)
-              else log('NOT OK',1);
-           goto fin;
-           end;
-  p:=pos('/getmd5hash',cmdline);
-      if p>0 then
-           begin
-           if input='' then exit;
-           //MD5_DIGEST_LENGTH=16
-           if crypto_hash ($00008003,pointer(HexaStringToByte2(input)),length(input) div 2,output_,16)
-                  then log(ByteToHexaString(output_),1);
-           goto fin;
-           end;
-  p:=pos('/getmd4hash',cmdline);
-      if p>0 then
-           begin
-           if input='' then exit;
-           if crypto_hash ($00008002,pointer(HexaStringToByte2(input)),length(input) div 2,output_,16)
-                   then log(ByteToHexaString(output_),1);
-           goto fin;
-           end;
+  //********** CIPHER ****************************************
+  p:=pos('/getcipher',cmdline);
+  if p>0 then
+  begin
+  if input='' then exit;
+  if mode='' then exit;
+              dw:=0;
+             if mode='RC2' then dw:=CALG_RC2;
+             if mode='RC4' then dw:=CALG_RC4;
+             if mode='RC5' then dw:=CALG_RC5;
+             if mode='DES' then dw:=CALG_DES;
+             if mode='3DES' then dw:=CALG_3DES;
+             if mode='AES128' then dw:=CALG_AES_128;
+             if mode='AES256' then dw:=CALG_AES_256;
+
+  setlength(output_,length(input) div 2);
+  copymemory(@output_[0],pointer(HexaStringToByte2(input)),length(input) div 2);
+  //desx, aes not working
+  //use https://encode-decode.com/rc4-encrypt-online/
+  if EnCryptDecrypt (dw,'0123456789abcdef',output_) then
+     begin
+     log(ByteToHexaString (output_),1);
+     log(base64.EncodeStringBase64 (BytetoAnsiString (output_)),1);
+     {
+     log('******************************');
+     EnCryptDecrypt (CALG_RC4 ,'0123456789abcdef',output_,true);
+     log(ByteToHexaString (output_),1);
+     log(BytetoAnsiString  (output_),1);
+     }
+     end
+     else log('EnCrypt NOT OK',1);
+
+  //copymemory(@input[1],@output_[0],length(input));
+  //writeln( string(_ptr^));
+  goto fin;
+  end;
+
   //********* BROWSER ****************************************
   p:=pos('/chrome',cmdline);
   if p>0 then
