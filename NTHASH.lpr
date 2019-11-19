@@ -240,8 +240,8 @@ type _CUSTOM_LIST_ENTRY =record   //16 * 8 = 128
 
 var
   lsass_pid:dword=0;
-  p,ret,dw:dword;
-  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode:string;
+  p,ret,dw,dw1,dw2:dword;
+  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key:string;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
@@ -1069,11 +1069,8 @@ begin
   log('NTHASH /cryptprotectdata /input:string',1);
   log('NTHASH /decodeblob /binary:filename',1);
   log('NTHASH /decodemk /binary:filename',1);
-  log('NTHASH /getsha1hash /input:password',1);
-  //log('NTHASH /getmd5hash /input:password',1);
-  //log('NTHASH /getmd4hash /input:password',1);
-  //log('NTHASH /getsha256hash /input:password',1);
-  //log('NTHASH /getsha512hash /input:password',1);
+  log('NTHASH /gethash /mode:hashid /input:password',1);
+  log('NTHASH /getcipher /mode:cipherid /input:password',1);
   log('NTHASH /getlsasecret /input:secret',1);
   log('NTHASH /dpapi_system /input:secret',1);
   //****************************************************
@@ -1244,6 +1241,13 @@ begin
        mode:=copy(cmdline,p,255);
        mode:=stringreplace(mode,'/mode:','',[rfReplaceAll, rfIgnoreCase]);
        delete(mode,pos(' ',mode),255);
+       end;
+  p:=pos('/key:',cmdline);
+  if p>0 then
+       begin
+       key:=copy(cmdline,p,255);
+       key:=stringreplace(key,'/key:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(key,pos(' ',key),255);
        end;
   //************* ENCODE/DECODE ***********************************************
   p:=pos('/bytetostring',cmdline);
@@ -1706,20 +1710,49 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   begin
   if input='' then exit;
   if mode='' then exit;
-              dw:=0;
-             if mode='RC2' then dw:=CALG_RC2;
-             if mode='RC4' then dw:=CALG_RC4;
-             if mode='RC5' then dw:=CALG_RC5;
-             if mode='DES' then dw:=CALG_DES;
-             if mode='3DES' then dw:=CALG_3DES;
-             if mode='AES128' then dw:=CALG_AES_128;
-             if mode='AES256' then dw:=CALG_AES_256;
+  if key='' then exit;
+             dw:=0;
+             if pos('RC2',mode)>0 then dw:=CALG_RC2;
+             if pos('RC4',mode)>0 then dw:=CALG_RC4;
+             if pos('RC5',mode)>0 then dw:=CALG_RC5;
+             if pos('DES',mode)>0 then dw:=CALG_DES;
+             if pos('3DES',mode)>0 then dw:=CALG_3DES;
+             if pos('3DES112',mode)>0 then dw:=CALG_3DES_112;
+             if pos('AES',mode)>0 then dw:=CALG_AES;
+             if pos('AES128',mode)>0 then dw:=CALG_AES_128;
+             if pos('AES256',mode)>0 then dw:=CALG_AES_256;
+
+             dw1:=$00008003; //MD5 default
+             if pos('SHA512',mode)>0 then dw1:=$0000800e;
+             if pos('SHA256',mode)>0 then dw1:=$0000800c;
+             if pos('SHA384',mode)>0 then dw1:=$0000800d;
+             if pos('SHA1',mode)>0 then dw1:=$00008004;
+             if pos('MD5',mode)>0 then dw1:=$00008003;
+             if pos('MD4',mode)>0 then dw1:=$00008002;
+             if pos('MD2',mode)>0 then dw1:=$00008001;
+
+             dw2:=2;
+             {
+             CRYPT_MODE_CBC = 1; // Cipher block chaining
+             CRYPT_MODE_ECB = 2; // Electronic code book
+             CRYPT_MODE_OFB = 3; // Output feedback mode
+             CRYPT_MODE_CFB = 4; // Cipher feedback mode
+             CRYPT_MODE_CTS = 5; // Ciphertext stealing mode
+             }
+             if uppercase(getenv('CRYPT_MODE'))='CBC' then dw2:=1;
+             if uppercase(getenv('CRYPT_MODE'))='ECB' then dw2:=2;
+             if uppercase(getenv('CRYPT_MODE'))='OFB' then dw2:=3;
+             if uppercase(getenv('CRYPT_MODE'))='CFB' then dw2:=4;
+             if uppercase(getenv('CRYPT_MODE'))='CTS' then dw2:=5;
 
   setlength(output_,length(input) div 2);
   copymemory(@output_[0],pointer(HexaStringToByte2(input)),length(input) div 2);
-  //desx, aes and rc5 not working
-  //use https://encode-decode.com/rc4-encrypt-online/
-  if EnCryptDecrypt (dw,'0123456789abcdef',output_) then
+  //desx, aes and rc5 are not working
+  //http://rc4.online-domain-tools.com/ works for rc4, provide the key in hex
+  //derive
+  //if EnCryptDecrypt (dw,dw1,dw2,AnsiStringToByte(key),output_) then
+  //import
+  if EnCryptDecrypt (dw,dw1,dw2,HexaStringToByte2(key),output_) then
      begin
      log(ByteToHexaString (output_),1);
      log(base64.EncodeStringBase64 (BytetoAnsiString (output_)),1);

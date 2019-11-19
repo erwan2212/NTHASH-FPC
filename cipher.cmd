@@ -10,45 +10,69 @@
    set /a c+=1 && if "!c!" equ "%l%" set ret=%%1%
  )
 echo %ret% 
+rem mode can be an algoid or hashid-algoid
+rem example : RC4 or SHA1-RC4 
+rem use set crypt_mode to cbc,ecb,ofb,cfb,cts to change the crypt_mode
+rem default crypt_mode is ecb
 set l=2
 set c=0
+rem keylen=16
 echo RC2
- for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /mode:RC2 /input:%ret%') do (
+ for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:11223344556677881122334455667788 /mode:RC2 /input:%ret%') do (
    set /a c+=1 && if "!c!" equ "%l%" echo %%1%
  )
 set l=2
 set c=0
+rem keylen=16
 echo RC4
- for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /mode:RC4 /input:%ret%') do (
+ for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:11223344556677881122334455667788 /mode:RC4 /input:%ret%') do (
    set /a c+=1 && if "!c!" equ "%l%" echo %%1%
  )
 set l=2
 set c=0
-rem echo RC5
-rem for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /mode:RC5 /input:%ret%') do (
-rem   set /a c+=1 && if "!c!" equ "%l%" echo %%1%
-rem )
-set l=2
-set c=0
-echo DES
- for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /mode:DES /input:%ret%') do (
+rem keylen=8
+rem KP_BLOCKLEN OK,8
+echo DES - 0x6601
+ for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:1122334455667788 /mode:DES /input:%ret%') do (
    set /a c+=1 && if "!c!" equ "%l%" echo %%1%
  ) 
 set l=2
 set c=0
-echo 3DES
- for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /mode:3DES /input:%ret%') do (
+rem keylen=24
+rem KP_BLOCKLEN OK,8
+echo 3DES - 0x6603
+ for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:112233445566778811223344556677881122334455667788 /mode:3DES /input:%ret%') do (
    set /a c+=1 && if "!c!" equ "%l%" echo %%1%
  )  
 set l=2
 set c=0
-echo AES128
- for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /mode:AES128 /input:%ret%') do (
+rem keylen=16
+rem KP_BLOCKLEN OK,8
+echo 3DES112 - 0x6609
+ for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:11223344556677881122334455667788 /mode:3DES112 /input:%ret%') do (
+   set /a c+=1 && if "!c!" equ "%l%" echo %%1%
+ )   
+set l=2
+set c=0
+rem keylen=32
+rem KP_BLOCKLEN OK,16
+rem echo AES - 0x6611
+rem  for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:1122334455667788112233445566778811223344556677881122334455667788 /mode:AES /input:%ret%') do (
+rem    set /a c+=1 && if "!c!" equ "%l%" echo %%1%
+rem  ) 
+set l=2
+set c=0
+rem keylen=16
+rem KP_BLOCKLEN OK,16
+echo AES128 - 0x660E
+ for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:11223344556677881122334455667788 /mode:AES128 /input:%ret%') do (
    set /a c+=1 && if "!c!" equ "%l%" echo %%1%
  )  
 set l=2
 set c=0 
-echo AES256
- for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /mode:AES256 /input:%ret%') do (
+rem keylen=32
+rem KP_BLOCKLEN OK,16
+echo AES256 - 0x6610
+ for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:1122334455667788112233445566778811223344556677881122334455667788 /mode:AES256 /input:%ret%') do (
    set /a c+=1 && if "!c!" equ "%l%" echo %%1%
  )  

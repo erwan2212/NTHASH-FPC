@@ -1,5 +1,4 @@
 @echo off
-
  setlocal ENABLEDELAYEDEXPANSION
  set input=%1
  rem echo %input%

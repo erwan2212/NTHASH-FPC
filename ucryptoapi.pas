@@ -11,7 +11,7 @@ uses
 
 
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;
-function EnCryptDecrypt(algid:dword;key: string;var buffer:tbytes;const decrypt:boolean=false):boolean;
+function EnCryptDecrypt(algid:dword;hashid:dword;CRYPT_MODE:dword;const key: tbytes;var buffer:tbytes;const decrypt:boolean=false):boolean;
 
 function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
 function bencrypt(algo:lpcwstr;decrypted:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
@@ -64,6 +64,7 @@ const
   CALG_DES=	$00006601;
   CALG_DESX=	$00006604;
   CALG_3DES=	$00006603;
+  CALG_3DES_112 = $00006609;
   CALG_AES=	$00006611;
   CALG_AES_128=	$0000660e;
   CALG_AES_192=	$0000660f;
@@ -101,7 +102,7 @@ type _NT6_HARD_SECRET =record
  NT6_HARD_SECRET=_NT6_HARD_SECRET;
  PNT6_HARD_SECRET=^NT6_HARD_SECRET;
 
- type _PUBLICKEYSTRUC =record
+ type _PUBLICKEYSTRUC = record
             bType:BYTE;
             bVersion:BYTE;
             reserved:WORD;
@@ -474,6 +475,7 @@ var
   hHash: HCRYPTHASH;
 begin
   //writeln(inttohex(CALG_SHA1,4));writeln(inttohex(CALG_MD4,4));writeln(inttohex(CALG_MD5,4));
+  log('datalen:'+inttostr(datalen));
   result:=false;
   if CryptAcquireContext(hProv, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
   	begin
@@ -495,7 +497,7 @@ begin
                                                 log('CryptGetHashParam:'+BoolToStr(result,true));
                                                 //RtlCopyMemory(pointer(hash), buffer, min(hashLen, hashWanted));
                                                 log('hashLen:'+inttostr(hashLen));
-                                                log('hashashWantedhLen:'+inttostr(hashWanted));
+                                                log('hashWanted:'+inttostr(hashWanted));
                                                 //log(inttohex(hHash,sizeof(pointer)));
                                                 setlength(output,min(hashLen, hashWanted));
                                                 CopyMemory (@output[0], buffer, min(hashLen, hashWanted));
@@ -908,8 +910,8 @@ var
  hSessionProv:HCRYPTPROV=0;
 begin
 
-//pKey = sysKey;
-//szNeeded = SYSKEY_LENGTH;
+pKey := @sysKey[0];
+szNeeded := 16; //SYSKEY_LENGTH;
 
   if(CryptAcquireContext(hContext, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) then
 		begin
@@ -1078,55 +1080,82 @@ begin
 end;
 
  //beware of stream cipher vs block cipher
- function EnCryptDecrypt(algid:dword;key: string;var buffer:tbytes;const decrypt:boolean=false):boolean;
+ function EnCryptDecrypt(algid:dword;hashid:dword;CRYPT_MODE:dword;const key: tbytes;var buffer:tbytes;const decrypt:boolean=false):boolean;
  const
    CRYPT_EXPORTABLE = $00000001;
    CRYPT_NO_SALT    = $10;
    AES_KEY_SIZE =16; //also AES_BLOCK_SIZE  ? look at https://stackoverflow.com/questions/9091108/cryptencrypt-aes-256-fails-at-encrypting-last-block
  var
   hProv: HCRYPTPROV;
-  hash: HCRYPTHASH;
+  hash: HCRYPTHASH=0;
   hkey: HCRYPTKEY;
 
-  //Buffer: PByte;
+  ret:boolean=false;
   datalen,buflen: dWord;
   dwKeyCypherMode,dwsize,dwBLOCKLEN,dwKEYLEN,hash_len: DWORD;
   hash_buffer,data:tbytes;
-
   MS_ENH_RSA_AES_PROV:pchar='Microsoft Enhanced RSA and AES Cryptographic Provider'+#0;
+  //
+  KeyBlob:  packed record
+      Header: BLOBHEADER;  //8
+      Size: DWORD;    //4
+      Data: array[0..127] of Byte; //16
+    end;
+  //
 begin
   result:=false;
+  {
   if decrypt=false
      then log('buffer:'+BytetoAnsiString(buffer))
      else log('buffer:'+ByteToHexaString (buffer));
-  log('key:'+key);
+  log('key:'+BytetoAnsiString(key));
+  }
   log('ALG_ID:'+inttohex(algid,sizeof(algid )));
   log('buffer length:'+inttostr(length(buffer)));
-  log('key length:'+inttostr(length(key))); // The secret key must equal the size of the key.
+  log('key length:'+inttostr(length(key) )); // The secret key must equal the size of the key.
   {get context for crypt default provider}
   //https://docs.microsoft.com/fr-fr/windows/win32/seccrypto/prov-rsa-aes?redirectedfrom=MSDN
   //if fail then try again with CRYPT_NEWKEYSET
-  //if CryptAcquireContext(hProv, nil, nil, {PROV_RSA_AES} PROV_RSA_FULL, 0{CRYPT_VERIFYCONTEXT}) then
-  if CryptAcquireContext(hProv, nil, MS_ENH_RSA_AES_PROV, PROV_RSA_AES {PROV_RSA_FULL}, 0{CRYPT_VERIFYCONTEXT}) then
+  //if CryptAcquireContext(hProv, nil, nil,  PROV_RSA_FULL, 0{CRYPT_VERIFYCONTEXT}) then
+  if CryptAcquireContext(hProv, nil, MS_ENH_RSA_AES_PROV, PROV_RSA_AES , CRYPT_VERIFYCONTEXT) then
+  //if CryptAcquireContext(hProv, nil, MS_ENHANCED_PROV, PROV_RSA_FULL,CRYPT_VERIFYCONTEXT) then
   begin
+  //create hash-object ... or import key
   log('CryptAcquireContext');
-  {create hash-object (MD5 algorithm)}
-  if CryptCreateHash(hProv, CALG_MD5, 0, 0, hash) then
+  //if CryptCreateHash(hProv, hashid, 0, 0, hash) then
+  if 1=1 then
   begin
-  log('CryptCreateHash');
-  {get hash from password}
-  if CryptHashData(hash, @key[1], Length(key), 0) then
+  //log('CryptCreateHash');
+  //get hash from password ... or import key
+  //if CryptHashData(hash, @key[0], Length(key) , 0) then
+  if 1=1 then
   begin
-  log('CryptHashData');
+  //log('CryptHashData');
   hash_len:=16;
   setlength(hash_buffer,hash_len );
-  if CryptGetHashParam(hash, HP_HASHVAL, @hash_buffer[0], hash_len, 0)
+  if hash<>0 then if CryptGetHashParam(hash, HP_HASHVAL, @hash_buffer[0], hash_len, 0)
      then log('CryptGetHashParam OK:'+ByteToHexaString (hash_buffer) )
      else log('CryptGetHashParam NOT OK');
-  {create key from hash by RC4 algorithm}
-  if CryptDeriveKey(hProv, algid, hash, 0 or CRYPT_EXPORTABLE{CRYPT_NO_SALT}, hkey) then
+
+  //https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptderivekey
+  //This function is the same as CryptGenKey, except that the generated session keys are derived from base data instead of being random
+  //we could use CryptImportKey as well with the key handled externally rather that derived from a hash
+  //create key from hash
+  //ret:=CryptDeriveKey(hProv, algid, hash, 0 or CRYPT_EXPORTABLE{CRYPT_NO_SALT}, hkey);
+  //import key
+  KeyBlob.Header.bType := PLAINTEXTKEYBLOB;
+  keyBlob.Header.bVersion := CUR_BLOB_VERSION;
+  keyBlob.Header.reserved := 0;
+  keyBlob.Header.aiKeyAlg := algid ;
+  keyBlob.Size := Length(Key);
+  CopyMemory(@keyBlob.Data[0], @Key[0], keyBlob.Size);
+  //log('KeyBlob:'+inttostr(SizeOf(KeyBlob)));
+  //importkey is more convenient as we can import any key but some algos dont work for now like 3des
+  ret:=CryptImportKey(hProv, @KeyBlob, SizeOf(BLOBHEADER )+sizeof(dword)+length(key), 0, 0, hKey);
+  if ret=true then
   begin
-  log('CryptDeriveKey');
+  //log('CryptDeriveKey');
+  log('CryptImportKey');
   {
   AES is a block cipher, and like all block ciphers it can be used in one of several modes,
   such as ECB, CBC, OCB, CTR.
@@ -1135,15 +1164,14 @@ begin
   The others are geared towards encoding multiple blocks of input data,
   and involve additional data (the IV) which means the output is longer than the input.
   }
-  //if (algid =CALG_AES) or (algid =CALG_AES_128) or (algid=CALG_RC2) then
   //below only applies to block ciphers
   //An initialization vector is required if using CBC mode
   if 1=1 then
   begin
-  dwKeyCypherMode := CRYPT_MODE_CFB;    //dcrypt2 default is CBC //ms default is CRYPT_MODE_CBC
-  log('KP_MODE:'+inttostr(dwKeyCypherMode));
+  dwKeyCypherMode := crypt_mode;    //dcrypt2 default is CBC //ms default is CRYPT_MODE_CBC
+  //log('KP_MODE:'+inttostr(dwKeyCypherMode));
   if CryptSetKeyParam(hkey, KP_MODE, @dwKeyCypherMode, 0)=true
-     then log('CryptSetKeyParam KP_MODE OK')
+     then log('CryptSetKeyParam KP_MODE OK,'+inttostr(dwKeyCypherMode) )
      else log('CryptSetKeyParam KP_MODE NOT OK,'+inttostr(getlasterror));
   end;
   //
@@ -1183,10 +1211,13 @@ begin
      else log('CryptSetKeyParam KP_PADDING NOT OK,'+inttostr(getlasterror));
   }
   {destroy hash-object}
-  CryptDestroyHash(hash);
-  log('CryptDestroyHash');
+  if hash<>0 then
+     begin
+     CryptDestroyHash(hash);
+     log('CryptDestroyHash');
+     end;
 
-        buflen := length(buffer);
+     buflen := length(buffer);
 
         if decrypt =false then
         begin
@@ -1236,7 +1267,11 @@ begin
 
         end;
   end // if CryptDeriveKey
-  else log('CryptDeriveKey NOT OK,'+inttostr(getlasterror)); //0x80090008 | 2148073480 NTE_BAD_ALGID
+  else log('CryptDeriveKey NOT OK,'+inttohex(getlasterror,4));
+  //0x80090008 | 2148073480 NTE_BAD_ALGID
+  //0x80090005 bad data
+  //0x80090004(NTE_BAD_LEN)
+  //0x80090009 NTE_BAD_FLAGS
   end //if CryptHashData
   else log('CryptHashData NOT OK');
   end //if CryptCreateHash
