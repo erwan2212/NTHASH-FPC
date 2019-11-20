@@ -1746,6 +1746,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              if uppercase(getenv('CRYPT_MODE'))='CTS' then dw2:=5;
 
   setlength(output_,length(input) div 2);
+  zeromemory(@output_[0],length(input) div 2);
   copymemory(@output_[0],pointer(HexaStringToByte2(input)),length(input) div 2);
   //desx, aes and rc5 are not working
   //http://rc4.online-domain-tools.com/ works for rc4, provide the key in hex

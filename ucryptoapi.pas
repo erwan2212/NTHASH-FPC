@@ -1139,6 +1139,7 @@ begin
 
   //https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptderivekey
   //This function is the same as CryptGenKey, except that the generated session keys are derived from base data instead of being random
+  //cryptgenkey to retrieve keylen and blocklen?
   //we could use CryptImportKey as well with the key handled externally rather that derived from a hash
   //create key from hash
   //ret:=CryptDeriveKey(hProv, algid, hash, 0 or CRYPT_EXPORTABLE{CRYPT_NO_SALT}, hkey);
