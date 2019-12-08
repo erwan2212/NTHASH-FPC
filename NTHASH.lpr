@@ -242,14 +242,17 @@ var
   lsass_pid:dword=0;
   p,ret,dw,dw1,dw2:dword;
   rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key:string;
+  inputw:widestring;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
   mystringsid:pchar;
+  w:array of widechar;
   sysdir:pchar;
   syskey,samkey,ntlmhash:tbyte16;
   input_,output_:tbytes;
-  _ptr:pointer;
+  //_ptr:pointer;
   sessions:asession;
+  mk:tmasterkey;
   label fin;
 
 
@@ -1128,6 +1131,26 @@ begin
      else writeln(BytetoAnsiString (buffer));
   //writeln(BytetoAnsiString (buffer)+'.');
   }
+
+  {
+  input_:=HexaStringToByte2('01A612FE247D7DFCE7DAB432D5831A6474E8DDA9');
+  inputw:=widestring('S-1-5-21-2427513087-2265021005-1965656450-1001');
+  //log(inttostr(length(inputw))); //string or widestring will give the same length aka 46
+  //log(inttostr((1+length(inputw))*sizeof(wchar))); //94
+  setlength(w,(1+length(inputw))*sizeof(wchar));
+  //log(inttostr(length(w))); //should be 94
+  zeromemory(@w[0],length(w));
+  copymemory(@w[0],@inputw[1],length(inputw)*sizeof(wchar));
+  setlength(output_,SHA_DIGEST_LENGTH);
+  zeromemory(@output_[0],length(output_));
+  if crypto_hash_hmac (CALG_SHA1,@input_[0],length(input_),@w[0],length(w),@output_[0],SHA_DIGEST_LENGTH)
+   then
+    begin
+    log('ok');
+    log(ByteToHexaString (output_ ));
+    end
+    else log('not ok');
+  }
   //exit;
   //
 
@@ -1680,7 +1703,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/decodemk',cmdline);
       if p>0 then
          begin
-         decodemk (binary);
+         decodemk (binary,mk);
          goto fin;
          end;
   //************************* HASH ************************************

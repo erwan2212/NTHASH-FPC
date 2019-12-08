@@ -9,6 +9,16 @@ interface
 uses
   windows,Classes, SysUtils,JwaWinCrypt,jwabcrypt,utils;
 
+type tmasterkey=record
+  szGuid:tguid;
+  //dwMasterKeyLen:dword;
+  salt:array [0..15] of byte;
+  rounds:dword;
+  algHash:dword;
+  algCrypt:dword;
+  pbKey:array of byte;
+  end;
+
 
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;
 function EnCryptDecrypt(algid:dword;hashid:dword;CRYPT_MODE:dword;const key: tbytes;var buffer:tbytes;const decrypt:boolean=false):boolean;
@@ -23,9 +33,15 @@ function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const Addition
 function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 
 function decodeblob(filename:string):boolean;
-function decodemk(filename:string):boolean;
+function decodemk(filename:string;var mk:tmasterkey):boolean;
 
 function crypto_hash(algid:alg_id;data:lpbyte;dataLen:DWORD; var output:tbytes;hashWanted:DWORD):boolean;
+
+//function crypto_hash_hmac(calgid:DWORD; key:LPCVOID;keyLen:DWORD; message:LPCVOID; messageLen:DWORD; hash:LPVOID;hashWanted:DWORD ):boolean;
+function crypto_hash_hmac(calgid:DWORD; key:lpbyte;keyLen:DWORD; message:lpbyte; messageLen:DWORD; hash:LPVOID;hashWanted:DWORD ):boolean;
+
+
+function CryptSetHashParam_(hHash: HCRYPTHASH; dwParam: DWORD; const pbData: LPBYTE;  dwFlags: DWORD): BOOL; stdcall;external 'Advapi32.dll' name 'CryptSetHashParam';
 
 type
  PCREDENTIAL_ATTRIBUTEW = ^_CREDENTIAL_ATTRIBUTEW;
@@ -58,6 +74,7 @@ PCredentialArray = array of PCREDENTIALW;
 
 //https://docs.microsoft.com/en-us/windows/win32/seccrypto/alg-id
 const
+  //cipher
   CALG_RC2 =    $00006602;
   CALG_RC4=	$00006801;
   CALG_RC5=     $0000660d;
@@ -70,8 +87,9 @@ const
   CALG_AES_192=	$0000660f;
   CALG_AES_256=	$00006610;
   //hash
-  CALG_HMAC=	$00008009;
-  CALG_MAC=	$00008005;
+  CALG_SHA1                 = ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA1;
+  //CALG_HMAC=	$00008009;
+  //CALG_MAC=	$00008005;
 
 implementation
 
@@ -200,7 +218,7 @@ begin
 
 end;
 
-function decodemk(filename:string):boolean;
+function decodemk(filename:string;var mk:tmasterkey):boolean;
 var
   buffer:array[0..4095] of byte;
   outfile:thandle=0;
@@ -230,6 +248,7 @@ begin
   CopyMemory(pw,@buffer[offset],$48);
   writeln('szGuid:'+string(widestring(pw)));
   inc(offset,$48);
+  mk.szGuid :=StringToGUID (string(widestring(pw))) ;
   //
   inc(offset,8); //dummy
   //
@@ -239,6 +258,7 @@ begin
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('dwMasterKeyLen:'+inttohex(dw,4));
+  //mk.dwMasterKeyLen:=dw;
   inc(offset,4);
   MasterKeyLen:=dw-32;
   //
@@ -270,24 +290,30 @@ begin
   SetLength(bytes,16);;
   CopyMemory (@bytes[0],@buffer[offset],16);
   writeln('Salt:'+ByteToHexaString(bytes));
+  CopyMemory (@mk.Salt[0],@buffer[offset],16);
   inc(offset,16);
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('rounds:'+inttohex(dw,4));
   inc(offset,4);
+  mk.rounds:=dw;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('algHash:'+inttohex(dw,4));
   inc(offset,4);
+  mk.algHash:=dw;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('algCrypt:'+inttohex(dw,4));
   inc(offset,4);
+  mk.algCrypt:=dw;
   //
   SetLength(bytes,MasterKeyLen);;
   CopyMemory (@bytes[0],@buffer[offset],MasterKeyLen);
   writeln('pbKey:'+ByteToHexaString(bytes));
   inc(offset,MasterKeyLen);
+  setlength(mk.pbKey,MasterKeyLen);
+  CopyMemory (@mk.pbKey[0],@buffer[offset],MasterKeyLen);
   //
 end;
 
@@ -424,47 +450,9 @@ begin
      end;
 end;
 
-{
-function crypto_hash_hmac(calgid:DWORD; key:LPCVOID;keyLen:DWORD; message:LPCVOID; messageLen:DWORD; hash:LPVOID;hashWanted:DWORD ):boolean;
-var
-	 status:BOOL = FALSE;
-	 hashLen:DWORD;
-	 hProv:HCRYPTPROV;
-	 hKey:HCRYPTKEY;
-	 hHash:HCRYPTHASH;
-	 HmacInfo:HMAC_INFO; // = (calgid, nil, 0, nil, 0);
-	 buffer:PBYTE;
-begin
-  fillchar(HmacInfo ,sizeof(HmacInfo ),0);
-  HmacInfo.HashAlgid :=calgid ;
-	if CryptAcquireContext(hProv, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
-	begin
-		if(kull_m_crypto_hkey(hProv, CALG_RC2, key, keyLen, CRYPT_IPSEC_HMAC_KEY, &hKey, NULL)) then
-		begin
-			if(CryptCreateHash(hProv, CALG_HMAC, hKey, 0, hHash))
-			begin
-				if(CryptSetHashParam(hHash, HP_HMAC_INFO, (LPCBYTE) &HmacInfo, 0)) then
-					if(CryptHashData(hHash, (LPCBYTE) message, messageLen, 0)) then
-                                        begin
-						if(CryptGetHashParam(hHash, HP_HASHVAL, NULL, &hashLen, 0)) then
-						begin
-							if(buffer = (PBYTE) LocalAlloc(LPTR, hashLen)) then
-							begin
-								status = CryptGetHashParam(hHash, HP_HASHVAL, buffer, &hashLen, 0);
-								RtlCopyMemory(hash, buffer, min(hashLen, hashWanted));
-								LocalFree(buffer);
-							end; //if buffer
-						end;//CryptGetHashParam
-						CryptDestroyHash(hHash);
-                                                end; //CryptHashData
-			end; //CryptCreateHash
-			CryptDestroyKey(hKey);
-		end; //kull_m_crypto_hkey
-		CryptReleaseContext(hProv, 0);
-	end; //CryptAcquireContext
-	return status;
-end;
-}
+
+
+
 
 function crypto_hash(algid:alg_id;data:lpbyte;dataLen:DWORD;  var output:tbytes;hashWanted:DWORD):boolean;
 var
@@ -853,14 +841,26 @@ begin
   end;
 end;
 
+
+
 function crypto_hkey(hProv:HCRYPTPROV; calgid:ALG_ID; key:LPCVOID; keyLen:DWORD; flags:DWORD; var hKey:HCRYPTKEY; var hSessionProv:HCRYPTPROV):boolean;
 var
   status:BOOL = FALSE;
   keyBlob:PGENERICKEY_BLOB;
   szBlob:DWORD;
+  //
+  temp:array of byte;
 begin
-
+        status:=false;
         szBlob := sizeof(GENERICKEY_BLOB) + keyLen;
+
+        {
+        log('sizeof(GENERICKEY_BLOB):'+inttostr(sizeof(GENERICKEY_BLOB)),0);
+        log('keyLen:'+inttostr(keyLen),0);
+        SetLength(temp,keyLen);
+        CopyMemory(@temp[0],key,keyLen);
+        log(ByteToHexaString (temp),0);
+        }
 
 	if(calgid <> CALG_3DES) then
 	begin
@@ -883,6 +883,278 @@ begin
         //end;
         end;
 
+	result:= status;
+end;
+
+function crypto_close_hprov_delete_container( hProv:HCRYPTPROV):boolean;
+var
+
+	 status:BOOL = FALSE;
+	 provtype:DWORD=0;
+         szLen:dword = 0;
+	 container, provider:PSTR;
+begin
+	if CryptGetProvParam(hProv, PP_CONTAINER, nil, szLen, 0) then
+	begin
+        container := PSTR (LocalAlloc(LPTR, szLen));
+		if container<>nil then
+		begin
+			if CryptGetProvParam(hProv, PP_CONTAINER,  lpbyte(container), szLen, 0) then
+			begin
+				if CryptGetProvParam(hProv, PP_NAME, nil, szLen, 0) then
+				begin
+                                provider := PSTR(LocalAlloc(LPTR, szLen));
+					if provider<>nil then
+					begin
+						if CryptGetProvParam(hProv, PP_NAME, LPBYTE(provider), szLen, 0) then
+						begin
+							szLen := sizeof(DWORD);
+							if CryptGetProvParam(hProv, PP_PROVTYPE, LPBYTE(provtype), szLen, 0) then
+							begin
+								CryptReleaseContext(hProv, 0);
+								status := CryptAcquireContextA(&hProv, container, provider, provtype, CRYPT_DELETEKEYSET);
+							end;
+						end;
+						LocalFree(thandle(provider));
+					end;
+				end;
+				LocalFree(thandle(container));
+			end;
+		end;
+	end;
+	if not status then ;
+		//PRINT_ERROR_AUTO(L"CryptGetProvParam/CryptAcquireContextA");
+	result:= status;
+end;
+
+function crypto_cipher_blocklen( hashId:ALG_ID):DWORD;
+var
+	len:DWORD = 0;
+        dwSize:dword = sizeof(DWORD);
+	hProv:HCRYPTPROV;
+	hKey:HCRYPTKEY;
+begin
+	if CryptAcquireContext(hProv, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
+	begin
+		if CryptGenKey(hProv, hashId, 0, hKey) then
+		begin
+			CryptGetKeyParam(hKey, KP_BLOCKLEN, PBYTE(len), dwSize, 0);
+			CryptDestroyKey(hKey);
+		end;
+		CryptReleaseContext(hProv, 0);
+	end;
+	result:= len div 8;
+end;
+
+function crypto_cipher_keylen( hashId:ALG_ID):dword;
+var
+	len:dword = 0;
+        dwSize:dword = sizeof(DWORD);
+	hProv:HCRYPTPROV;
+	hKey:HCRYPTKEY;
+begin
+	if CryptAcquireContext(hProv, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
+	begin
+		if CryptGenKey(hProv, hashId, 0, hKey) then
+		begin
+			CryptGetKeyParam(hKey, KP_KEYLEN, pbyte(len), dwSize, 0);
+			CryptDestroyKey(hKey);
+		end;
+		CryptReleaseContext(hProv, 0);
+	end;
+	result:= len div 8;
+end;
+
+function crypto_hash_len( hashId:ALG_ID):dword;
+var
+	 len:DWORD = 0;
+	 hProv:HCRYPTPROV;
+	 hHash:HCRYPTHASH;
+begin
+	if CryptAcquireContext(hProv, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
+	begin
+		if CryptCreateHash(hProv, hashId, 0, 0, hHash) then
+		begin
+			CryptGetHashParam(hHash, HP_HASHVAL, nil, len, 0);
+			CryptDestroyHash(hHash);
+		end;
+		CryptReleaseContext(hProv, 0);
+	end;
+	result:= len;
+end;
+
+function dpapi_unprotect_masterkey_with_shaDerivedkey(masterkey:tmasterkey;  shaDerivedkey:LPCVOID;shaDerivedkeyLen:DWORD; output:PVOID;outputLen:DWORD):boolean;
+var
+  	 status:BOOL = FALSE;
+	 hSessionProv:HCRYPTPROV;
+	 hSessionKey:HCRYPTKEY;
+	 HMACAlg:ALG_ID;
+	 HMACLen, BlockLen, KeyLen, OutLen:DWORD;
+	 HMACHash, CryptBuffer, hmac1, hmac2:PVOID;
+begin
+
+
+	//HMACAlg = (masterkey->algHash == CALG_HMAC) ? CALG_SHA1 : masterkey->algHash;
+        HMACAlg:=masterkey.algHash ;
+	HMACLen := crypto_hash_len(HMACAlg);
+	KeyLen :=  crypto_cipher_keylen(masterkey.algCrypt);
+	BlockLen := crypto_cipher_blocklen(masterkey.algCrypt);
+
+        HMACHash := pointer(LocalAlloc(LPTR, KeyLen + BlockLen));
+        if HMACHash<>nil then
+	begin
+		//if(kull_m_crypto_pkcs5_pbkdf2_hmac(HMACAlg, shaDerivedkey, shaDerivedkeyLen, masterkey->salt, sizeof(masterkey->salt), masterkey->rounds, (PBYTE) HMACHash, KeyLen + BlockLen, TRUE))
+                if 1=1 then
+                begin
+			//if crypto_hkey_session(masterkey.algCrypt, HMACHash, KeyLen, 0, hSessionKey, hSessionProv) then
+                        if 1=1 then
+                        begin
+				if CryptSetKeyParam(hSessionKey, KP_IV, pointer (nativeuint(HMACHash) + KeyLen), 0) then
+				begin
+					OutLen := length(masterkey.pbkey);
+                                        CryptBuffer := pointer(LocalAlloc(LPTR, OutLen));
+					if CryptBuffer<>nil then
+					begin
+						//RtlCopyMemory(CryptBuffer, masterkey->pbKey, OutLen);
+                                                copymemory(CryptBuffer, masterkey.pbKey, OutLen);
+						if CryptDecrypt(hSessionKey, 0, FALSE, 0,  CryptBuffer, OutLen) then
+						begin
+							//*outputLen = OutLen - 16 - HMACLen - ((masterkey->algCrypt == CALG_3DES) ? 4 : 0); // reversed
+                                                        if masterkey.algCrypt = CALG_3DES
+                                                           then outputLen:=OutLen - 16 - HMACLen - 4
+                                                           else outputLen:=OutLen - 16 - HMACLen - 0;
+                                                        hmac1 := pointer(LocalAlloc(LPTR, HMACLen));
+                                                        if hmac1<>nil then
+							begin
+								if crypto_hash_hmac(HMACAlg, shaDerivedkey, shaDerivedkeyLen, CryptBuffer, 16, hmac1, HMACLen) then
+								begin
+                                                                        hmac2 := pointer(LocalAlloc(LPTR, HMACLen));
+									if hmac2<>nil then
+									begin
+										if crypto_hash_hmac(HMACAlg, hmac1, HMACLen, pointer( nativeuint(CryptBuffer) + OutLen - outputLen), outputLen, hmac2, HMACLen) then
+										begin
+											//if(status = RtlEqualMemory(hmac2, (PBYTE) CryptBuffer + 16, HMACLen))
+                                                                                        if status=CompareMem (hmac2, pointer(nativeuint(CryptBuffer) + 16), HMACLen) then
+                                                                                        begin
+                                                                                        output := pointer(LocalAlloc(LPTR, outputLen));
+												if output<>nil then
+													//RtlCopyMemory(*output, (PBYTE) CryptBuffer + OutLen - *outputLen, *outputLen);
+                                                                                                        copymemory(output,pointer(nativeuint(CryptBuffer) + OutLen - outputLen),outputLen);
+											end;
+										end;
+										LocalFree(thandle(hmac2));
+									end;
+								end;
+								LocalFree(thandle(hmac1));
+							end;
+						end;
+						LocalFree(thandle(CryptBuffer));
+					end;
+				end;
+				CryptDestroyKey(hSessionKey);
+				if not crypto_close_hprov_delete_container(hSessionProv) then ;
+					//PRINT_ERROR_AUTO(L"kull_m_crypto_close_hprov_delete_container");
+			end
+			else ;//PRINT_ERROR_AUTO(L"kull_m_crypto_hkey_session");
+		end;
+		LocalFree(thandle(HMACHash));
+	end;
+	result:= status;
+end;
+
+function crypto_hash_hmac(calgid:DWORD; key:{LPCVOID}lpbyte;keyLen:DWORD; message:{LPCVOID}lpbyte; messageLen:DWORD; hash:LPVOID;hashWanted:DWORD ):boolean;
+const
+CRYPT_IPSEC_HMAC_KEY    =$00000100;  // CryptImportKey only
+
+type
+
+  HMAC_Info_ = record   //40 bytes ok in x64 vs 28 bytes in jwawincrypt
+    HashAlgid: ALG_ID;
+    pbInnerString: pointer;
+    cbInnerString: DWORD;
+    pbOuterString: pointer;
+    cbOuterString: DWORD;
+  end;
+
+var
+	 status:BOOL = FALSE;
+	 hashLen:DWORD;
+	 hProv,hSessionProv:HCRYPTPROV;
+	 hKey:HCRYPTKEY;
+	 hHash:HCRYPTHASH;
+	 HmacInfo:HMAC_Info_; // = (calgid, nil, 0, nil, 0);
+         buffer:PBYTE;
+         //
+         temp:array of byte;
+         w:array of widechar;
+begin
+  hSessionProv:=0;
+  log('sizeof(HmacInfo):'+inttostr(sizeof(HmacInfo )),0);
+  log('calgid:'+inttohex(calgid,sizeof(calgid)),0);
+  log('keylen:'+inttostr(keylen),0);
+  //
+  {
+  SetLength(temp,keylen);
+  CopyMemory(@temp[0],key,keylen);
+  log(ByteToHexaString (temp),0);
+  }
+  //
+  log('messagelen:'+inttostr(messagelen),0);
+  //
+  {
+  setlength(w,messagelen);
+  copymemory(@w[0],message,messagelen);
+  log(strpas(pwidechar(@w[0])),0);
+  }
+  //
+  ZeroMemory(@HmacInfo,sizeof(HmacInfo ));
+  HmacInfo.HashAlgid :=calgid ;
+  HmacInfo.pbInnerString :=nil;
+  HmacInfo.cbInnerString :=0;
+  HmacInfo.pbOuterString :=nil;
+  HmacInfo.cbOuterString :=0;
+
+	if CryptAcquireContext(hProv, nil, nil, {PROV_RSA_FULL}PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
+	begin
+        log('CryptAcquireContext',0);
+                //lets import our key=sha1 of widestring password
+		if crypto_hkey(hProv, CALG_RC2, key, keyLen, CRYPT_IPSEC_HMAC_KEY, hKey,hSessionProv ) then
+                //if 1=1 then
+                begin
+                log('crypto_hkey',0);
+			if CryptCreateHash(hProv, CALG_HMAC, hKey, 0, hHash) then
+			begin
+                        log('CryptCreateHash',0);
+				if CryptSetHashParam(hHash, HP_HMAC_INFO, @HmacInfo, 0) then
+                                begin
+                                log('CryptSetHashParam',0);
+					if CryptHashData(hHash, message, messageLen, 0) then
+                                        begin
+                                        log('CryptHashData',0);
+						if CryptGetHashParam(hHash, HP_HASHVAL, nil, hashLen, 0) then
+						begin
+                                                log('CryptGetHashParam',0);
+                                                log('hashLen:'+inttostr(hashLen),0);
+                                                        buffer:=Pointer(LocalAlloc(LPTR, hashLen));
+							if buffer <>nil then
+							begin
+								status := CryptGetHashParam(hHash, HP_HASHVAL, buffer, hashLen, 0);
+                                                                CopyMemory(hash, buffer, min(hashLen, hashWanted));
+                                                                //SetLength(temp,min(hashLen, hashWanted));
+                                                                //CopyMemory(@temp[0],buffer,min(hashLen, hashWanted));
+                                                                //log(ByteToHexaString (temp),0);
+                                                                LocalFree(thandle(buffer));
+							end; //if buffer
+						end;//CryptGetHashParam
+						CryptDestroyHash(hHash);
+                                                end; //CryptHashData
+                                                end //CryptSetHashParam
+                                                else log('CryptSetHashParam failed:'+inttostr(getlasterror),0);
+			end; //CryptCreateHash
+			CryptDestroyKey(hKey);
+		end; //kull_m_crypto_hkey
+		CryptReleaseContext(hProv, 0);
+	end; //CryptAcquireContext
 	result:= status;
 end;
 
@@ -1236,7 +1508,7 @@ begin
 
         {crypt buffer}
         //https://docs.microsoft.com/en-us/windows/win32/api/wincrypt/nf-wincrypt-cryptencrypt
-        result:= CryptEncrypt(hkey, 0, true, 0, @data[0], buflen, datalen);
+        result:= CryptEncrypt(hkey, 0, true, 0, @data[0],  buflen,datalen);
         if result
            then log('CryptEncrypt:'+inttostr(buflen))
            else log('CryptEncrypt:NOT OK,'+inttostr(buflen)+','+inttostr(getlasterror));
@@ -1245,6 +1517,7 @@ begin
         if result=true then
            begin
            setlength(buffer,buflen);
+           ZeroMemory(@buffer[0],buflen);
            copymemory(@buffer[0],@data[0],buflen);
            end;
         end
@@ -1320,9 +1593,112 @@ begin
 end;
 
 
+function _Hashhmacsha1(const Key, Value: AnsiString): AnsiString;
+const
+  KEY_LEN_MAX = 16;
+var
+  hCryptProvider: HCRYPTPROV;
+  hHash: HCRYPTHASH;
+  hKey: HCRYPTKEY;
+  bHash: array[0..$7F] of Byte;
+  dwHashLen: dWord;
+  i: Integer;
 
+  hPubKey : HCRYPTKey;
+  hHmacHash: HCRYPTHASH;
+  bHmacHash: array[0..$7F] of Byte;
+  dwHmacHashLen: dWord;
+  hmac_info_ : HMAC_INFO;
+
+  keyBlob: record
+    keyHeader: BLOBHEADER;
+    keySize: DWORD;
+    keyData: array[0..KEY_LEN_MAX-1] of Byte;
+  end;
+  keyLen : INTEGER;
+begin
+  dwHashLen := 32;
+  dwHmacHashLen := 32;
+  {get context for crypt default provider}
+  if CryptAcquireContext(hCryptProvider, nil, nil, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT) then
+  begin
+    {create hash-object MD5}
+  log('CryptAcquireContext',0);
+    if CryptCreateHash(hCryptProvider, CALG_SHA1, 0, 0, hHash) then
+    begin
+    log('CryptCreateHash',0);
+      {get hash from password}
+      if CryptHashData(hHash, PByte(Key), Length(Key), 0) then
+      begin
+      log('CryptHashData',0);
+        // hHash is now a hash of the provided key, (SHA1)
+        // Now we derive a key for it
+        hPubKey := 0;
+
+        FillChar(keyBlob, SizeOf(keyBlob), 0);
+        keyBlob.keyHeader.bType := PLAINTEXTKEYBLOB;
+        keyBlob.keyHeader.bVersion := CUR_BLOB_VERSION;
+        keyBlob.keyHeader.aiKeyAlg := CALG_RC4;
+        KeyBlob.keySize := KEY_LEN_MAX;
+
+        if(Length(key) < (KEY_LEN_MAX))then
+          KeyLen := Length(key)
+        else
+          KeyLen := KEY_LEN_MAX;
+        Move(Key[1], KeyBlob.keyData[0], KeyLen );
+
+        if CryptImportKey(hCryptProvider, @keyBlob, SizeOf(KeyBlob), hPubKey, 0, hKey) then
+        begin
+        log('CryptImportKey',0);
+          //hkey now holds our key. So we have do the whole thing over again
+          ZeroMemory( @hmac_info_, SizeOf(hmac_info) );
+          hmac_info_.HashAlgid := CALG_SHA1;
+          if CryptCreateHash(hCryptProvider, CALG_HMAC, hKey, 0, hHmacHash) then
+          begin
+          log('CryptCreateHash',0);
+              if CryptSetHashParam( hHmacHash, HP_HMAC_INFO, @hmac_info_, 0) then
+              begin
+              log('CryptSetHashParam',0);
+                if CryptHashData(hHmacHash, @Value[1], Length(Value), 0) then
+                begin
+                log('CryptHashData',0);
+                  if CryptGetHashParam(hHmacHash, HP_HASHVAL, @bHmacHash[0], dwHmacHashLen, 0) then
+                  begin
+                  log('CryptGetHashParam',0);
+                    for i := 0 to dwHmacHashLen-1 do
+                      Result := Result + IntToHex(bHmacHash[i], 2);
+                  end
+                  else
+                   WriteLn( 'CryptGetHashParam ERROR --> ' + SysErrorMessage(GetLastError)) ;
+                end
+                else
+                  WriteLn( 'CryptHashData ERROR --> ' + SysErrorMessage(GetLastError)) ;
+                {destroy hash-object}
+                CryptDestroyHash(hHmacHash);
+                CryptDestroyKey(hKey);
+              end
+              else
+                WriteLn( 'CryptSetHashParam ERROR --> ' + SysErrorMessage(GetLastError)) ;
+
+          end
+          else
+            WriteLn( 'CryptCreateHash ERROR --> ' + SysErrorMessage(GetLastError)) ;
+        end
+        else
+          WriteLn( 'CryptDeriveKey ERROR --> ' + SysErrorMessage(GetLastError)) ;
+
+      end;
+      {destroy hash-object}
+      CryptDestroyHash(hHash);
+    end;
+    {release the context for crypt default provider}
+    CryptReleaseContext(hCryptProvider, 0);
+  end;
+  Result := AnsiLowerCase(Result);
+end;
 
 
 
 end.
+
 
