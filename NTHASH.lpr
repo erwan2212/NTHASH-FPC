@@ -249,10 +249,11 @@ var
   w:array of widechar;
   sysdir:pchar;
   syskey,samkey,ntlmhash:tbyte16;
-  input_,output_:tbytes;
-  //_ptr:pointer;
+  input_,key_,output_:tbytes;
+  ptr_:pointer;
   sessions:asession;
   mk:tmasterkey;
+  pb:pbyte;
   label fin;
 
 
@@ -1072,10 +1073,11 @@ begin
   log('NTHASH /cryptprotectdata /input:string',1);
   log('NTHASH /decodeblob /binary:filename',1);
   log('NTHASH /decodemk /binary:filename',1);
-  log('NTHASH /gethash /mode:hashid /input:password',1);
-  log('NTHASH /getcipher /mode:cipherid /input:password',1);
+  log('NTHASH /gethash /mode:hashid /input:message',1);
+  log('NTHASH /gethmac /mode:hashid /input:message /key:key',1);
+  log('NTHASH /getcipher /mode:cipherid /input:message /key:key',1);
   log('NTHASH /getlsasecret /input:secret',1);
-  log('NTHASH /dpapi_system /input:secret',1);
+  log('NTHASH /dpapi_system',1);
   //****************************************************
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
@@ -1122,7 +1124,7 @@ begin
   //
   //enum_samusers(samkey);
   {
-  password:='Password2212';
+  password:='Passwordxxx';
   setlength(buffer,length(password));
   Move(password[1], buffer[0], Length(password));
   if CryptProtectData_ (buffer,'test.bin')=false then writeln('false');
@@ -1132,28 +1134,8 @@ begin
   //writeln(BytetoAnsiString (buffer)+'.');
   }
 
-  {
-  input_:=HexaStringToByte2('01A612FE247D7DFCE7DAB432D5831A6474E8DDA9');
-  inputw:=widestring('S-1-5-21-2427513087-2265021005-1965656450-1001');
-  //log(inttostr(length(inputw))); //string or widestring will give the same length aka 46
-  //log(inttostr((1+length(inputw))*sizeof(wchar))); //94
-  setlength(w,(1+length(inputw))*sizeof(wchar));
-  //log(inttostr(length(w))); //should be 94
-  zeromemory(@w[0],length(w));
-  copymemory(@w[0],@inputw[1],length(inputw)*sizeof(wchar));
-  setlength(output_,SHA_DIGEST_LENGTH);
-  zeromemory(@output_[0],length(output_));
-  if crypto_hash_hmac (CALG_SHA1,@input_[0],length(input_),@w[0],length(w),@output_[0],SHA_DIGEST_LENGTH)
-   then
-    begin
-    log('ok');
-    log(ByteToHexaString (output_ ));
-    end
-    else log('not ok');
-  }
-  //exit;
-  //
 
+  //
   p:=pos('/enumcred2',cmdline);
   if p>0 then
    begin
@@ -1704,6 +1686,28 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
       if p>0 then
          begin
          decodemk (binary,mk);
+         //
+         if input<>'' then
+           begin
+           input_:=HexaStringToByte2(input);
+           log('length(input_):'+inttostr(length(input_)));
+
+             ptr_:=nil;
+             if dpapi_unprotect_masterkey_with_shaDerivedkey(mk,@input_[0],length(input_),ptr_,dw)
+                then
+                 begin
+                 log('dpapi_unprotect_masterkey_with_shaDerivedkey ok',1);
+                 log('dw:'+inttostr(dw));
+                 SetLength(output_,dw);
+                 //log('ptr_:'+inttohex(nativeuint(ptr_),sizeof(nativeuint)),0);
+                 CopyMemory(@output_[0],ptr_,dw);
+                 log('KEY:'+ByteToHexaString (output_),1);
+                 crypto_hash (CALG_SHA1,ptr_,dw,output_,crypto_hash_len(CALG_SHA1));
+                 log('SHA1:'+ByteToHexaString (output_),1);
+                 end
+                else log('dpapi_unprotect_masterkey_with_shaDerivedkey not ok',1);
+           end; //if input<>'' then
+         //
          goto fin;
          end;
   //************************* HASH ************************************
@@ -1722,11 +1726,53 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              if mode='MD4' then dw:=$00008002;
              if mode='MD2' then dw:=$00008001;
 
-             if crypto_hash (dw,pointer(HexaStringToByte2(input)),length(input) div 2,output_,64)
+             if crypto_hash (dw,pointer(HexaStringToByte2(input)),length(input) div 2,output_,crypto_hash_len(dw))
              then log(ByteToHexaString(output_),1)
              else log('NOT OK',1);
              goto fin;
              end;
+  //************************* HASH HMAC ************************************
+  p:=pos('/gethmac',cmdline);
+  if p>0 then
+  begin
+  //log('gethmac',1);
+  if input='' then exit;
+  if mode='' then exit;
+  if key='' then exit;
+  dw:=0;
+  if mode='SHA512' then dw:=$0000800e;
+  if mode='SHA256' then dw:=$0000800c;
+  if mode='SHA384' then dw:=$0000800d;
+  if mode='SHA1' then dw:=$00008004;
+  if mode='MD5' then dw:=$00008003;
+  if mode='MD4' then dw:=$00008002;
+  if mode='MD2' then dw:=$00008001;
+
+  input_:=HexaStringToByte2(input);
+
+  key_:=HexaStringToByte2(key);
+
+  {
+    inputw:=widestring('S-1-5-21-2427513087-2265021005-1965656450-1001');
+    //log(inttostr(length(inputw))); //string or widestring will give the same length aka 46
+    //log(inttostr((1+length(inputw))*sizeof(wchar))); //94
+    setlength(w,(1+length(inputw))*sizeof(wchar));
+    //log(inttostr(length(w))); //should be 94
+    zeromemory(@w[0],length(w));
+    copymemory(@w[0],@inputw[1],length(inputw)*sizeof(wchar));
+   }
+
+    setlength(output_,crypto_hash_len(dw));
+    zeromemory(@output_[0],length(output_));
+
+  if crypto_hash_hmac (dw,@key_[0],length(key_),@input_[0],length(input_),@output_[0],crypto_hash_len(dw))
+     then
+      begin
+      log('gethmac',1);
+      log(ByteToHexaString (output_ ),1);
+      end
+      else log('not ok',1);
+  end;
   //********** CIPHER ****************************************
   p:=pos('/getcipher',cmdline);
   if p>0 then
