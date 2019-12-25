@@ -1072,7 +1072,7 @@ begin
   log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string',1);
   log('NTHASH /decodeblob /binary:filename',1);
-  log('NTHASH /decodemk /binary:filename',1);
+  log('NTHASH /decodemk /binary:filename [/input:key]',1);
   log('NTHASH /gethash /mode:hashid /input:message',1);
   log('NTHASH /gethmac /mode:hashid /input:message /key:key',1);
   log('NTHASH /getcipher /mode:cipherid /input:message /key:key',1);
@@ -1702,7 +1702,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                  //log('ptr_:'+inttohex(nativeuint(ptr_),sizeof(nativeuint)),0);
                  CopyMemory(@output_[0],ptr_,dw);
                  log('KEY:'+ByteToHexaString (output_),1);
-                 crypto_hash (CALG_SHA1,ptr_,dw,output_,crypto_hash_len(CALG_SHA1));
+                 crypto_hash_ (CALG_SHA1,ptr_,dw,output_,crypto_hash_len(CALG_SHA1));
                  log('SHA1:'+ByteToHexaString (output_),1);
                  end
                 else log('dpapi_unprotect_masterkey_with_shaDerivedkey not ok',1);
@@ -1726,7 +1726,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              if mode='MD4' then dw:=$00008002;
              if mode='MD2' then dw:=$00008001;
 
-             if crypto_hash (dw,pointer(HexaStringToByte2(input)),length(input) div 2,output_,crypto_hash_len(dw))
+             if crypto_hash_ (dw,pointer(HexaStringToByte2(input)),length(input) div 2,output_,crypto_hash_len(dw))
              then log(ByteToHexaString(output_),1)
              else log('NOT OK',1);
              goto fin;
@@ -1871,6 +1871,12 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then readln;
 
 end.
+
+//todo
+{
+kuhl_m_dpapi_unprotect_raw_or_blob
+kull_m_dpapi_blob_create
+}
 
 //todo
 //{ "masterkey", "lsasrv!g_MasterKeyCacheList", 0, NULL }, // kuhl_m_sekurlsa_enum_logon_callback_masterkeys },

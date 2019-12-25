@@ -37,7 +37,8 @@ function decodemk(filename:string;var mk:tmasterkey):boolean;
 
 function crypto_hash_len( hashId:ALG_ID):dword;
 
-function crypto_hash(algid:alg_id;data:lpbyte;dataLen:DWORD; var output:tbytes;hashWanted:DWORD):boolean;
+function crypto_hash_(algid:alg_id;data:LPCVOID;dataLen:DWORD; var output:tbytes;hashWanted:DWORD):boolean;overload;
+//function crypto_hash(algid:alg_id;data:LPCVOID;dataLen:DWORD; var hash:lpvoid;hashWanted:DWORD):boolean;overload;
 
 //function crypto_hash_hmac(calgid:DWORD; key:LPCVOID;keyLen:DWORD; message:LPCVOID; messageLen:DWORD; hash:LPVOID;hashWanted:DWORD ):boolean;
 function crypto_hash_hmac(calgid:DWORD; key:lpbyte;keyLen:DWORD; message:lpbyte; messageLen:DWORD; hash:LPVOID;hashWanted:DWORD ):boolean;
@@ -466,13 +467,15 @@ end;
 
 
 
-function crypto_hash(algid:alg_id;data:lpbyte;dataLen:DWORD;  var output:tbytes;hashWanted:DWORD):boolean;
+function crypto_hash(algid:alg_id;data:LPCVOID;dataLen:DWORD;  hash:lpvoid;hashWanted:DWORD):boolean;overload;
 var
-  hProv:HCRYPTPROV;
-  hashLen:DWORD;
-  buffer:PBYTE;
-  status:bool = FALSE;
-  hHash: HCRYPTHASH;
+        status:BOOL = FALSE;
+  	hProv:HCRYPTPROV;
+  	hHash:HCRYPTHASH;
+  	hashLen:DWORD;
+  	buffer:PBYTE;
+  	//PKERB_CHECKSUM pCheckSum;
+  	Context:PVOID;
 begin
   //writeln(inttohex(CALG_SHA1,4));writeln(inttohex(CALG_MD4,4));writeln(inttohex(CALG_MD5,4));
   log('datalen:'+inttostr(datalen));
@@ -499,8 +502,7 @@ begin
                                                 log('hashLen:'+inttostr(hashLen));
                                                 log('hashWanted:'+inttostr(hashWanted));
                                                 //log(inttohex(hHash,sizeof(pointer)));
-                                                setlength(output,min(hashLen, hashWanted));
-                                                CopyMemory (@output[0], buffer, min(hashLen, hashWanted));
+                                                CopyMemory (hash, buffer, min(hashLen, hashWanted));
                                                 //log('HASH:'+ByteToHexaString (buffer^),1);
                                                 //
                                                 LocalFree(thandle(buffer));
@@ -512,6 +514,19 @@ begin
   		CryptReleaseContext(hProv, 0);
         end; //CryptAcquireContext
 
+end;
+
+function crypto_hash_(algid:alg_id;data:LPCVOID;dataLen:DWORD; var output:tbytes;hashWanted:DWORD):boolean;overload;
+var
+  ptr_:lpvoid;
+begin
+  //ptr_:=allocmem(hashWanted);
+  SetLength(output,hashWanted );
+  ZeroMemory(@output[0],hashWanted );
+  //result:=crypto_hash(algid,data,dataLen,ptr_,hashWanted );
+  result:=crypto_hash(algid,data,dataLen,@output[0],hashWanted );
+  //CopyMemory(@output[0],ptr_,hashWanted ) ;
+  //Freemem (ptr_ );
 end;
 
 function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const AdditionalEntropy: string=''):boolean;overload;
@@ -1221,6 +1236,133 @@ begin
 	end;
 	result:= len;
         log('crypto_hash_len:'+inttostr(result),0);
+end;
+
+function dpapi_hmac_sha1_incorrect(key:LPCVOID;  keyLen:DWORD;  salt:LPCVOID;  saltLen:DWORD;  entropy:LPCVOID;  entropyLen:DWORD;  data:LPCVOID;  dataLen:DWORD;  outKey:LPVOID):boolean;
+const
+  SHA_DIGEST_LENGTH=20;
+var
+	status:BOOL = FALSE;
+	ipad:array [0..63] of byte;
+        opad:array [0..63] of byte;
+        hash:array [0..SHA_DIGEST_LENGTH-1] of byte;
+        bufferI, bufferO:pbyte;
+	i:DWORD;
+begin
+  //RtlFillMemory(ipad, sizeof(ipad), '6');
+  FillByte(ipad,sizeof(ipad),ord('6'));
+  //RtlFillMemory(opad, sizeof(opad), '\\');
+  FillByte(opad,sizeof(opad),ord('\'));
+
+        for i := 0 to keyLen-1 do
+	begin
+		ipad[i] := ipad[i] xor PBYTE(key)[i];
+		opad[i] := opad[i] xor PBYTE(key)[i];
+	end;
+        bufferI := PBYTE(LocalAlloc(LPTR, sizeof(ipad) + saltLen));
+	if bufferI<>nil then
+	begin
+		//RtlCopyMemory(bufferI, ipad, sizeof(ipad));
+                CopyMemory(bufferI, @ipad[0], sizeof(ipad));
+		//RtlCopyMemory(bufferI + sizeof(ipad), salt, saltLen);
+                CopyMemory(bufferI + sizeof(ipad), salt, saltLen);
+		if crypto_hash(CALG_SHA1, bufferI, sizeof(ipad) + saltLen, @hash[0], SHA_DIGEST_LENGTH) then
+		begin
+                bufferO := PBYTE(LocalAlloc(LPTR, sizeof(opad) + SHA_DIGEST_LENGTH + entropyLen + dataLen));
+			if bufferO<>nil then
+			begin
+				//RtlCopyMemory(bufferO, opad, sizeof(opad));
+                                CopyMemory(bufferO, @opad[0], sizeof(opad));
+				//RtlCopyMemory(bufferO + sizeof(opad), hash, SHA_DIGEST_LENGTH);
+                                CopyMemory(bufferO + sizeof(opad), @hash[0], SHA_DIGEST_LENGTH);
+				if ((entropy<>nil) and (entropyLen>0)) then
+					//RtlCopyMemory(bufferO + sizeof(opad) + SHA_DIGEST_LENGTH, entropy, entropyLen);
+                                        CopyMemory(bufferO + sizeof(opad) + SHA_DIGEST_LENGTH, entropy, entropyLen);
+				if ((data<>nil) and (dataLen>0)) then
+					//RtlCopyMemory(bufferO + sizeof(opad) + SHA_DIGEST_LENGTH + entropyLen, data, dataLen);
+                                        CopyMemory(bufferO + sizeof(opad) + SHA_DIGEST_LENGTH + entropyLen, data, dataLen);
+
+				status := crypto_hash(CALG_SHA1, bufferO, sizeof(opad) + SHA_DIGEST_LENGTH + entropyLen + dataLen, outKey, SHA_DIGEST_LENGTH);
+				LocalFree(thandle(bufferO));
+			end;
+		end;
+		LocalFree(thandle(bufferI));
+	end;
+	result:= status;
+end;
+
+function dpapi_sessionkey(masterkey:LPCVOID; masterkeyLen:DWORD; salt:LPCVOID;  saltLen:DWORD;  entropy:LPCVOID;  entropyLen:DWORD;  data:LPCVOID;  dataLen:DWORD;  hashAlg:ALG_ID;  outKey:LPVOID;  outKeyLen:DWORD):boolean;
+const
+  SHA_DIGEST_LENGTH=20;
+var
+	status:BOOL = FALSE;
+	pKey:LPCVOID = nil;
+	dgstMasterKey:array [0..SHA_DIGEST_LENGTH-1] of byte;
+	tmp:PBYTE;
+begin
+	if masterkeyLen = SHA_DIGEST_LENGTH
+                then pKey := masterkey
+	else if crypto_hash(CALG_SHA1, masterkey, masterkeyLen, @dgstMasterKey[0], SHA_DIGEST_LENGTH)
+                then pKey := @dgstMasterKey[0];
+
+	if pKey<>nil then
+	begin
+		if (hashAlg = CALG_SHA1) and ((entropy<>nil) or (data<>nil)) then
+                   status := dpapi_hmac_sha1_incorrect(masterkey, masterkeyLen, salt, saltLen, entropy, entropyLen, data, dataLen, outKey)
+		else
+                begin
+                tmp := PBYTE(LocalAlloc(LPTR, saltLen + entropyLen + dataLen)) ;
+                if tmp<>nil then
+		begin
+			//RtlCopyMemory(tmp, salt, saltLen);
+                        CopyMemory(tmp, salt, saltLen);
+			if ((entropy<>nil) and (entropyLen>0)) then
+				//RtlCopyMemory(tmp + saltLen, entropy, entropyLen);
+                                CopyMemory(tmp + saltLen, entropy, entropyLen);
+			if ((data<>nil) and (dataLen>0)) then
+				//RtlCopyMemory(tmp + saltLen + entropyLen, data, dataLen);
+                                CopyMemory(tmp + saltLen + entropyLen, data, dataLen);
+			status := crypto_hash_hmac(hashAlg, pKey, SHA_DIGEST_LENGTH, tmp, saltLen + entropyLen + dataLen, outKey, outKeyLen);
+			LocalFree(thandle(tmp));
+		end;
+
+                end;
+        end;
+	result:= status;
+end;
+
+function crypto_DeriveKeyRaw( hashId:ALG_ID;  hash:LPVOID;  hashLen:DWORD; key:LPVOID; keyLen:DWORD):boolean;
+var
+        status:BOOL = FALSE;
+	buffer:array [0..151] of byte;
+        ipad:array [0..63] of byte;
+        opad:array [0..63] of byte;
+	i:DWORD;
+begin
+	if status = (hashLen >= keyLen) then
+		//RtlCopyMemory(key, hash, keyLen);
+                  CopyMemory(key, hash, keyLen)
+	else
+	begin
+		//RtlFillMemory(ipad, sizeof(ipad), '6');
+                FillByte(ipad,sizeof(ipad),ord('6'));
+		//RtlFillMemory(opad, sizeof(opad), '\\');
+                FillByte(opad,sizeof(opad),ord('\'));
+		for i:= 0 to hashLen-1 do
+		begin
+			ipad[i] :=ipad[i] xor PBYTE(hash)[i];
+			opad[i] :=opad[i] xor PBYTE(hash)[i];
+		end;
+
+                if crypto_hash(hashId, @ipad[0], sizeof(ipad), @buffer[0], hashLen) then
+                        status := crypto_hash(hashId, @opad[0], sizeof(opad), @buffer[hashLen], hashLen);
+                        //status := crypto_hash(hashId, @opad[0], sizeof(opad), pointer(@buffer[0])+hashlen, hashLen);
+			if status then
+				//RtlCopyMemory(key, buffer, min(keyLen, 2 * hashLen));
+                                  CopyMemory(key, @buffer[0], min(keyLen, 2 * hashLen));
+
+	end;
+	result:= status;
 end;
 
 function dpapi_unprotect_masterkey_with_shaDerivedkey(masterkey:tmasterkey;  shaDerivedkey:LPCVOID;shaDerivedkeyLen:DWORD; var output:PVOID;var outputLen:DWORD):boolean;

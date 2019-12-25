@@ -728,7 +728,7 @@ hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATI
                                       else
                                       begin
                                       log('MasterKey:'+ByteToHexaString(decrypted),1);
-                                      if crypto_hash(CALG_SHA1, @decrypted[0], PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize, dgst, SHA_DIGEST_LENGTH )
+                                      if crypto_hash_(CALG_SHA1, @decrypted[0], PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize, dgst, SHA_DIGEST_LENGTH )
                                          then log('SHA1:'+ByteToHexaString (dgst),1);
                                       end;
                                       //next logsesslist
