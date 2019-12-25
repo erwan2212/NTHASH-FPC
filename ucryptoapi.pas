@@ -19,6 +19,31 @@ type tmasterkey=record
   pbKey:array of byte;
   end;
 
+type tdpapi_blob=record
+  	dwVersion:DWORD;
+	guidProvider:tguid;
+	dwMasterKeyVersion:DWORD;
+	guidMasterKey:tGUID;
+	dwFlags:DWORD;
+        dwDescriptionLen:DWORD;
+        szDescription:LPWSTR;  //PWSTR
+ 	algCrypt:ALG_ID;
+        dwAlgCryptLen:DWORD;
+        dwSaltLen:DWORD;
+        pbSalt:array of byte; //PBYTE
+        dwHmacKeyLen:DWORD;
+        pbHmackKey:PBYTE;
+        algHash:ALG_ID;
+        dwAlgHashLen:DWORD;
+        dwHmac2KeyLen:DWORD;
+        pbHmack2Key:array of byte; //PBYTE
+        dwDataLen:DWORD;
+        pbData:array of byte; //PBYTE;
+        dwSignLen:DWORD;
+        pbSign:array of byte; //PBYTE
+  end;
+  pdpapi_blob=^tdpapi_blob;
+
 
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;
 function EnCryptDecrypt(algid:dword;hashid:dword;CRYPT_MODE:dword;const key: tbytes;var buffer:tbytes;const decrypt:boolean=false):boolean;
@@ -32,7 +57,7 @@ function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;over
 function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 
-function decodeblob(filename:string):boolean;
+function decodeblob(filename:string;var blob:tdpapi_blob):boolean;
 function decodemk(filename:string;var mk:tmasterkey):boolean;
 
 function crypto_hash_len( hashId:ALG_ID):dword;
@@ -44,6 +69,7 @@ function crypto_hash_(algid:alg_id;data:LPCVOID;dataLen:DWORD; var output:tbytes
 function crypto_hash_hmac(calgid:DWORD; key:lpbyte;keyLen:DWORD; message:lpbyte; messageLen:DWORD; hash:LPVOID;hashWanted:DWORD ):boolean;
 
 function dpapi_unprotect_masterkey_with_shaDerivedkey(masterkey:tmasterkey;  shaDerivedkey:LPCVOID;shaDerivedkeyLen:DWORD; var output:PVOID;var outputLen:DWORD):boolean;
+function dpapi_unprotect_blob(blob:PDPAPI_BLOB;  masterkey:LPCVOID; masterkeyLen:DWORD; entropy:LPCVOID;  entropyLen:DWORD; password:LPCWSTR; var dataOut:LPVOID; var dataOutLen:DWORD):boolean;
 
 //function CryptSetHashParam_(hHash: HCRYPTHASH; dwParam: DWORD; const pbData: LPBYTE;  dwFlags: DWORD): BOOL; stdcall;external 'Advapi32.dll' name 'CryptSetHashParam';
 
@@ -330,7 +356,7 @@ begin
   //
 end;
 
-function decodeblob(filename:string):boolean;
+function decodeblob(filename:string;var blob:tdpapi_blob):boolean;
 const
 marker:array[0..15] of byte=($D0,$8C,$9D,$DF,$01,$15,$D1,$11,$8C,$7A,$00,$C0,$4F,$C2,$97,$EB);
 var
@@ -394,18 +420,23 @@ begin
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('algCrypt:'+inttohex(dw,sizeof(dw)));
   inc(offset,4);
+  blob.algCrypt:=dw;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('dwAlgCryptLen:'+inttohex(dw,sizeof(dw)));
   inc(offset,4);
+  blob.dwAlgCryptLen :=dw;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('dwSaltLen:'+inttohex(dw,sizeof(dw)));
   inc(offset,4);
+  blob.dwSaltLen:=dw;
   if dw>0 then
      begin
      SetLength(bytes,dw);;
      CopyMemory (@bytes[0],@buffer[offset],dw);
+     setlength(blob.pbSalt ,dw);
+     CopyMemory (@blob.pbSalt[0],@buffer[offset],dw);
      writeln('pbSalt:'+ByteToHexaString(bytes));
      inc(offset,dw);
      end;
@@ -424,10 +455,12 @@ begin
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('algHash:'+inttohex(dw,sizeof(dw)));
   inc(offset,4);
+  blob.algHash:=dw;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('algHadwAlgHashLensh:'+inttohex(dw,sizeof(dw)));
+  writeln('dwAlgHashLensh:'+inttohex(dw,sizeof(dw)));
   inc(offset,4);
+  blob.dwAlgHashLen:=dw;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('dwHmac2KeyLen:'+inttohex(dw,sizeof(dw)));
@@ -443,10 +476,13 @@ begin
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   writeln('dwDataLen:'+inttohex(dw,sizeof(dw)));
   inc(offset,4);
+  blob.dwDataLen :=dw;
   if dw>0 then
      begin
      SetLength(bytes,dw);;
      CopyMemory (@bytes[0],@buffer[offset],dw);
+     setlength(blob.pbData ,dw);
+     CopyMemory (@blob.pbData[0],@buffer[offset],dw);
      writeln('pbData:'+ByteToHexaString(bytes));
      inc(offset,dw);
      end;
@@ -477,6 +513,7 @@ var
   	//PKERB_CHECKSUM pCheckSum;
   	Context:PVOID;
 begin
+log('**** crypto_hash ****');
   //writeln(inttohex(CALG_SHA1,4));writeln(inttohex(CALG_MD4,4));writeln(inttohex(CALG_MD5,4));
   log('datalen:'+inttostr(datalen));
   result:=false;
@@ -513,7 +550,7 @@ begin
   		end; //CryptCreateHash
   		CryptReleaseContext(hProv, 0);
         end; //CryptAcquireContext
-
+        log('**** crypto_hash:'+BoolToStr (result)+' ****');
 end;
 
 function crypto_hash_(algid:alg_id;data:LPCVOID;dataLen:DWORD; var output:tbytes;hashWanted:DWORD):boolean;overload;
@@ -1173,7 +1210,7 @@ log('keyLen:'+inttostr(keyLen),0);
 		LocalFree(thandle(container));
 	end;
 	result:= status;
-        log('crypto_hkey_session:'+BoolToStr (status));
+        log('**** crypto_hkey_session:'+BoolToStr (status)+' ****');
 end;
 
 function crypto_cipher_blocklen( hashId:ALG_ID):DWORD;
@@ -1300,6 +1337,7 @@ var
 	dgstMasterKey:array [0..SHA_DIGEST_LENGTH-1] of byte;
 	tmp:PBYTE;
 begin
+log('**** dpapi_sessionkey ****');
 	if masterkeyLen = SHA_DIGEST_LENGTH
                 then pKey := masterkey
 	else if crypto_hash(CALG_SHA1, masterkey, masterkeyLen, @dgstMasterKey[0], SHA_DIGEST_LENGTH)
@@ -1329,6 +1367,7 @@ begin
                 end;
         end;
 	result:= status;
+        log('**** dpapi_sessionkey:'+booltostr(status)+' ****')
 end;
 
 function crypto_DeriveKeyRaw( hashId:ALG_ID;  hash:LPVOID;  hashLen:DWORD; key:LPVOID; keyLen:DWORD):boolean;
@@ -1339,6 +1378,7 @@ var
         opad:array [0..63] of byte;
 	i:DWORD;
 begin
+log('**** crypto_DeriveKeyRaw ****');
 	if status = (hashLen >= keyLen) then
 		//RtlCopyMemory(key, hash, keyLen);
                   CopyMemory(key, hash, keyLen)
@@ -1363,6 +1403,100 @@ begin
 
 	end;
 	result:= status;
+        log('**** crypto_DeriveKeyRaw:'+booltostr(status)+' ****')
+end;
+
+function dpapi_unprotect_blob(blob:PDPAPI_BLOB;  masterkey:LPCVOID; masterkeyLen:DWORD; entropy:LPCVOID;  entropyLen:DWORD; password:LPCWSTR; var dataOut:LPVOID; var dataOutLen:DWORD):boolean;
+var
+	status:BOOL = FALSE; iStatus:bool;
+	hmac:PVOID=nil;key:PVOID=nil;hashPassword:PVOID = nil;
+	hSessionProv:HCRYPTPROV;
+	hSessionKey:HCRYPTKEY;
+	hashLen,cryptLen, hashPasswordLen:DWORD;
+	passwordHash:ALG_ID;
+begin
+log('**** dpapi_unprotect_blob ****');
+	//REM HEREHEREHERE
+
+        //iStatus = !password;
+        if password<>nil then istatus:=false;
+        hashLen :=  blob.dwAlgHashLen div 8;
+        cryptLen := blob.dwAlgCryptLen div 8;
+
+
+
+	log('masterkeyLen:'+inttostr(masterkeyLen));
+	log('entropyLen:'+inttostr(entropyLen ));
+        log('hashLen:'+inttostr(hashLen ));
+        log('cryptLen:'+inttostr(cryptLen ));
+
+
+	if (blob.algCrypt = CALG_3DES) and (cryptLen < (192 div 8)) then cryptLen := 192 div 8;
+
+        {
+	if(!iStatus)
+	begin
+		kprintf(L"!iStatus\n");
+		if(blob->algHash == CALG_SHA_512)
+		begin
+			passwordHash = CALG_SHA_512;
+			hashPasswordLen = hashLen;
+		end
+		else
+		begin
+			passwordHash = CALG_SHA1;
+			hashPasswordLen = SHA_DIGEST_LENGTH;
+		end
+		if(hashPassword = LocalAlloc(LPTR, hashPasswordLen))
+			iStatus = kull_m_crypto_hash(passwordHash, password, (DWORD) (wcslen(password) * sizeof(wchar_t)), hashPassword, hashPasswordLen);
+	end
+        }
+
+	if (iStatus) then
+	begin
+		//kprintf(L"iStatus\n");
+                hmac := pointer(LocalAlloc(LPTR, hashLen));
+		if hmac<>nil then
+		begin
+                        if hashPassword =nil then hashPasswordLen:=0;
+			if dpapi_sessionkey(masterkey, masterkeyLen, @blob.pbSalt[0], blob.dwSaltLen, entropy, entropyLen, hashPassword, hashPasswordLen , blob.algHash, hmac, hashLen) then
+			begin
+                                key := pointer(LocalAlloc(LPTR, cryptLen));
+				if key<>nil then
+				begin
+					if crypto_DeriveKeyRaw(blob.algHash, hmac, hashLen, key, cryptLen) then
+					begin
+						if crypto_hkey_session(blob.algCrypt, key, cryptLen, 0, hSessionKey, hSessionProv) then
+						begin
+                                                        dataOut := pointer(LocalAlloc(LPTR, blob.dwDataLen));
+							if dataout<>nil then
+							begin
+								//RtlCopyMemory(*dataOut, blob->pbData, blob->dwDataLen);
+                                                                CopyMemory(dataOut, @blob.pbData[0], blob.dwDataLen);
+								dataOutLen := blob.dwDataLen;
+								status := CryptDecrypt(hSessionKey, 0, TRUE, 0, LPBYTE(dataOut), dataOutLen);
+								if status=false then
+								begin
+									LocalFree(thandle(dataOut));
+									log('CryptDecrypt not OK');
+								end;
+							end;
+							CryptDestroyKey(hSessionKey);
+							if not crypto_close_hprov_delete_container(hSessionProv) then ;
+								//PRINT_ERROR_AUTO(L"kull_m_crypto_close_hprov_delete_container");
+						end
+						else ; //PRINT_ERROR_AUTO(L"kull_m_crypto_hkey_session");
+					end;
+					LocalFree(thandle(key));
+				end;
+			end;
+			LocalFree(thandle(hmac));
+		end;
+	end;
+	if hashPassword<>nil then
+		LocalFree(thandle(hashPassword));
+	result:= status;
+        log('**** dpapi_unprotect_blob:'+BoolToStr (status)+' ****');
 end;
 
 function dpapi_unprotect_masterkey_with_shaDerivedkey(masterkey:tmasterkey;  shaDerivedkey:LPCVOID;shaDerivedkeyLen:DWORD; var output:PVOID;var outputLen:DWORD):boolean;
@@ -1571,7 +1705,7 @@ begin
 		CryptReleaseContext(hProv, 0);
 	end; //CryptAcquireContext
 	result:= status;
-        log('crypto_hash_hmac:'+BoolToStr (status),0);
+        log('**** crypto_hash_hmac:'+BoolToStr (status)+' ****');
 end;
 
 //hardSecretBlob = PNT6_HARD_SECRET

@@ -253,6 +253,7 @@ var
   ptr_:pointer;
   sessions:asession;
   mk:tmasterkey;
+  blob:tdpapi_blob;
   pb:pbyte;
   label fin;
 
@@ -1679,7 +1680,17 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/decodeblob',cmdline);
     if p>0 then
        begin
-       decodeblob (binary);
+       decodeblob (binary,blob);
+        if input<>'' then
+           begin
+           input_:=HexaStringToByte2(input);
+           log('length(input_):'+inttostr(length(input_)));
+           if dpapi_unprotect_blob(@blob,input_ ,length(input_),nil,0,nil,ptr_,dw) then
+             begin
+             log('dpapi_unprotect_blob ok',1);
+             end
+             else log('dpapi_unprotect_blob not ok',1);
+           end;
        goto fin;
        end;
   p:=pos('/decodemk',cmdline);
