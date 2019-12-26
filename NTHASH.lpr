@@ -1029,11 +1029,11 @@ begin
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string',1);
-  log('NTHASH /decodeblob /binary:filename',1);
-  log('NTHASH /decodemk /binary:filename [/input:key]',1);
-  log('NTHASH /gethash /mode:hashid /input:message',1);
-  log('NTHASH /gethmac /mode:hashid /input:message /key:key',1);
-  log('NTHASH /getcipher /mode:cipherid /input:message /key:key',1);
+  log('NTHASH /decodeblob /binary:filename [/input:hexabytes]',1);
+  log('NTHASH /decodemk /binary:filename [/input:hexabytes]',1);
+  log('NTHASH /gethash /mode:hashid /input:hexabytes',1);
+  log('NTHASH /gethmac /mode:hashid /input:hexabytes /key:hexabytes',1);
+  log('NTHASH /getcipher /mode:cipherid /input:hexabytes /key:hexabytes',1);
   log('NTHASH /getlsasecret /input:secret',1);
   log('NTHASH /dpapi_system',1);
   //****************************************************
@@ -1609,8 +1609,11 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
         then log('lsasecrets failed',1)
         else
         begin
-        CopyMemory( @output_ [0],@output_ [4],length(output_)-4);
-        log(ByteToHexaString (output_),1);
+        //CopyMemory( @output_ [0],@output_ [4],length(output_)-4);
+        //log(ByteToHexaString (output_),1);
+        log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+        log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+        log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
         end;
      goto fin;
      end;
@@ -1650,9 +1653,12 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              //CopyMemory(@output_[0],ptr_,dw);
              //log('Blob:'+ByteToHexaString (output_),1);
              log('Blob:'+ByteToHexaString (ptr_,dw),1);
-             log('**** Decoding Cred Blob ****',1);
-             //decodecredblob(@output_[0]);
-             decodecredblob(ptr_);
+             if dw>=64 then
+               begin
+               log('**** Decoding Cred Blob ****',1);
+               //decodecredblob(@output_[0]);
+               decodecredblob(ptr_);
+               end;
              end
              else log('dpapi_unprotect_blob not ok',1);
            end;
@@ -1674,10 +1680,10 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                  begin
                  log('dpapi_unprotect_masterkey_with_shaDerivedkey ok',1);
                  log('dw:'+inttostr(dw));
-                 SetLength(output_,dw);
-                 //log('ptr_:'+inttohex(nativeuint(ptr_),sizeof(nativeuint)),0);
-                 CopyMemory(@output_[0],ptr_,dw);
-                 log('KEY:'+ByteToHexaString (output_),1);
+                 //SetLength(output_,dw);
+                 //CopyMemory(@output_[0],ptr_,dw);
+                 //log('KEY:'+ByteToHexaString (output_),1);
+                 log('KEY:'+ByteToHexaString (ptr_,dw),1);
                  crypto_hash_ (CALG_SHA1,ptr_,dw,output_,crypto_hash_len(CALG_SHA1));
                  log('SHA1:'+ByteToHexaString (output_),1);
                  end
