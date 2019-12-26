@@ -41,6 +41,15 @@ NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
 NTHASH /getlsasecret /input:secret <br/>
 NTHASH /dpapimk <br/>
+NTHASH /cryptunprotectdata /binary:filename
+NTHASH /cryptunprotectdata /input:string
+NTHASH /cryptprotectdata /input:string
+NTHASH /decodeblob /binary:filename [/input:hexabytes]
+NTHASH /decodemk /binary:filename [/input:hexabytes]
+NTHASH /gethash /mode:hashid /input:hexabytes
+NTHASH /gethmac /mode:hashid /input:hexabytes /key:hexabytes
+NTHASH /getcipher /mode:cipherid /input:hexabytes /key:hexabytes
+NTHASH /getlsasecret /input:secret
 NTHASH /dpapi_system <br/>
 NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
@@ -124,5 +133,5 @@ todo/news: <br/>
 -getlsassecret using LsaRetrievePrivateData: done in 1.6</br>
 -todo : work out offline decryption of lsasecrets as well as currval and oldval </br>
 -todo : work out LsaICryptUnprotectData thru dll injection </br>
--todo : work out masterkey decryption based on sha1 user password </br>
--todo : work out credential blob decryption based on decrypted masterkey </br>
+-todo : work out masterkey decryption based on sha1 user password: done in 1.7 </br>
+-todo : work out credential blob decryption based on decrypted masterkey: done in 1.7 </br>
