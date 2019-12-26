@@ -35,7 +35,8 @@ procedure log(msg:string;status:dword=0);overload;
 procedure log(msg:dword;status:dword=0);overload;
 procedure log(msg:qword;status:dword=0);overload;
 //function HashByteToString(hash:tbyte16):string;
-function ByteToHexaString(hash:array of byte):string;
+function ByteToHexaString(hash:array of byte):string;overload;
+function ByteToHexaString(hash:pbyte;len:dword):string;overload;
 function HexaStringToByte(hash:string):tbyte16;
 function HexaStringToByte2(hash:string):tbytes;
 
@@ -127,6 +128,16 @@ try
 except
 on e:exception do log('AnsiStringtoByte'+e.Message );
 end;
+end;
+
+function ByteToHexaString(hash:pbyte;len:dword):string;overload;
+var
+  tmp:tbytes;
+begin
+SetLength(tmp,len);
+ZeroMemory(@tmp[0],len);
+CopyMemory(@tmp[0],hash,len) ;
+result:=ByteToHexaString(tmp);
 end;
 
 //function HashByteToString(hash:tbyte16):string;

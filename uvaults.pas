@@ -148,6 +148,8 @@ const
   Procedure CredFree(Buffer:pointer); stdcall; external 'advapi32.dll';
 //
 
+
+
   function CredEnum:boolean;
 var
   Credentials: array of pointer; //PCredentialArray;
@@ -156,7 +158,7 @@ var
   UserName: WideString;
   i: integer;
   dwCount: DWORD;
-  bytes:array[0..1023] of byte;
+  //bytes:array[0..1023] of byte;
 begin
   result:=false;
   //setlength(Credentials ,1024);
@@ -168,21 +170,8 @@ begin
       for i:= 0 to dwCount - 1  do
         begin
           log('*************************************',1);
-          CopyMemory(@bytes[0],Credentials[i],sizeof(_CREDENTIALW)) ;
-          //log('Hexa:'+ByteToHexaString (bytes),1);
-          log('Flags:'+inttostr(PCREDENTIALW(Credentials[i])^.Flags)  ,1);
-          log('Type_:'+inttostr(PCREDENTIALW(Credentials[i])^.Type_   ),1);
-          log('TargetName:'+widestring(PCREDENTIALW(Credentials[i])^.TargetName ),1);
-          log('Comment:'+widestring(PCREDENTIALW(Credentials[i])^.Comment ),1);
-          log('TargetAlias:'+widestring(PCREDENTIALW(Credentials[i])^.TargetAlias ),1);
-          log('UserName:'+widestring(PCREDENTIALW(Credentials[i])^.UserName ),1);
-          //writeln(PCREDENTIALW(Credentials[i])^.CredentialBlobSize);
-          if PCREDENTIALW(Credentials[i])^.CredentialBlobSize >0 then
-             begin
-               //we could use entropy/salt + CryptUnprotectData
-               CopyMemory (@bytes[0],PCREDENTIALW(Credentials[i])^.CredentialBlob,PCREDENTIALW(Credentials[i])^.CredentialBlobSize);
-               log('CredentialBlob:'+copy(BytetoAnsiString (bytes),1,PCREDENTIALW(Credentials[i])^.CredentialBlobSize),1);
-             end;
+          decodecred (Credentials[i]);
+
           //inc(ptr,sizeof(pointer));
             {
             if CredReadW(PCREDENTIALW(Credentials[i]).TargetName, PCREDENTIALW(Credentials[i]).Type_, 0, Credential) then
