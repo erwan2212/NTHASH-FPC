@@ -41,15 +41,15 @@ NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
 NTHASH /getlsasecret /input:secret <br/>
 NTHASH /dpapimk <br/>
-NTHASH /cryptunprotectdata /binary:filename
-NTHASH /cryptunprotectdata /input:string
-NTHASH /cryptprotectdata /input:string
-NTHASH /decodeblob /binary:filename [/input:hexabytes]
-NTHASH /decodemk /binary:filename [/input:hexabytes]
-NTHASH /gethash /mode:hashid /input:hexabytes
-NTHASH /gethmac /mode:hashid /input:hexabytes /key:hexabytes
-NTHASH /getcipher /mode:cipherid /input:hexabytes /key:hexabytes
-NTHASH /getlsasecret /input:secret
+NTHASH /cryptunprotectdata /binary:filename <br/>
+NTHASH /cryptunprotectdata /input:string <br/>
+NTHASH /cryptprotectdata /input:string <br/>
+NTHASH /decodeblob /binary:filename [/input:hexabytes] <br/>
+NTHASH /decodemk /binary:filename [/input:hexabytes] <br/>
+NTHASH /gethash /mode:hashid /input:hexabytes <br/>
+NTHASH /gethmac /mode:hashid /input:hexabytes /key:hexabytes <br/>
+NTHASH /getcipher /mode:cipherid /input:hexabytes /key:hexabytes <br/>
+NTHASH /getlsasecret /input:secret <br/>
 NTHASH /dpapi_system <br/>
 NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
 NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
