@@ -61,7 +61,7 @@ NTHASH /runts /user:session_id [/binary: x:\folder\bin.exe] <br/>
 NTHASH /enumpriv <br/>
 NTHASH /enumproc <br/>
 NTHASH /dumpproc /pid:12345 <br/>
-NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname] <br/>
+NTHASH /runwmi /binary: x:\folder\bin.exe [/server:hostname] <br/>
 NTHASH /context <br/>
 NTHASH /a_command /verbose <br/>
 NTHASH /a_command /system <br/>
