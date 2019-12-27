@@ -35,6 +35,10 @@ procedure log(msg:string;status:dword=0);overload;
 procedure log(msg:dword;status:dword=0);overload;
 procedure log(msg:qword;status:dword=0);overload;
 //function HashByteToString(hash:tbyte16):string;
+
+function FiletoHexaString(filename:string):boolean;
+function HexaStringToFile(filename:string;buffer:tbytes):boolean;
+
 function ByteToHexaString(hash:array of byte):string;overload;
 function ByteToHexaString(hash:pbyte;len:dword):string;overload;
 function HexaStringToByte(hash:string):tbyte16;
@@ -84,6 +88,44 @@ end;
 function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
 begin
 result := RightStr(StringOfChar(pad,length) + value, length );
+end;
+
+function FiletoHexaString(filename:string):boolean;
+var
+  outfile:thandle=0;
+  buffer:array[0..1023] of byte;
+  bytesread:cardinal;
+begin
+result:=false;
+if not FileExists(filename) then log('filename does not exist');
+outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
+bytesread:=1;
+while bytesread>0 do
+begin
+result:=readfile(outfile ,buffer,length(buffer),bytesread,nil);
+if bytesread>0 then
+   begin
+   log(ByteToHexaString (@buffer[0],bytesread),1);
+   result:=true;
+   end;
+end;
+closehandle(outfile);
+end;
+
+function HexaStringToFile(filename:string;buffer:tbytes):boolean;
+var
+  outfile:thandle=0;
+  byteswritten:cardinal;
+begin
+log('**** HexaStringToFile ****');
+result:=false;
+outFile := CreateFile(pchar(filename), GENERIC_WRITE, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+byteswritten :=0;
+log('length(buffer):'+inttostr(length(buffer)));
+result:=writefile(outfile ,buffer[0],length(buffer),byteswritten,nil);
+log('byteswritten:'+inttostr(byteswritten));
+if byteswritten>0 then result:=true;
+closehandle(outfile);
 end;
 
 function AnsiStringtoByte(input:string;unicode:boolean=false):tbytes;

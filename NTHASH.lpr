@@ -1020,6 +1020,8 @@ begin
   //****************************************************
   log('NTHASH /bytetostring /input:hexabytes',1);
   log('NTHASH /stringtobyte /input:string',1);
+  log('NTHASH /filetobyte /binary:filename');
+  log('NTHASH /bytetofile /input:hexabytes');
   log('NTHASH /widestringtobyte /input:string',1);
   log('NTHASH /base64encodew /input:string',1);
   log('NTHASH /base64encode /input:string',1);
@@ -1091,8 +1093,7 @@ begin
      else writeln(BytetoAnsiString (buffer));
   //writeln(BytetoAnsiString (buffer)+'.');
   }
-
-
+  //exit;
   //
   p:=pos('/enumcred2',cmdline);
   if p>0 then
@@ -1213,6 +1214,25 @@ begin
        delete(key,pos(' ',key),255);
        end;
   //************* ENCODE/DECODE ***********************************************
+  //FiletoHexaString ('encrypted.blob');
+  p:=pos('/filetobyte',cmdline);
+    if p>0 then
+       begin
+       if binary='' then exit;
+       log('filetobyte',1);
+       if not FiletoHexaString(binary)
+          then log('not ok',1);
+       goto fin;
+       end;
+  p:=pos('/bytetofile',cmdline);
+    if p>0 then
+       begin
+       if input='' then exit;
+       log('bytetofile',1);
+       if HexaStringToFile ('data.blob',HexaStringToByte2(input))
+          then log('data.blob written',1) else log('not ok',1);
+       goto fin;
+       end;
   p:=pos('/bytetostring',cmdline);
   if p>0 then
      begin
