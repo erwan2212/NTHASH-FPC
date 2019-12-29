@@ -51,8 +51,8 @@ function EnCryptDecrypt(algid:dword;hashid:dword;CRYPT_MODE:dword;const key: tby
 function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
 function bencrypt(algo:lpcwstr;decrypted:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
 
-function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
-function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;overload;
+function CryptProtectData_(dataBytes:array of byte;var output:tbytes;flags:dword=0):boolean;overload;
+function CryptProtectData_(dataBytes:array of byte;filename:string;flags:dword=0):boolean;overload;
 
 function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEntropy: string=''):boolean;overload;
@@ -69,10 +69,10 @@ function crypto_cipher_keylen( hashId:ALG_ID):dword;
 function crypto_hash_(algid:alg_id;data:LPCVOID;dataLen:DWORD; var output:tbytes;hashWanted:DWORD):boolean;
 function crypto_hash(algid:alg_id;data:LPCVOID;dataLen:DWORD;  hash:lpvoid;hashWanted:DWORD):boolean;
 
-//function crypto_hash_hmac(calgid:DWORD; key:LPCVOID;keyLen:DWORD; message:LPCVOID; messageLen:DWORD; hash:LPVOID;hashWanted:DWORD ):boolean;
 function crypto_hash_hmac(calgid:DWORD; key:lpbyte;keyLen:DWORD; message:lpbyte; messageLen:DWORD; hash:LPVOID;hashWanted:DWORD ):boolean;
 
-
+//function lsadump_sec_aes256(var hardSecretBlob:tbytes; hardSecretBlobSize:dword;lsaKeysStream:pointer;sysKey:tbyte16):boolean;
+function lsadump_sec_aes256(var hardSecretBlob:tbytes; hardSecretBlobSize:dword;lsaKeysStream:pointer;sysKey:pointer):boolean;
 
 //function CryptSetHashParam_(hHash: HCRYPTHASH; dwParam: DWORD; const pbData: LPBYTE;  dwFlags: DWORD): BOOL; stdcall;external 'Advapi32.dll' name 'CryptSetHashParam';
 
@@ -175,9 +175,22 @@ BLOBHEADER=_PUBLICKEYSTRUC;
 PBLOBHEADER=^_PUBLICKEYSTRUC;
 PUBLICKEYSTRUC=_PUBLICKEYSTRUC;
 
-implementation
+type _NT6_SYSTEM_KEY =record
+	 KeyId:tGUID;
+	 KeyType:DWORD;
+	 KeySize:DWORD;
+	 Key:array [0..0] of byte;
+end;
+  PNT6_SYSTEM_KEY=^_NT6_SYSTEM_KEY;
 
-
+type _NT6_SYSTEM_KEYS =record
+	unkType0:DWORD;
+	CurrentKeyID:GUID;
+	unkType1:DWORD;
+	nbKeys:DWORD;
+	Keys:array [0..0] of _NT6_SYSTEM_KEY;
+end;
+  PNT6_SYSTEM_KEYS=^_NT6_SYSTEM_KEYS;
 
 type _NT6_CLEAR_SECRET =record
 	SecretSize:DWORD;
@@ -197,12 +210,17 @@ type _NT6_HARD_SECRET =record
 	algorithm:DWORD;
 	flag:DWORD;
 	lazyiv:array [0..32-1] of byte;
-	//union
-	clearSecret:NT6_CLEAR_SECRET;
-	encryptedSecret:array [0..0] of byte;
+	Secret:array [0..0] of byte; //can be encrypted or clear
         end;
  NT6_HARD_SECRET=_NT6_HARD_SECRET;
  PNT6_HARD_SECRET=^NT6_HARD_SECRET;
+
+implementation
+
+
+
+
+
 
 
 
@@ -244,7 +262,7 @@ end;
 
 //https://stackoverflow.com/questions/13145112/secure-way-to-store-password-in-windows
 
-function CryptProtectData_(dataBytes:array of byte;var output:tbytes):boolean;overload;
+function CryptProtectData_(dataBytes:array of byte;var output:tbytes;flags:dword=0):boolean;overload;
 var
   plainBlob,encryptedBlob:DATA_BLOB;
 begin
@@ -254,7 +272,7 @@ begin
   plainBlob.pbData := dataBytes;
   plainBlob.cbData := sizeof(dataBytes);
 
-  result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, 0 {CRYPTPROTECT_LOCAL_MACHINE}, @encryptedBlob);
+  result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, flags, @encryptedBlob);
   if result=true then
      begin
      setlength(output,encryptedBlob.cbData);
@@ -262,7 +280,7 @@ begin
      end;
 end;
 
-function CryptProtectData_(dataBytes:array of byte;filename:string):boolean;overload;
+function CryptProtectData_(dataBytes:array of byte;filename:string;flags:dword=0):boolean;overload;
 var
   plainBlob,encryptedBlob:_MY_BLOB;
   outfile:thandle=0;
@@ -290,7 +308,7 @@ begin
   Move(Pointer(Text)^, plainBlob.pbData^, plainBlob.cbData);
   }
 
-  result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, 0 {CRYPTPROTECT_LOCAL_MACHINE}, @encryptedBlob);
+  result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, flags, @encryptedBlob);
   log('cbData:'+inttostr(encryptedBlob.cbData) );
   if result=true then
      begin
@@ -931,6 +949,7 @@ begin
   //0xC0000023  STATUS_BUFFER_TOO_SMALL
 end;
 
+{
 function _bdecryptDES(encrypedPass:array of byte;gDesKey,initializationVector:array of byte):ULONG;
 var
   hDesProvider:BCRYPT_ALG_HANDLE;
@@ -947,8 +966,9 @@ begin
   status := BCryptDecrypt(hDes, @encrypedPass[0], sizeof(encrypedPass), 0, @initializationVector[0], sizeof(initializationVector ) div 2, @decryptedPass[0], sizeof(decryptedPass), result, 0);
 
 end;
+}
 
-
+{
 function _bdecryptAES(encrypedPass:array of byte;gAesKey,initializationVector:array of byte):ULONG;
 var
   hprovider:BCRYPT_ALG_HANDLE;
@@ -965,6 +985,7 @@ begin
   status := BCryptDecrypt(hAes, @encrypedPass[0], sizeof(encrypedPass), 0, @initializationVector[0], sizeof(initializationVector ) div 2, @decryptedPass[0], sizeof(decryptedPass), result, 0);
 
 end;
+}
 
 //similar to kull_m_crypto_genericAES128Decrypt in mimikatz
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;
@@ -1255,7 +1276,7 @@ begin
 end;
 
 //hardSecretBlob = PNT6_HARD_SECRET
-function lsadump_sec_aes256(hardSecretBlob:tbytes; hardSecretBlobSize:dword;lazyiv:tbytes;sysKey:tbytes):boolean;
+function lsadump_sec_aes256(var hardSecretBlob:tbytes; hardSecretBlobSize:dword;lsaKeysStream:pointer;sysKey:pointer):boolean;
 const
   CALG_SHA_256 = $0000800c;
   CALG_SHA_384 = $0000800d;
@@ -1263,9 +1284,9 @@ const
   LAZY_NT6_IV_SIZE=32;
   AES_256_KEY_SIZE=256 div 8;
   //CALG_SHA_256 = (ALG_CLASS_HASH or ALG_TYPE_ANY or 12);
-  CALG_AES_128 = (ALG_CLASS_DATA_ENCRYPT or ALG_TYPE_BLOCK or 14);
-  CALG_AES_192 = (ALG_CLASS_DATA_ENCRYPT or ALG_TYPE_BLOCK or 15);
-  CALG_AES_256 = (ALG_CLASS_DATA_ENCRYPT or ALG_TYPE_BLOCK or 16);
+  //CALG_AES_128 = (ALG_CLASS_DATA_ENCRYPT or ALG_TYPE_BLOCK or 14);
+  //CALG_AES_192 = (ALG_CLASS_DATA_ENCRYPT or ALG_TYPE_BLOCK or 15);
+  //CALG_AES_256 = (ALG_CLASS_DATA_ENCRYPT or ALG_TYPE_BLOCK or 16);
 
 var
  hContext:HCRYPTPROV;
@@ -1277,29 +1298,54 @@ var
  status:BOOL = FALSE;
  hSessionProv:HCRYPTPROV=0;
 begin
+  status:=false;
+log('**** lsadump_sec_aes256 ****');
 
-pKey := @sysKey[0];
-szNeeded := 16; //SYSKEY_LENGTH;
+if syskey<>nil then
+   begin
+   pKey := sysKey;
+   szNeeded := 16; //SYSKEY_LENGTH;
+   end;
+
+if lsaKeysStream <>nil then
+   begin
+   log('KeyId:'+GUIDToString(PNT6_SYSTEM_KEY(lsaKeysStream)^.KeyId )) ;
+   szNeeded:=PNT6_SYSTEM_KEY(lsaKeysStream)^.KeySize;
+   pkey:=lsaKeysStream + sizeof(dword)*2+sizeof(guid);
+   end;
+
+log('pkey:'+ByteToHexaString (pkey,szNeeded));
 
   if(CryptAcquireContext(hContext, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) then
 		begin
+                log('CryptAcquireContext OK');
 			if(CryptCreateHash(hContext, CALG_SHA_256, 0, 0, hHash)) then
 			begin
+                        log('CryptCreateHash OK');
 				CryptHashData(hHash, pKey, szNeeded, 0);
-				for i:= 0 to 1000-1 do	CryptHashData(hHash, @lazyiv[0], LAZY_NT6_IV_SIZE, 0);
+				for i:= 0 to 1000-1 do	CryptHashData(hHash, PNT6_HARD_SECRET(@hardSecretBlob[0])^.lazyiv, LAZY_NT6_IV_SIZE, 0);
 
 				szNeeded := sizeof(keyBuffer);
-				if(CryptGetHashParam(hHash, HP_HASHVAL, keyBuffer, &szNeeded, 0)) then
+				if(CryptGetHashParam(hHash, HP_HASHVAL, @keyBuffer[0], szNeeded, 0)) then
 				begin
+                                log('CryptGetHashParam OK');
+                                log('Hash:'+ByteToHexaString(@keyBuffer[0],szNeeded) );
 					if (crypto_hkey(hContext, CALG_AES_256, @keyBuffer[0], sizeof(keyBuffer), 0, hKey, hSessionProv)) then
                                         //if 1=1 then
                                         begin
+                                        log('crypto_hkey OK');
 						i := CRYPT_MODE_ECB;
 						if(CryptSetKeyParam(hKey, KP_MODE, @i, 0)) then
 						begin
-							szNeeded := hardSecretBlobSize - PtrUInt(@NT6_HARD_SECRET(Nil^).encryptedSecret); //FIELD_OFFSET(NT6_HARD_SECRET, encryptedSecret);
-							status := CryptDecrypt(hKey, 0, FALSE, 0, pointer(PNT6_HARD_SECRET(@hardSecretBlob[0])^.encryptedSecret [0]), szNeeded);
-							if(status=false) then log('CryptDecrypt not ok');
+                                                log('CryptSetKeyParam OK');
+                                                	szNeeded := hardSecretBlobSize - PtrUInt(@NT6_HARD_SECRET(Nil^).Secret); //FIELD_OFFSET(NT6_HARD_SECRET, encryptedSecret);
+                                                        log('hardSecretBlobSize:'+inttostr(hardSecretBlobSize));
+                                                        log('szNeeded:'+inttostr(szNeeded));
+                                                        log('encryptedSecret:'+ByteToHexaString(@hardSecretBlob[PtrUInt(@NT6_HARD_SECRET(Nil^).Secret)],szNeeded ));
+                                                        status := CryptDecrypt(hKey, 0, FALSE, 0, @hardSecretBlob[PtrUInt(@NT6_HARD_SECRET(Nil^).Secret)], szNeeded);
+							if(status=false)
+                                                           then log('CryptDecrypt not ok')
+                                                           else log('decoded:'+ByteToHexaString(@hardSecretBlob[PtrUInt(@NT6_HARD_SECRET(Nil^).Secret)],szNeeded ));
 						end
 						else log('CryptSetKeyParam not ok');
 						CryptDestroyKey(hKey);
@@ -1310,10 +1356,12 @@ szNeeded := 16; //SYSKEY_LENGTH;
 			end;
 			CryptReleaseContext(hContext, 0);
 		end;
+  result:=status;
 
 end;
 
 //------------------------------------------------------------------------------
+{
 function _AES128ECB_Decrypt(const Value: RawByteString; const Key: RawByteString): RawByteString;
 var
   pbData: PByte;
@@ -1372,9 +1420,11 @@ begin
     CryptReleaseContext(hCryptProvider, 0);
   end;
 end;
+}
 
 //------------------------------------------------------------------------------
- function _Encrypt(algid:longword;const Value: RawByteString; const Key: RawByteString): RawByteString;
+{
+function _Encrypt(algid:longword;const Value: RawByteString; const Key: RawByteString): RawByteString;
 var
   pbData: PByte;
   hCryptProvider: HCRYPTPROV;
@@ -1392,7 +1442,7 @@ const
 begin
   Result := '';
   // MS_ENH_RSA_AES_PROV
-  if CryptAcquireContext(hCryptProvider, nil, nil{MS_ENHANCED_PROV}, PROV_RSA_AES, CRYPT_VERIFYCONTEXT{PROV_RSA_FULL}) then
+  if CryptAcquireContext(hCryptProvider, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
   begin
     log('CryptAcquireContext OK');
     KeyBlob.Header.bType := PLAINTEXTKEYBLOB;
@@ -1424,17 +1474,17 @@ begin
           if not CryptEncrypt(hEncryptKey, 0, AESFinal, 0, pbData, InputLen, ResultLen) then
           begin
             Result := '';
-            {$IFDEF DEBUG_SLT_CRYPT}
+
             OutputDebugCRYPT('TSLTAES128ECB.Encrypt ' + IntToStr(GetLastError()));
-            {$ENDIF DEBUG_SLT_CRYPT}
+
           end;
         end
         else
         begin
           Result := '';
-          {$IFDEF DEBUG_SLT_CRYPT}
+
           OutputDebugCRYPT('TSLTAES128ECB.Pre-Encrypt ' + IntToStr(GetLastError()));
-          {$ENDIF DEBUG_SLT_CRYPT}
+
         end;
 
         CryptDestroyKey(hEncryptKey);
@@ -1446,6 +1496,7 @@ begin
     CryptReleaseContext(hCryptProvider, 0);
   end;
 end;
+}
 
  //beware of stream cipher vs block cipher
  function EnCryptDecrypt(algid:dword;hashid:dword;CRYPT_MODE:dword;const key: tbytes;var buffer:tbytes;const decrypt:boolean=false):boolean;
@@ -1655,7 +1706,7 @@ begin
 end;
 //***********************************************************
 
-
+{
 procedure _doSomeEncryption();
 var
   HASHOBJ: HCRYPTHASH;
@@ -1687,8 +1738,10 @@ begin
   CryptReleaseContext(hProv, 0);
 
 end;
+}
 
 //***************************************************************
+{
 function _Hashhmacsha1(const Key, Value: AnsiString): AnsiString;
 const
   KEY_LEN_MAX = 16;
@@ -1715,15 +1768,15 @@ var
 begin
   dwHashLen := 32;
   dwHmacHashLen := 32;
-  {get context for crypt default provider}
+  //get context for crypt default provider
   if CryptAcquireContext(hCryptProvider, nil, nil, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT) then
   begin
-    {create hash-object MD5}
+    //create hash-object MD5
   log('CryptAcquireContext',0);
     if CryptCreateHash(hCryptProvider, CALG_SHA1, 0, 0, hHash) then
     begin
     log('CryptCreateHash',0);
-      {get hash from password}
+      //get hash from password
       if CryptHashData(hHash, PByte(Key), Length(Key), 0) then
       begin
       log('CryptHashData',0);
@@ -1769,7 +1822,7 @@ begin
                 end
                 else
                   WriteLn( 'CryptHashData ERROR --> ' + SysErrorMessage(GetLastError)) ;
-                {destroy hash-object}
+                //destroy hash-object
                 CryptDestroyHash(hHmacHash);
                 CryptDestroyKey(hKey);
               end
@@ -1784,15 +1837,15 @@ begin
           WriteLn( 'CryptDeriveKey ERROR --> ' + SysErrorMessage(GetLastError)) ;
 
       end;
-      {destroy hash-object}
+      //destroy hash-object
       CryptDestroyHash(hHash);
     end;
-    {release the context for crypt default provider}
+    //release the context for crypt default provider
     CryptReleaseContext(hCryptProvider, 0);
   end;
   Result := AnsiLowerCase(Result);
 end;
-
+}
 
 
 end.

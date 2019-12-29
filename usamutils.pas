@@ -10,6 +10,8 @@ uses
 function getsyskey(var output:tbyte16):boolean;
 function getsamkey(syskey:tbyte16;var output:tbyte16):boolean;
 function dumphash(samkey:tbyte16;rid:dword;var output:tbyte16;var username:string):boolean;
+
+function callback_SamUsers(param:pointer=nil):dword;stdcall;
 function query_samusers(samkey:tbyte16;func:pointer =nil):boolean;
 
 type tsamuser=record
@@ -189,7 +191,8 @@ function getsamkey_offline(syskey:tbyte16;var output:tbyte16):boolean;
 var
   ret:word;
   hkey,hkresult:thandle;
-  data:array[0..1023] of byte;
+  //data:array[0..1023] of byte;
+  data:tbytes;
   salt,aesdata,IV:tbyte16;
   encrypted_samkey:array[0..31] of byte;
   bytes:tbyte16;
@@ -198,16 +201,12 @@ var
 begin
 result:=false;
 
-uofflinereg.init ;
-ret:=OROpenHive(pwidechar(widestring('sam.sav')),hkey);
-if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
-ret:=OROpenKey (hkey,pwidechar(widestring('sam\Domains\account')),hkresult);
-if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
 
+MyOrQueryValue('sam.sav','sam\Domains\account','F',data);
+cbdata:=length(data);
 
-cbdata:=getvaluePTR (hkresult,'F',ptr);
 if cbdata<=0 then begin log('getvaluePTR NOT OK',0);exit;end;
-copymemory(@data[0],ptr,cbdata);
+
 log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
 
      //writeln(data[0]);
@@ -229,8 +228,6 @@ log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
         //writeln('SAMKey:'+HashByteToString (samkey));
         result:= gethashedbootkeyRC4(salt,syskey,encrypted_samkey,tbyte16(output)); //=true then writeln('SAMKey:'+HashByteToString (tbyte16(bytes)));
        end;
-     ret:=ORcloseKey (hkresult);
-     ret:=ORCloseHive (hkey);
 
 end;
 
@@ -240,7 +237,8 @@ var
   ret:long;
   topkey:thandle;
   cbdata,lptype:dword;
-  data:array[0..1023] of byte;
+  //data:array[0..1023] of byte;
+  data:tbytes;
   salt,iv,aesdata:tbyte16;
   encrypted_samkey:array[0..31] of byte;
   //bytes:array[0..15] of byte;
@@ -252,15 +250,12 @@ if offline=true then
    exit;
    end;
 //only if run as system
-ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, 'SAM\sam\Domains\account',0, KEY_READ, topkey);
-if ret=0 then
+//contains our salt and encrypted sam key
+if MyRegQueryValue(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account'),pchar('F'),data)=true then
   begin
-  log('RegCreateKeyEx OK',0);
-  cbdata:=sizeof(data);
-  //contains our salt and encrypted sam key
-  ret := RegQueryValueex (topkey,pchar('F'),nil,@lptype,@data[0],@cbdata);
-  if ret=0 then
-     begin
+  log('MyRegQueryValue OK',0);
+  cbdata:=length(data);
+
      log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
      //writeln(data[0]);
      if data[0]=3 then
@@ -274,18 +269,17 @@ if ret=0 then
      log('data:'+ByteToHexaString (aesdata),0);
      result:=DecryptAES128(syskey ,iv,aesdata,output);
      end
-     else
+     else //if data[0]=3 then
      begin
      CopyMemory(@salt[0],@data[$70],sizeof(salt)) ;
      CopyMemory(@encrypted_samkey[0],@data[$80],sizeof(tbyte16)) ;
      //writeln('SAMKey:'+HashByteToString (samkey));
      result:= gethashedbootkeyRC4(salt,syskey,encrypted_samkey,tbyte16(output)); //=true then writeln('SAMKey:'+HashByteToString (tbyte16(bytes)));
-     end;
-     end
-     else log('RegQueryValueex NOT OK:'+inttostr(ret),0);
+     end; //if data[0]=3 then
+
   end
-  else log('RegOpenKeyEx NOT OK:'+inttostr(ret),0);
-RegCloseKey(topkey);
+  else log('MyRegQueryValue NOT OK:'+inttostr(getlasterror),0);
+
 end;
 
 
@@ -435,14 +429,17 @@ result:=false;
 
 end;
 
-//reg.exe save hklm\sam c:\temp\sam.save
+
+
+//reg.exe save hklm\sam c:\temp\sam.sav
 //see https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/
 function dumphash_offline(samkey:tbyte16;rid:dword;var output:tbyte16;var username:string):boolean;
 var
   ret:word;
   hkey,hkresult:thandle;
   cbdata:longword;
-  data:array[0..1023] of byte;
+  //data:array[0..1023] of byte;
+  data:tbytes;
   bytes,iv,aesdata:tbyte16;
   aeshash_offset,hash_offset,hash_length,name_offset,name_length,iv_offset:dword;
   name:array [0..254] of widechar;
@@ -453,22 +450,17 @@ var
 begin
 result:=false;
 
-uofflinereg.init ;
 log('RID:'+inttohex(rid,8),0);
-ret:=OROpenHive(pwidechar(widestring('sam.sav')),hkey);
-if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
-ret:=OROpenKey (hkey,pwidechar(widestring('sam\Domains\account\users\'+inttohex(rid,8))),hkresult);
-if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
 
-cbdata:=getvaluePTR (hkresult,'V',ptr);
+MyOrQueryValue('sam.sav','sam\Domains\account\users\'+inttohex(rid,8),'V',data);
+cbdata:=length(data);
+
 if (cbdata=0) or (cbdata<$AC)
      then
-     log('getvaluePTR NOT OK',0)
+     log('MyOrQueryValue NOT OK',0)
      else //if cbdata<=0
      begin
-     log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
-
-     copymemory(@data[0],ptr,cbdata);
+     log('MyOrQueryValue OK '+inttostr(cbdata)+' read',0);
 
      result:=_decrypthash (data,samkey ,rid,output ,username);
 
@@ -546,9 +538,7 @@ if (cbdata=0) or (cbdata<$AC)
      }
      end;//if (cbdata=0) or (cbdata<$AC)
 
-     //ugly try/except as it seems to crash randomly
-     try if hkresult>0 then ret:=ORcloseKey (hkresult);except end;
-     try if hkey>0 then ret:=ORCloseHive (hkey);except end;
+
 
 end;
 
@@ -559,7 +549,8 @@ var
   ret:long;
   topkey:thandle;
   cbdata,lptype:dword;
-  data:array[0..1023] of byte;
+  //data:array[0..1023] of byte;
+  data:tbytes;
   iv,aesdata:tbyte16;
   aeshash_offset,hash_offset,hash_length,name_offset,name_length,iv_offset:dword;
   name:array [0..254] of widechar;
@@ -583,21 +574,21 @@ if offline=true then
             exit;
             end;
 //only if run as system
-ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account\users\'+inttohex(rid,8)),0, KEY_READ, topkey);
-if ret=0 then
+if MyRegQueryValue(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account\users\'+inttohex(rid,8)),pchar('V'),data)=true then
   begin
   log('RegCreateKeyEx OK',0);
-  cbdata:=sizeof(data);
-  //contains our salt and encrypted sam key
-  ret := RegQueryValueex (topkey,pchar('V'),nil,@lptype,@data[0],@cbdata);
-
-    if (ret=0) and (cbdata>$AC) then
+  cbdata:=length(data);
+  if (ret=0) and (cbdata>$AC) then
      begin
      log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
      result:=_decrypthash (data,samkey ,rid,output ,username);
      end;
-    RegCloseKey(topkey);
+
+
     exit;
+
+    // DONE ???????????????????????????????????????????????
+    // remove below ??
 
   if (ret=0) and (cbdata>$AC) then
      begin
@@ -718,6 +709,25 @@ for i:=0 to 254 do
                end;
 end;
 
+end;
+
+function callback_SamUsers(param:pointer=nil):dword;stdcall;
+var
+  bytes:tbyte16;
+  username:string;
+begin
+  try
+  fillchar(bytes,sizeof(bytes),0);
+  if dumphash(psamuser(param).samkey,psamuser(param).rid,bytes,username)
+          then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+ByteToHexaString(bytes) ,1)
+          else log('gethash NOT OK for '+inttohex(psamuser(param).rid,8)+':'+username ,1);
+  except
+    on e:exception do
+    begin
+      if e.ClassName ='EAccessViolation' then log('NTHASH:'+username+':'+inttostr(psamuser(param).rid)+'::'+ByteToHexaString(bytes) ,1);
+      log(e.Message ,0); //SHAME!!!!!!!!!!!!!!
+    end;
+  end;
 end;
 
 function query_samusers(samkey:tbyte16;func:pointer =nil):boolean;

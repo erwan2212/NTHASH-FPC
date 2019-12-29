@@ -54,6 +54,9 @@ function ByteSwap64(Value: Int64): Int64;
 function ByteSwap32(dw: cardinal): cardinal;
 function ByteSwap16(w: word): word;
 
+function MyRegQueryValue(hk:hkey;subkey:pchar;value:pchar;var data:tbytes):boolean;
+
+
 var
   verbose:boolean=false;
   winver,osarch:string;
@@ -88,6 +91,39 @@ end;
 function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
 begin
 result := RightStr(StringOfChar(pad,length) + value, length );
+end;
+
+function getoffset(var field;var rec):integer;
+begin
+  result:=ptrint(pointer(@field)-ptrint(@rec));
+end;
+
+
+
+function MyRegQueryValue(hk:hkey;subkey:pchar;value:pchar;var data:tbytes):boolean;
+var
+  ret:long;
+  topkey:thandle;
+  cbdata,lptype:dword;
+begin
+result:=false;
+topkey:=thandle(-1);
+ret:=RegOpenKeyEx(hk, subkey,0, KEY_READ, topkey);
+if ret=0 then
+begin
+  log('RegOpenKeyEx OK',0);
+  cbdata:=1024;
+  ret := RegQueryValueex (topkey,value,nil,@lptype,nil,@cbdata);
+  if (ret=0) and (cbdata>0) then
+     begin
+     log('RegQueryValueex OK',0);
+     log('cbdata:'+inttostr(cbdata));
+     setlength(data,cbdata);
+     RegQueryValueex (topkey,value,nil,@lptype,@data[0],@cbdata);
+     if (ret=0) and (cbdata>0) then result:=true;
+     end;
+RegCloseKey(topkey);
+end; //RegOpenKeyEx
 end;
 
 function FiletoHexaString(filename:string):boolean;
