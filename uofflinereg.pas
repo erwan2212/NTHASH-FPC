@@ -117,6 +117,7 @@ pdwtype,pcbdata:dword;
 begin
 result:=0;
 try
+
 fillchar(wvaluename,sizeof(wvaluename),#0);
 StringToWideChar(svaluename, wvaluename, length(svaluename)+1);
 
@@ -127,7 +128,7 @@ if ret<>0 then raise exception.Create('ORGetValue failed:'+inttostr(ret)+':'+Sys
 
 if (pcbData=0) then
     begin
-    result:=0;
+    log('pcbData=0');
     exit;
     end;
 
@@ -137,9 +138,17 @@ if ret<>0 then raise exception.Create('ORGetValue failed:'+inttostr(ret)+':'+Sys
   else
   begin
 
-  if data=nil then exit;
+  log('pdwtype:'+inttostr(pdwtype));
+  log('pcbData:'+inttostr(pcbData));
 
-  if pdwtype=reg_binary then
+
+  if data=nil then
+    begin
+    log('data=nil');
+    exit;
+    end;
+
+  if (pdwtype=reg_binary) or (pdwtype=reg_none) then
     begin
     result:=pcbdata;
     end
@@ -163,19 +172,23 @@ result:=false;
 
 uofflinereg.init ;
 
+log('hive:'+hive);
 ret:=OROpenHive(pwidechar(widestring(hive)),hkey);
 if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
 
+log('subkey:'+subkey);
 ret:=OROpenKey (hkey,pwidechar(widestring(subkey)),hkresult);
 if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
 
+log('value:'+value);
 cbdata:=getvaluePTR (hkresult,value,ptr);
 if cbdata<>0 then
    begin
    setlength(data,cbdata);
    copymemory(@data[0],ptr,cbdata);
    result:=true;
-   end;
+   end
+   else log('cbdata:'+inttostr(cbdata));
 if ptr<>nil then freemem(ptr);
 
 

