@@ -836,7 +836,7 @@ begin
          log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
          log('hardsecret:'+ByteToHexaString (@data[0],cbdata));
          //at least in nt6 case, we should match the hardsecret blob guid with the key guid...
-         //lets cheat for now and push the first supposedly system key
+         //lets cheat for now and push the first & supposedly unique system key
          //rather we should push the system keyS aka @secrets[0] above
          if lsadump_sec_aes256(data,cbdata,@system_key[0],nil) then
                 begin

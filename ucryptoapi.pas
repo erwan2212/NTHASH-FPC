@@ -59,7 +59,9 @@ function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEnt
 
 function decodecredblob(cred:pointer):boolean;
 function decodecred(cred:pointer):boolean;
-function decodeblob(filename:string;var blob:tdpapi_blob):boolean;
+//function decodeblob(filename:string;var blob:tdpapi_blob):boolean;overload;
+function decodeblob(filename:string;blob:pdpapi_blob):boolean;overload;
+function decodeblob(buffer:tbytes; blob:pdpapi_blob):boolean;overload;
 function decodemk(filename:string;var mk:tmasterkey):boolean;
 
 function crypto_hash_len( hashId:ALG_ID):dword;
@@ -508,11 +510,156 @@ begin
   //
 end;
 
-function decodeblob(filename:string;var blob:tdpapi_blob):boolean;
+function decodeblob(buffer:tbytes;blob:pdpapi_blob):boolean;overload;
 const
 marker:array[0..15] of byte=($D0,$8C,$9D,$DF,$01,$15,$D1,$11,$8C,$7A,$00,$C0,$4F,$C2,$97,$EB);
 var
-  buffer:array[0..4095] of byte;
+  i,offset:word;
+  dw:dword;
+  pw:pwidechar;
+  guid_:tguid;
+  bytes:tbytes;
+  debug:byte;
+begin
+  log('**** decodeblob ****');
+  offset:=0;
+  if blob=nil then debug:=1 else debug:=0;
+  if blob<>nil then ZeroMemory(blob,sizeof(tdpapi_blob));
+    for i:=0 to 32 do
+        begin
+          if CompareMem (@buffer[i],@marker[0],16) then begin offset:=i;break;end;
+        end;
+    if offset=0 then exit;
+    //
+    CopyMemory( @dw,@buffer[offset-4],sizeof(dw));
+    log('dwVersion:'+inttohex(dw,4),debug);
+    //
+    CopyMemory( @guid_,@buffer[offset],sizeof(guid_));
+    log('GuidProvider:'+GUIDToString(guid_),debug);
+    inc(offset,16);
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('dwMasterKeyVersion:'+inttohex(dw,4),debug);
+    inc(offset,4);
+    //
+    CopyMemory( @guid_,@buffer[offset],sizeof(guid_));
+    log('GuidMasterKey:'+GUIDToString(guid_),debug);
+    if blob<>nil then blob.guidMasterKey:=guid_;
+    inc(offset,16);
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('dwFlags:'+inttohex(dw,4),debug);
+    inc(offset,4);
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('dwDescriptionLen:'+inttostr(dw),debug);
+    inc(offset,4);
+    if dw>0 then
+       begin
+       pw:=AllocMem (dw);
+       copymemory(pw,@buffer[offset],dw);
+       //writeln('szDescription:'+(  StringReplace ( string(widestring(pw)),'#13#10','',[]) ));
+       log('szDescription:'+(  string(widestring(pw)) ),debug);
+       inc(offset,dw);
+       end;
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('algCrypt:'+inttohex(dw,sizeof(dw)),debug);
+    inc(offset,4);
+    if blob<>nil then blob.algCrypt:=dw;
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('dwAlgCryptLen:'+inttohex(dw,sizeof(dw)),debug);
+    inc(offset,4);
+    if blob<>nil then blob.dwAlgCryptLen :=dw;
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('dwSaltLen:'+inttohex(dw,sizeof(dw)),debug);
+    inc(offset,4);
+    if blob<>nil then blob.dwSaltLen:=dw;
+    if dw>0 then
+       begin
+       SetLength(bytes,dw);;
+       CopyMemory (@bytes[0],@buffer[offset],dw);
+       if blob<>nil then
+          begin
+          setlength(blob.pbSalt ,dw);
+          CopyMemory (@blob.pbSalt[0],@buffer[offset],dw);
+          end;
+       log('pbSalt:'+ByteToHexaString(bytes),debug);
+       inc(offset,dw);
+       end;
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('dwHmacKeyLen:'+inttohex(dw,sizeof(dw)),debug);
+    inc(offset,4);
+    if dw>0 then
+       begin
+       SetLength(bytes,dw);;
+       CopyMemory (@bytes[0],@buffer[offset],dw);
+       log('pbHmackKey:'+ByteToHexaString(bytes),debug);
+       inc(offset,dw);
+       end;
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('algHash:'+inttohex(dw,sizeof(dw)),debug);
+    inc(offset,4);
+    if blob<>nil then blob.algHash:=dw;
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('dwAlgHashLensh:'+inttohex(dw,sizeof(dw)),debug);
+    inc(offset,4);
+    if blob<>nil then blob.dwAlgHashLen:=dw;
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('dwHmac2KeyLen:'+inttohex(dw,sizeof(dw)),debug);
+    inc(offset,4);
+    if dw>0 then
+       begin
+       SetLength(bytes,dw);;
+       CopyMemory (@bytes[0],@buffer[offset],dw);
+       log('pbHmack2Key:'+ByteToHexaString(bytes),debug);
+       inc(offset,dw);
+       end;
+    //       i,offset:word;
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('dwDataLen:'+inttohex(dw,sizeof(dw)),debug);
+    inc(offset,4);
+    if blob<>nil then blob.dwDataLen :=dw;
+    if dw>0 then
+       begin
+       SetLength(bytes,dw);;
+       CopyMemory (@bytes[0],@buffer[offset],dw);
+       if blob<>nil then
+          begin
+          setlength(blob.pbData ,dw);
+          CopyMemory (@blob.pbData[0],@buffer[offset],dw);
+          end;
+       log('pbData:'+ByteToHexaString(bytes),debug);
+       inc(offset,dw);
+       end;
+    //
+    CopyMemory( @dw,@buffer[offset],sizeof(dw));
+    log('dwSignLen:'+inttohex(dw,sizeof(dw)),debug);
+    inc(offset,4);
+    if dw>0 then
+       begin
+       SetLength(bytes,dw);;
+       CopyMemory (@bytes[0],@buffer[offset],dw);
+       log('pbSign:'+ByteToHexaString(bytes),debug);
+       inc(offset,dw);
+       end;
+    //
+    result:=true;
+end;
+
+//function decodeblob(filename:string;var blob:tdpapi_blob):boolean;overload;
+function decodeblob(filename:string;blob:pdpapi_blob):boolean;overload;
+const
+marker:array[0..15] of byte=($D0,$8C,$9D,$DF,$01,$15,$D1,$11,$8C,$7A,$00,$C0,$4F,$C2,$97,$EB);
+var
+  //buffer:array[0..4095] of byte;
+  buffer:tbytes;
   outfile:thandle=0;
   bytesread:cardinal;
   i,offset:word;
@@ -522,133 +669,24 @@ var
   bytes:tbytes;
 begin
   //
+  log('**** decodeblob ****');
+  log('filename:'+filename);
   outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
-  if outfile=thandle(-1) then log('CreateFile:'+inttostr(getlasterror));
-  if outfile=thandle(-1) then exit;
+  if outfile=thandle(-1) then
+     begin
+     log('CreateFile:'+inttostr(getlasterror));
+     exit;
+     end;
   bytesread:=0;
-  result:=readfile(outfile ,buffer,4096,bytesread,nil);
+  setlength(buffer,4096);
+  result:=readfile(outfile ,buffer[0],length(buffer),bytesread,nil);
   closehandle(outfile);
-  if result=false then exit;
-  if bytesread=0 then exit;
+  log('bytesread:'+inttostr(bytesread));
+  log('result:'+booltostr(result));
+  if (result=false) or (bytesread=0) then exit;
   //
-  offset:=0;
-  for i:=0 to 32 do
-      begin
-        if CompareMem (@buffer[i],@marker[0],16) then begin offset:=i;break;end;
-      end;
-  if offset=0 then exit;
-  //
-  CopyMemory( @dw,@buffer[offset-4],sizeof(dw));
-  writeln('dwVersion:'+inttohex(dw,4));
-  //
-  CopyMemory( @guid,@buffer[offset],sizeof(guid));
-  writeln('GuidProvider:'+GUIDToString(guid));
-  inc(offset,16);
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwMasterKeyVersion:'+inttohex(dw,4));
-  inc(offset,4);
-  //
-  CopyMemory( @guid,@buffer[offset],sizeof(guid));
-  writeln('GuidMasterKey:'+GUIDToString(guid));
-  inc(offset,16);
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwFlags:'+inttohex(dw,4));
-  inc(offset,4);
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwDescriptionLen:'+inttostr(dw));
-  inc(offset,4);
-  if dw>0 then
-     begin
-     pw:=AllocMem (dw);
-     copymemory(pw,@buffer[offset],dw);
-     //writeln('szDescription:'+(  StringReplace ( string(widestring(pw)),'#13#10','',[]) ));
-     writeln('szDescription:'+(  string(widestring(pw)) ));
-     inc(offset,dw);
-     end;
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('algCrypt:'+inttohex(dw,sizeof(dw)));
-  inc(offset,4);
-  blob.algCrypt:=dw;
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwAlgCryptLen:'+inttohex(dw,sizeof(dw)));
-  inc(offset,4);
-  blob.dwAlgCryptLen :=dw;
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwSaltLen:'+inttohex(dw,sizeof(dw)));
-  inc(offset,4);
-  blob.dwSaltLen:=dw;
-  if dw>0 then
-     begin
-     SetLength(bytes,dw);;
-     CopyMemory (@bytes[0],@buffer[offset],dw);
-     setlength(blob.pbSalt ,dw);
-     CopyMemory (@blob.pbSalt[0],@buffer[offset],dw);
-     writeln('pbSalt:'+ByteToHexaString(bytes));
-     inc(offset,dw);
-     end;
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwHmacKeyLen:'+inttohex(dw,sizeof(dw)));
-  inc(offset,4);
-  if dw>0 then
-     begin
-     SetLength(bytes,dw);;
-     CopyMemory (@bytes[0],@buffer[offset],dw);
-     writeln('pbHmackKey:'+ByteToHexaString(bytes));
-     inc(offset,dw);
-     end;
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('algHash:'+inttohex(dw,sizeof(dw)));
-  inc(offset,4);
-  blob.algHash:=dw;
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwAlgHashLensh:'+inttohex(dw,sizeof(dw)));
-  inc(offset,4);
-  blob.dwAlgHashLen:=dw;
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwHmac2KeyLen:'+inttohex(dw,sizeof(dw)));
-  inc(offset,4);
-  if dw>0 then
-     begin
-     SetLength(bytes,dw);;
-     CopyMemory (@bytes[0],@buffer[offset],dw);
-     writeln('pbHmack2Key:'+ByteToHexaString(bytes));
-     inc(offset,dw);
-     end;
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwDataLen:'+inttohex(dw,sizeof(dw)));
-  inc(offset,4);
-  blob.dwDataLen :=dw;
-  if dw>0 then
-     begin
-     SetLength(bytes,dw);;
-     CopyMemory (@bytes[0],@buffer[offset],dw);
-     setlength(blob.pbData ,dw);
-     CopyMemory (@blob.pbData[0],@buffer[offset],dw);
-     writeln('pbData:'+ByteToHexaString(bytes));
-     inc(offset,dw);
-     end;
-  //
-  CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwSignLen:'+inttohex(dw,sizeof(dw)));
-  inc(offset,4);
-  if dw>0 then
-     begin
-     SetLength(bytes,dw);;
-     CopyMemory (@bytes[0],@buffer[offset],dw);
-     writeln('pbSign:'+ByteToHexaString(bytes));
-     inc(offset,dw);
-     end;
+  result:=decodeblob (buffer,blob);
+
 end;
 
 

