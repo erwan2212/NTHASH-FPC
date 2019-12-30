@@ -1746,7 +1746,11 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              if mode='MD2' then dw:=$00008001;
 
              if crypto_hash_ (dw,pointer(HexaStringToByte2(input)),length(input) div 2,output_,crypto_hash_len(dw))
-             then log(ByteToHexaString(output_),1)
+             then
+              begin
+              log('gethash',1);
+              log(ByteToHexaString(output_),1)
+              end
              else log('NOT OK',1);
              goto fin;
              end;
@@ -1843,6 +1847,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   //import
   if EnCryptDecrypt (dw,dw1,dw2,HexaStringToByte2(key),output_) then
      begin
+     log('getcipher',1);
      log(ByteToHexaString (output_),1);
      log(base64.EncodeStringBase64 (BytetoAnsiString (output_)),1);
      {
