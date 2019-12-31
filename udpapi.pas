@@ -7,6 +7,7 @@ interface
 uses
   Classes, SysUtils,windows,JwaWinCrypt,ucryptoapi,utils;
 
+function dpapi_unprotect_credhist_entry_with_shaDerivedkey( entry:tDPAPI_CREDHIST_ENTRY; shaDerivedkey:LPCVOID; shaDerivedkeyLen: DWORD; md4hash:PVOID; sha1hash:PVOID):boolean;
 function dpapi_unprotect_masterkey_with_shaDerivedkey(masterkey:tmasterkey;  shaDerivedkey:LPCVOID;shaDerivedkeyLen:DWORD; var output:PVOID;var outputLen:DWORD):boolean;
 function dpapi_unprotect_blob(blob:PDPAPI_BLOB;  masterkey:LPCVOID; masterkeyLen:DWORD; entropy:LPCVOID;  entropyLen:DWORD; password:LPCWSTR; var dataOut:LPVOID; var dataOutLen:DWORD):boolean;
 
@@ -468,9 +469,9 @@ log('salt:'+ByteToHexaString(tmp),0);
                                                                 pdword(asalt + saltLen)^ := bswap2(count);
                                                                 //log(inttohex(nativeuint(asalt),sizeof(nativeuint)),0);
                                                                 //log(inttohex(nativeuint(asalt + saltLen),sizeof(nativeuint)),0);
-                                                                log('(count):'+inttostr((count)),0);
-                                                                log('bswap(count):'+inttostr(bswap2(count)),0);
-                                                                log('pdword(asalt + saltLen)^:'+inttostr(pdword(asalt + saltLen)^),0);
+                                                                log('count:'+inttostr((count)),0);
+                                                                //log('bswap(count):'+inttostr(bswap2(count)),0);
+                                                                //log('pdword(asalt + saltLen)^:'+inttostr(pdword(asalt + saltLen)^),0);
 								crypto_hash_hmac(calgid, password, passwordLen, asalt, saltLen + 4, d1, sizeHmac);
                                                                 //
                                                                 setlength(tmp,sizeHmac );
@@ -535,6 +536,7 @@ log('**** dpapi_unprotect_masterkey_with_shaDerivedkey ****',0);
 	HMACLen := crypto_hash_len(HMACAlg);
 	KeyLen :=  crypto_cipher_keylen(masterkey.algCrypt);
 	BlockLen := crypto_cipher_blocklen(masterkey.algCrypt);
+
         log('HMACAlg:'+inttohex(HMACAlg,sizeof(HMACAlg)),0);
         log('HMACLen:'+inttostr(HMACLen),0);
         log('KeyLen:'+inttostr(KeyLen),0);
@@ -616,10 +618,10 @@ log('**** dpapi_unprotect_masterkey_with_shaDerivedkey ****',0);
 					end;
 				end;
 				CryptDestroyKey(hSessionKey);
-				if not crypto_close_hprov_delete_container(hSessionProv) then ;
-					//PRINT_ERROR_AUTO(L"kull_m_crypto_close_hprov_delete_container");
+				if not crypto_close_hprov_delete_container(hSessionProv) then
+					log('crypto_close_hprov_delete_container error');
 			end
-			else ;//PRINT_ERROR_AUTO(L"kull_m_crypto_hkey_session");
+			else log('crypto_hkey_session error');
 		end;
 		LocalFree(thandle(HMACHash));
 	end;
@@ -636,41 +638,56 @@ var
 	 HMACHash, CryptBuffer:PVOID;
 	 i:DWORD;
 begin
+log('**** dpapi_unprotect_credhist_entry_with_shaDerivedkey ****');
       	//HMACAlg := (entry->algHash == CALG_HMAC) ? CALG_SHA1 : entry->algHash;
         if entry.algHash =CALG_HMAC then HMACAlg:=CALG_SHA1 else HMACAlg:=entry.algHash;
 	HMACLen := crypto_hash_len(HMACAlg);
 	KeyLen :=  crypto_cipher_keylen(entry.algCrypt);
 	BlockLen := crypto_cipher_blocklen(entry.algCrypt);
 
+        log('HMACAlg:'+inttohex(HMACAlg,sizeof(HMACAlg)),0);
+        log('HMACLen:'+inttostr(HMACLen),0);
+        log('KeyLen:'+inttostr(KeyLen),0);
+        log('BlockLen:'+inttostr(BlockLen),0);
+
         HMACHash := pvoid(LocalAlloc(LPTR, KeyLen + BlockLen));
 	if HMACHash<>nil then
 	begin
 		if crypto_pkcs5_pbkdf2_hmac(HMACAlg, shaDerivedkey, shaDerivedkeyLen, @entry.salt[0], sizeof(entry.salt), entry.rounds, PBYTE(HMACHash), KeyLen + BlockLen, TRUE) then
 		begin
+                log('crypto_pkcs5_pbkdf2_hmac ok');
 			if crypto_hkey_session(entry.algCrypt, HMACHash, KeyLen, 0, hSessionKey, hSessionProv) then
 			begin
+                        log('crypto_hkey_session ok');
 				if CryptSetKeyParam(hSessionKey, KP_IV, PBYTE(HMACHash + KeyLen), 0) then
 				begin
+                                log('CryptSetKeyParam ok');
 					OutLen := entry.__dwSecretLen;
+                                        log('OutLen:'+inttostr(OutLen),0);
                                         CryptBuffer := pvoid(LocalAlloc(LPTR, OutLen));
 					if CryptBuffer<>nil then
 					begin
 						//RtlCopyMemory(CryptBuffer, entry->pSecret, OutLen);
-                                                CopyMemory(CryptBuffer, entry.pSecret, OutLen);
+                                                CopyMemory(CryptBuffer, @entry.pSecret[0], OutLen);
 						if CryptDecrypt(hSessionKey, 0, FALSE, 0, PBYTE(CryptBuffer), OutLen) then
 						begin
+                                                log('CryptDecrypt ok');
 							//RtlCopyMemory(sha1hash, CryptBuffer, min(entry->sha1Len, SHA_DIGEST_LENGTH));
                                                         CopyMemory(sha1hash, CryptBuffer, min(entry.sha1Len, SHA_DIGEST_LENGTH));
 							//RtlCopyMemory(md4hash, (PBYTE) CryptBuffer + entry->sha1Len, min(entry->md4Len, LM_NTLM_HASH_LENGTH));
-                                                        CopyMemory(md4hash, PBYTE(CryptBuffer + entry.sha1Len), min(entry.md4Len, LM_NTLM_HASH_LENGTH));
-
+                                                        //CopyMemory(md4hash, PBYTE(CryptBuffer + entry.sha1Len), min(entry.md4Len, LM_NTLM_HASH_LENGTH));
+                                                        //log('CryptBuffer:'+ByteToHexaString (CryptBuffer,min(entry.sha1Len, SHA_DIGEST_LENGTH)));
 							status := TRUE;
+
+                                                        {
+                                                        //lets skip MD4 for now
 							if bool(entry.md4Len - LM_NTLM_HASH_LENGTH) then
 								for i:= 0 to (entry.md4Len - LM_NTLM_HASH_LENGTH)-1 do
                                                                 begin
                                                                 if status=false then break;
 									status := status and not bool(PBYTE( CryptBuffer + entry.sha1Len + LM_NTLM_HASH_LENGTH + i));
                                                                 end;
+                                                        }
                                                 end;
 						LocalFree(thandle(CryptBuffer));
 					end;

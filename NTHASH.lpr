@@ -255,6 +255,7 @@ var
   sessions:asession;
   mk:tmasterkey;
   myblob:tdpapi_blob;
+  credhist:tDPAPI_CREDHIST;
   pb:pbyte;
   label fin;
 
@@ -1000,7 +1001,7 @@ begin
   log('NTHASH /enumcred2',1); //will patch lsass
   log('NTHASH /enumvault',1);
   //***************************************************
-  log('NTHASH /chrome [/binary:path_to_database]',1);
+  log('NTHASH /chrome [/binary:path_to_database] [/input:hexabytes]',1);
   log('NTHASH /ccookies [/binary:path_to_database]',1);
   log('NTHASH /firefox [/binary:path_to_database]',1);
   log('NTHASH /fcookies [/binary:path_to_database]',1);
@@ -1017,7 +1018,7 @@ begin
   log('NTHASH /dpapimk',1);  //will read mem
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
-  log('NTHASH /cryptprotectdata /input:string',1);
+  log('NTHASH /cryptprotectdata /input:string [mode:MACHINE]',1);
   log('NTHASH /decodeblob /binary:filename [/input:hexabytes]',1);
   log('NTHASH /decodemk /binary:filename [/input:hexabytes]',1);
   log('NTHASH /gethash /mode:hashid /input:hexabytes',1);
@@ -1676,11 +1677,12 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
     if p>0 then
        begin
        if binary='' then exit;
-       if input='' then decodeblob (binary,nil);
+       if input='' then
+          if decodeblob (binary,nil)=false then log('not ok',1);
         if input<>'' then
            begin
            //pblob:=getmem(sizeof(tdpapi_blob));
-           decodeblob (binary,@myblob);
+           if decodeblob (binary,@myblob)=false then begin log('not ok',1);exit;end;
            input_:=HexaStringToByte2(input);
            log('length(input_):'+inttostr(length(input_)));
            log('**** Unprotecting Blob ****',1);
@@ -1742,6 +1744,25 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
          //
          goto fin;
          end;
+      p:=pos('/decodecredhist',cmdline);
+          if p>0 then
+             begin
+             if binary='' then exit;
+             if input='' then decodecredhist (binary,nil);
+             if input<>'' then
+               begin
+               input_:=HexaStringToByte2(input);
+               decodecredhist (binary,@credhist);
+               //log(ByteToHexaString (credhist.entries [0].salt ));
+               //log(ByteToHexaString (credhist.entries [0].psecret ));
+               setlength(output_,SHA_DIGEST_LENGTH );
+               if dpapi_unprotect_credhist_entry_with_shaDerivedkey(credhist.entries [0],@input_[0],length(input_),nil,@output_[0]) then
+                 begin
+                 log('dpapi_unprotect_credhist_entry_with_shaDerivedkey OK',1);
+                 log(ByteToHexaString (output_),1);
+                 end;
+               end;
+             end;
   //************************* HASH ************************************
   p:=pos('/gethash',cmdline);
           if p>0 then
@@ -1880,7 +1901,13 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/chrome',cmdline);
   if p>0 then
    begin
-   decrypt_chrome(binary);
+   if input=''
+      then decrypt_chrome(binary)
+      else
+      begin
+      input_:=HexaStringToByte2 (input);
+      decrypt_chrome(binary,@input_[0]);
+      end;
    goto fin;
    end;
   p:=pos('/ccookies',cmdline);

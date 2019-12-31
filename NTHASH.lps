@@ -8,8 +8,8 @@
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="1706"/>
-        <CursorPos X="29" Y="1719"/>
+        <TopLine Value="1668"/>
+        <CursorPos X="20" Y="1681"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -35,9 +35,9 @@
       <Unit3>
         <Filename Value="uadvapi32.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="10"/>
-        <TopLine Value="5"/>
-        <CursorPos X="3" Y="18"/>
+        <EditorIndex Value="9"/>
+        <TopLine Value="147"/>
+        <CursorPos X="32" Y="159"/>
         <UsageCount Value="212"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -73,8 +73,8 @@
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="4"/>
-        <TopLine Value="20"/>
-        <CursorPos X="6" Y="44"/>
+        <TopLine Value="801"/>
+        <CursorPos X="102" Y="816"/>
         <UsageCount Value="236"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -123,8 +123,8 @@
         <Filename Value="uchrome.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="96"/>
-        <CursorPos X="12" Y="107"/>
+        <TopLine Value="97"/>
+        <CursorPos X="73" Y="114"/>
         <UsageCount Value="206"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -158,19 +158,18 @@
       </Unit15>
       <Unit16>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <EditorIndex Value="9"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="14800"/>
         <CursorPos X="29" Y="14815"/>
-        <UsageCount Value="167"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="166"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit16>
       <Unit17>
         <Filename Value="udpapi.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="8"/>
-        <TopLine Value="667"/>
-        <CursorPos X="44" Y="684"/>
+        <TopLine Value="644"/>
+        <CursorPos X="59" Y="679"/>
         <UsageCount Value="207"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -180,7 +179,7 @@
         <EditorIndex Value="2"/>
         <TopLine Value="31"/>
         <CursorPos X="2" Y="44"/>
-        <UsageCount Value="77"/>
+        <UsageCount Value="81"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit18>
@@ -189,136 +188,136 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="2378"/>
         <CursorPos X="6" Y="2391"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="1"/>
       </Unit19>
       <Unit20>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\struct.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="392"/>
         <CursorPos X="6" Y="405"/>
-        <UsageCount Value="6"/>
+        <UsageCount Value="5"/>
       </Unit20>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="654" Column="95" TopLine="641"/>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="486" Column="26" TopLine="473"/>
       </Position1>
       <Position2>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="656" Column="78" TopLine="643"/>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="48" Column="20" TopLine="34"/>
       </Position2>
       <Position3>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="664" Column="67" TopLine="645"/>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="528" Column="80" TopLine="515"/>
       </Position3>
       <Position4>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="669" Column="153" TopLine="653"/>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="539" Column="81" TopLine="515"/>
       </Position4>
       <Position5>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="667" Column="127" TopLine="654"/>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="41" Column="24" TopLine="25"/>
       </Position5>
       <Position6>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1708" Column="33" TopLine="1695"/>
+        <Filename Value="udpapi.pas"/>
+        <Caret Line="654" Column="22" TopLine="643"/>
       </Position6>
       <Position7>
-        <Filename Value="ulsa.pas"/>
-        <Caret Line="210" Column="3" TopLine="187"/>
+        <Filename Value="udpapi.pas"/>
+        <Caret Line="629" Column="61" TopLine="616"/>
       </Position7>
       <Position8>
-        <Filename Value="ulsa.pas"/>
-        <Caret Line="663" Column="5" TopLine="651"/>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="41" Column="9" TopLine="18"/>
       </Position8>
       <Position9>
-        <Filename Value="uadvapi32.pas"/>
-        <Caret Line="18" Column="3" TopLine="5"/>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="541" Column="29" TopLine="520"/>
       </Position9>
       <Position10>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="669" Column="131" TopLine="656"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1750" Column="16" TopLine="1712"/>
       </Position10>
       <Position11>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="172" TopLine="160"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1755" Column="66" TopLine="1742"/>
       </Position11>
       <Position12>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="178" Column="24" TopLine="160"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1754" Column="66" TopLine="1742"/>
       </Position12>
       <Position13>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="199" Column="72" TopLine="188"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1758" Column="78" TopLine="1744"/>
       </Position13>
       <Position14>
         <Filename Value="udpapi.pas"/>
-        <Caret Line="227" Column="29" TopLine="213"/>
+        <Caret Line="10" Column="59"/>
       </Position14>
       <Position15>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="190" Column="24" TopLine="170"/>
+        <Filename Value="udpapi.pas"/>
+        <Caret Line="661" Column="18" TopLine="644"/>
       </Position15>
       <Position16>
         <Filename Value="udpapi.pas"/>
-        <Caret Line="672" Column="34" TopLine="655"/>
+        <Caret Line="486" Column="21" TopLine="472"/>
       </Position16>
       <Position17>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="668" Column="51" TopLine="657"/>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="106" Column="26" TopLine="94"/>
       </Position17>
       <Position18>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="669" Column="15" TopLine="657"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1758" Column="78" TopLine="1744"/>
       </Position18>
       <Position19>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="672" Column="102" TopLine="660"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1761" Column="51" TopLine="1741"/>
       </Position19>
       <Position20>
         <Filename Value="udpapi.pas"/>
-        <Caret Line="668" Column="15" TopLine="656"/>
+        <Caret Line="679" Column="143" TopLine="660"/>
       </Position20>
       <Position21>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="682" Column="14" TopLine="667"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="43" Column="60" TopLine="38"/>
       </Position21>
       <Position22>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="679" Column="68" TopLine="667"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1004" Column="22" TopLine="984"/>
       </Position22>
       <Position23>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="190" Column="24" TopLine="170"/>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="109" Column="36" TopLine="102"/>
       </Position23>
       <Position24>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="439" Column="47" TopLine="426"/>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="51" Column="8" TopLine="37"/>
       </Position24>
       <Position25>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="12" Column="19" TopLine="4"/>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="105" Column="74" TopLine="92"/>
       </Position25>
       <Position26>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="88" Column="40" TopLine="78"/>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="122" Column="77" TopLine="99"/>
       </Position26>
       <Position27>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1708" Column="28" TopLine="1700"/>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="120" Column="29" TopLine="107"/>
       </Position27>
       <Position28>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="88" Column="10" TopLine="112"/>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="122" Column="78" TopLine="109"/>
       </Position28>
       <Position29>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="524" Column="25" TopLine="525"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1681" Column="20" TopLine="1668"/>
       </Position29>
       <Position30>
         <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="443" Column="3" TopLine="428"/>
+        <Caret Line="95" Column="10" TopLine="83"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>

@@ -48,10 +48,11 @@ Props: TSQLDBSQLite3ConnectionProperties ;
   //li:TListItem ;
   Rows: ISQLDBRows;
   //
-  blob:tdpapi_blob;
+  blob_:tdpapi_blob;
   guidMasterKey:string='';
   ptr_:pointer;
   dw:dword;
+  pwd:string;
 begin
   result:=false;
 //C:\Users\xxx\AppData\Local\Google\Chrome\User Data\Default
@@ -98,23 +99,27 @@ if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');e
       begin
       tmp:=''; //for i:=0 to length(b)-1 do b[i]:=0;
       b:=rows.ColumnBlobBytes('password_value');
-      //CryptUnprotect(b,tmp);
-      if guidMasterKey='' then
+      if mk<>nil then //mk mode...
          begin
          guidMasterKey:=' ';
-         if decodeblob (b,@blob) then guidMasterKey:=GUIDToString (blob.guidMasterKey) ;
+         if decodeblob (b,@blob_) then guidMasterKey:=GUIDToString (blob_.guidMasterKey) ;
          //log('dwDataLen:'+inttostr(blob.dwDataLen));
          //log('dwFlags:'+inttostr(blob.dwFlags ),1);
-         log('guidMasterKey:'+guidMasterKey,1);
+         //log('guidMasterKey:'+guidMasterKey,1);
          end;
       if mk<>nil then //if a decrypted MK is provided...
          begin
-         if dpapi_unprotect_blob(@blob,mk ,20,nil,0,nil,ptr_,dw) then
+         if dpapi_unprotect_blob(@blob_,mk ,20,nil,0,nil,ptr_,dw) then
             begin
             //20=sha1_length
-            if length(output)<255
-              then writeln(rows['origin_url']+';'+rows['username_value']+';'+AnsiString(ptr_^));
-            end else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLED');
+            if dw>0 then
+               begin
+               SetLength(pwd,dw);
+               zeromemory(@pwd[1],dw);
+               copymemory(@pwd[1],ptr_,dw);
+               writeln(rows['origin_url']+';'+rows['username_value']+';'+pwd+';'+guidMasterKey);
+               end;
+            end else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLED'+';'+guidMasterKey);
       end   ////if mk<>nil then
       else  //if mk<>nil then
       if CryptUnProtectData_(b,output)=true then

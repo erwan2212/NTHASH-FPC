@@ -38,10 +38,17 @@ type tmasterkey=record
 	md4Len:DWORD;
 	salt:array[0..15] of byte;
 	pSid:PSID;
-	pSecret:PBYTE;
+	pSecret:array of byte; //PBYTE;
 	__dwSecretLen:DWORD;
   end;
     pDPAPI_CREDHIST_ENTRY=^tDPAPI_CREDHIST_ENTRY;
+
+    type tDPAPI_CREDHIST =record
+    	 current:tDPAPI_CREDHIST_HEADER;
+    	 entries:array of tDPAPI_CREDHIST_ENTRY;//array[0..0] of tDPAPI_CREDHIST_ENTRY;
+    	 __dwCount:DWORD;
+    end;
+      pDPAPI_CREDHIST=^tDPAPI_CREDHIST;
 
 type tdpapi_blob=record
   	dwVersion:DWORD;
@@ -87,6 +94,7 @@ function decodecred(cred:pointer):boolean;
 function decodeblob(filename:string;blob:pdpapi_blob):boolean;overload;
 function decodeblob(buffer:tbytes; blob:pdpapi_blob):boolean;overload;
 function decodemk(filename:string; mk:pmasterkey):boolean;
+function decodecredhist(filename:string; credhist:pDPAPI_CREDHIST):boolean;
 
 function crypto_hash_len( hashId:ALG_ID):dword;
 function crypto_cipher_blocklen( hashId:ALG_ID):DWORD;
@@ -439,9 +447,102 @@ begin
   //
 end;
 
-function decodecredhist(filename:string; credhist:pdpapi_credhist_entry):boolean;
+function decodecredhist(filename:string; credhist:pDPAPI_CREDHIST):boolean;
+var
+  buffer:array[0..4095] of byte;
+  outfile:thandle=0;
+  bytesread:cardinal;
+  offset:word;
+  dw,sidlen,nextlen:dword;
+  guid_:tguid;
+  debug:byte;
+  bytes:tbytes;
 begin
-
+  log('**** decodecredhist ****');
+  if credhist=nil then debug:=1 else debug:=0;
+  //if credhist<>nil then ZeroMemory(credhist,4096);
+  //
+  outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
+  if outfile=thandle(-1) then log('CreateFile:'+inttostr(getlasterror));
+  if outfile=thandle(-1) then exit;
+  bytesread:=0;
+  result:=readfile(outfile ,buffer,4096,bytesread,nil);
+  closehandle(outfile);
+  //
+  offset:=0;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  log('dwVersion:'+inttohex(dw,4),debug);
+  inc(offset,4);
+  //
+  CopyMemory( @guid_,@buffer[offset],sizeof(guid_));
+  log('guid:'+GUIDToString(guid_),debug);
+  inc(offset,sizeof(guid_));
+  //
+  CopyMemory( @nextlen,@buffer[offset],sizeof(nextlen));
+  log('dwNextLen:'+inttohex(nextlen,4),debug);
+  inc(offset,4);
+  //if nextlen>0 we should increase array of cred entries by 1
+  if credhist <>nil then
+     begin
+     setlength(credhist.entries,1);
+     end;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  log('dwType:'+inttohex(dw,4),debug);
+  inc(offset,4);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  log('algHash:'+inttohex(dw,4),debug);
+  inc(offset,4);
+  if credhist <>nil then credhist.entries [high(credhist.entries)].algHash :=dw;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  log('rounds:'+inttohex(dw,4),debug);
+  inc(offset,4);
+  if credhist <>nil then credhist.entries [high(credhist.entries)].rounds :=dw;
+  //
+  CopyMemory( @sidlen,@buffer[offset],sizeof(sidlen));
+  log('sidLen:'+inttohex(sidlen,4),debug);
+  inc(offset,4);
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  log('algCrypt:'+inttohex(dw,4),debug);
+  inc(offset,4);
+  if credhist <>nil then credhist.entries [high(credhist.entries)].algCrypt :=dw;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  log('sha1Len:'+inttohex(dw,4),debug);
+  inc(offset,4);
+  if credhist <>nil then credhist.entries [high(credhist.entries)].sha1Len :=dw;
+  //
+  CopyMemory( @dw,@buffer[offset],sizeof(dw));
+  log('md4Len:'+inttohex(dw,4),debug);
+  inc(offset,4);
+  if credhist <>nil then credhist.entries [high(credhist.entries)].md4Len :=dw;
+  //
+  setlength(bytes,16);
+  CopyMemory( @bytes[0],@buffer[offset],16);
+  log('salt:'+ByteToHexaString (bytes),debug);
+  if credhist <>nil then CopyMemory( @credhist.entries [high(credhist.entries)].salt[0],@buffer[offset],16);
+  inc(offset,16);
+  //
+  setlength(bytes,sidlen);
+  CopyMemory( @bytes[0],@buffer[offset],sidlen);
+  log('sid:'+ByteToHexaString (bytes),debug);
+  inc(offset,sidlen);
+  //
+  setlength(bytes,$30); //hardcoded - we need to read the last 4 bytes and compute size from here
+  CopyMemory( @bytes[0],@buffer[offset],$30);
+  log('psecret:'+ByteToHexaString (bytes),debug);
+  if credhist <>nil then
+     begin
+     setlength(credhist.entries [high(credhist.entries)].pSecret,$30);
+     CopyMemory( @credhist.entries [high(credhist.entries)].pSecret[0],@buffer[offset],$30);
+     credhist.entries [high(credhist.entries)].__dwSecretLen :=$30;
+     end;
+  inc(offset,$30);
+  //
 end;
 
 function decodemk(filename:string; mk:pmasterkey):boolean;
@@ -712,6 +813,11 @@ begin
   log('**** decodeblob ****');
   log('filename:'+filename);
   outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
+  //if outfile=thandle(-1) then outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_HIDDEN , 0);
+  //if outfile=thandle(-1) then outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_SYSTEM , 0);
+  //if outfile=thandle(-1) then   outFile := CreateFile(pchar(filename), GENERIC_READ, FILE_SHARE_READ , nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
+  //if outfile=thandle(-1) then   outFile := CreateFile(pchar(filename), GENERIC_READ, FILE_SHARE_READ or FILE_SHARE_WRITE , nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
+  //if outfile=thandle(-1) then   outFile := CreateFile(pchar(filename), GENERIC_READ, FILE_SHARE_READ or FILE_SHARE_WRITE or FILE_SHARE_DELETE , nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
   if outfile=thandle(-1) then
      begin
      log('CreateFile:'+inttostr(getlasterror));
