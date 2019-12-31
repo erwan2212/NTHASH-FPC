@@ -9,6 +9,7 @@ interface
 uses
   windows,Classes, SysUtils,JwaWinCrypt,jwabcrypt,utils;
 
+//light version...
 type tmasterkey=record
   szGuid:tguid;
   //dwMasterKeyLen:dword;
@@ -18,6 +19,29 @@ type tmasterkey=record
   algCrypt:dword;
   pbKey:array of byte;
   end;
+  pmasterkey=^tmasterkey;
+
+  type tDPAPI_CREDHIST_HEADER =record
+  	dwVersion:DWORD;
+  	guid_:GUID;
+  	dwNextLen:DWORD;
+  end;
+
+  type tDPAPI_CREDHIST_ENTRY=record
+    	header:tDPAPI_CREDHIST_HEADER;
+	dwType:DWORD; // flags ?
+	algHash:ALG_ID;
+	rounds:DWORD;
+	sidLen:DWORD;
+	algCrypt:ALG_ID;
+	sha1Len:DWORD;
+	md4Len:DWORD;
+	salt:array[0..15] of byte;
+	pSid:PSID;
+	pSecret:PBYTE;
+	__dwSecretLen:DWORD;
+  end;
+    pDPAPI_CREDHIST_ENTRY=^tDPAPI_CREDHIST_ENTRY;
 
 type tdpapi_blob=record
   	dwVersion:DWORD;
@@ -62,7 +86,7 @@ function decodecred(cred:pointer):boolean;
 //function decodeblob(filename:string;var blob:tdpapi_blob):boolean;overload;
 function decodeblob(filename:string;blob:pdpapi_blob):boolean;overload;
 function decodeblob(buffer:tbytes; blob:pdpapi_blob):boolean;overload;
-function decodemk(filename:string;var mk:tmasterkey):boolean;
+function decodemk(filename:string; mk:pmasterkey):boolean;
 
 function crypto_hash_len( hashId:ALG_ID):dword;
 function crypto_cipher_blocklen( hashId:ALG_ID):DWORD;
@@ -163,6 +187,10 @@ const
   CALG_SHA1                 = ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA1;
   //CALG_HMAC=	$00008009;
   //CALG_MAC=	$00008005;
+
+const
+SHA_DIGEST_LENGTH=20;
+LM_NTLM_HASH_LENGTH=16;
 
 const
 PROV_RSA_AES = 24;
@@ -411,7 +439,12 @@ begin
   //
 end;
 
-function decodemk(filename:string;var mk:tmasterkey):boolean;
+function decodecredhist(filename:string; credhist:pdpapi_credhist_entry):boolean;
+begin
+
+end;
+
+function decodemk(filename:string; mk:pmasterkey):boolean;
 var
   buffer:array[0..4095] of byte;
   outfile:thandle=0;
@@ -420,7 +453,11 @@ var
   dw:dword;
   pw:pwidechar;
   bytes:tbytes;
+  debug:byte;
 begin
+  log('**** decodemk ****');
+  if mk=nil then debug:=1 else debug:=0;
+  if mk<>nil then ZeroMemory(mk,sizeof(tmasterkey));
   //
   outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
   if outfile=thandle(-1) then log('CreateFile:'+inttostr(getlasterror));
@@ -432,25 +469,25 @@ begin
   offset:=0;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwVersion:'+inttohex(dw,4));
+  log('dwVersion:'+inttohex(dw,4),debug);
   inc(offset,4);
   //
   inc(offset,8); //dummy
   //
   pw:=AllocMem ($48);
   CopyMemory(pw,@buffer[offset],$48);
-  writeln('szGuid:'+string(widestring(pw)));
+  log('szGuid:'+string(widestring(pw)),debug);
   inc(offset,$48);
-  mk.szGuid :=StringToGUID ('{'+string(widestring(pw))+'}') ;
+  if mk<>nil then mk.szGuid :=StringToGUID ('{'+string(widestring(pw))+'}') ;
   //
   inc(offset,8); //dummy
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwFlags:'+inttohex(dw,4));
+  log('dwFlags:'+inttohex(dw,4),debug);
   inc(offset,4);
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwMasterKeyLen:'+inttohex(dw,4));
+  log('dwMasterKeyLen:'+inttohex(dw,4),debug);
   //mk.dwMasterKeyLen:=dw;
   inc(offset,4);
   MasterKeyLen:=dw-32;
@@ -458,54 +495,57 @@ begin
   inc(offset,4); //dummy
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwBackupKeyLen:'+inttohex(dw,4));
+  log('dwBackupKeyLen:'+inttohex(dw,4),debug);
   inc(offset,4);
   //
   inc(offset,4); //dummy
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwCredHistLen:'+inttohex(dw,4));
+  log('dwCredHistLen:'+inttohex(dw,4),debug);
   inc(offset,4);
   //
   inc(offset,4); //dummy
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwDomainKeyLen:'+inttohex(dw,4));
+  log('dwDomainKeyLen:'+inttohex(dw,4),debug);
   inc(offset,4);
   //
   inc(offset,4); //dummy
   //
-  writeln('MasterKey');
+  log('MasterKey',debug);
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('dwVersion:'+inttohex(dw,4));
+  log('dwVersion:'+inttohex(dw,4),debug);
   inc(offset,4);
   //
   SetLength(bytes,16);;
   CopyMemory (@bytes[0],@buffer[offset],16);
-  writeln('Salt:'+ByteToHexaString(bytes));
-  CopyMemory (@mk.Salt[0],@buffer[offset],16);
+  log('Salt:'+ByteToHexaString(bytes),debug);
+  if mk<>nil then CopyMemory (@mk.Salt[0],@buffer[offset],16);
   inc(offset,16);
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('rounds:'+inttohex(dw,4));
+  log('rounds:'+inttohex(dw,4),debug);
   inc(offset,4);
-  mk.rounds:=dw;
+  if mk<>nil then mk.rounds:=dw;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('algHash:'+inttohex(dw,4));
+  log('algHash:'+inttohex(dw,4),debug);
   inc(offset,4);
-  mk.algHash:=dw;
+  if mk<>nil then mk.algHash:=dw;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
-  writeln('algCrypt:'+inttohex(dw,4));
+  log('algCrypt:'+inttohex(dw,4),debug);
   inc(offset,4);
-  mk.algCrypt:=dw;
+  if mk<>nil then mk.algCrypt:=dw;
   //
   SetLength(bytes,MasterKeyLen);;
   CopyMemory (@bytes[0],@buffer[offset],MasterKeyLen);
-  writeln('pbKey:'+ByteToHexaString(bytes));
-  setlength(mk.pbKey,MasterKeyLen);
-  CopyMemory (@mk.pbKey[0],@buffer[offset],MasterKeyLen);
+  log('pbKey:'+ByteToHexaString(bytes),debug);
+  if mk<>nil then
+     begin
+     setlength(mk.pbKey,MasterKeyLen);
+     CopyMemory (@mk.pbKey[0],@buffer[offset],MasterKeyLen);
+     end;
   inc(offset,MasterKeyLen);
   //
 end;

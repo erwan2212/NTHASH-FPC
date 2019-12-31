@@ -169,8 +169,6 @@ end;
 
 
 function dpapi_hmac_sha1_incorrect(key:LPCVOID;  keyLen:DWORD;  salt:LPCVOID;  saltLen:DWORD;  entropy:LPCVOID;  entropyLen:DWORD;  data:LPCVOID;  dataLen:DWORD;  outKey:LPVOID):boolean;
-const
-  SHA_DIGEST_LENGTH=20;
 var
 	status:BOOL = FALSE;
 	ipad:array [0..63] of byte;
@@ -222,8 +220,6 @@ begin
 end;
 
 function dpapi_sessionkey(masterkey:LPCVOID; masterkeyLen:DWORD; salt:LPCVOID;  saltLen:DWORD;  entropy:LPCVOID;  entropyLen:DWORD;  data:LPCVOID;  dataLen:DWORD;  hashAlg:ALG_ID;  outKey:LPVOID;  outKeyLen:DWORD):boolean;
-const
-  SHA_DIGEST_LENGTH=20;
 var
 	status:BOOL = FALSE;
 	pKey:LPCVOID = nil;
@@ -624,6 +620,66 @@ log('**** dpapi_unprotect_masterkey_with_shaDerivedkey ****',0);
 					//PRINT_ERROR_AUTO(L"kull_m_crypto_close_hprov_delete_container");
 			end
 			else ;//PRINT_ERROR_AUTO(L"kull_m_crypto_hkey_session");
+		end;
+		LocalFree(thandle(HMACHash));
+	end;
+	result:= status;
+end;
+
+function dpapi_unprotect_credhist_entry_with_shaDerivedkey( entry:tDPAPI_CREDHIST_ENTRY; shaDerivedkey:LPCVOID; shaDerivedkeyLen: DWORD; md4hash:PVOID; sha1hash:PVOID):boolean;
+var
+	 status:BOOL = FALSE;
+	 hSessionProv:HCRYPTPROV;
+	 hSessionKey:HCRYPTKEY;
+	 HMACAlg:ALG_ID;
+	 HMACLen, BlockLen, KeyLen, OutLen:DWORD;
+	 HMACHash, CryptBuffer:PVOID;
+	 i:DWORD;
+begin
+      	//HMACAlg := (entry->algHash == CALG_HMAC) ? CALG_SHA1 : entry->algHash;
+        if entry.algHash =CALG_HMAC then HMACAlg:=CALG_SHA1 else HMACAlg:=entry.algHash;
+	HMACLen := crypto_hash_len(HMACAlg);
+	KeyLen :=  crypto_cipher_keylen(entry.algCrypt);
+	BlockLen := crypto_cipher_blocklen(entry.algCrypt);
+
+        HMACHash := pvoid(LocalAlloc(LPTR, KeyLen + BlockLen));
+	if HMACHash<>nil then
+	begin
+		if crypto_pkcs5_pbkdf2_hmac(HMACAlg, shaDerivedkey, shaDerivedkeyLen, @entry.salt[0], sizeof(entry.salt), entry.rounds, PBYTE(HMACHash), KeyLen + BlockLen, TRUE) then
+		begin
+			if crypto_hkey_session(entry.algCrypt, HMACHash, KeyLen, 0, hSessionKey, hSessionProv) then
+			begin
+				if CryptSetKeyParam(hSessionKey, KP_IV, PBYTE(HMACHash + KeyLen), 0) then
+				begin
+					OutLen := entry.__dwSecretLen;
+                                        CryptBuffer := pvoid(LocalAlloc(LPTR, OutLen));
+					if CryptBuffer<>nil then
+					begin
+						//RtlCopyMemory(CryptBuffer, entry->pSecret, OutLen);
+                                                CopyMemory(CryptBuffer, entry.pSecret, OutLen);
+						if CryptDecrypt(hSessionKey, 0, FALSE, 0, PBYTE(CryptBuffer), OutLen) then
+						begin
+							//RtlCopyMemory(sha1hash, CryptBuffer, min(entry->sha1Len, SHA_DIGEST_LENGTH));
+                                                        CopyMemory(sha1hash, CryptBuffer, min(entry.sha1Len, SHA_DIGEST_LENGTH));
+							//RtlCopyMemory(md4hash, (PBYTE) CryptBuffer + entry->sha1Len, min(entry->md4Len, LM_NTLM_HASH_LENGTH));
+                                                        CopyMemory(md4hash, PBYTE(CryptBuffer + entry.sha1Len), min(entry.md4Len, LM_NTLM_HASH_LENGTH));
+
+							status := TRUE;
+							if bool(entry.md4Len - LM_NTLM_HASH_LENGTH) then
+								for i:= 0 to (entry.md4Len - LM_NTLM_HASH_LENGTH)-1 do
+                                                                begin
+                                                                if status=false then break;
+									status := status and not bool(PBYTE( CryptBuffer + entry.sha1Len + LM_NTLM_HASH_LENGTH + i));
+                                                                end;
+                                                end;
+						LocalFree(thandle(CryptBuffer));
+					end;
+				end;
+				CryptDestroyKey(hSessionKey);
+				if crypto_close_hprov_delete_container(hSessionProv)=false then
+					log('crypto_close_hprov_delete_container error');
+			end
+			else log('crypto_hkey_session error');
 		end;
 		LocalFree(thandle(HMACHash));
 	end;

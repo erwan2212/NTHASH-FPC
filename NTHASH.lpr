@@ -1675,6 +1675,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/decodeblob',cmdline);
     if p>0 then
        begin
+       if binary='' then exit;
        if input='' then decodeblob (binary,nil);
         if input<>'' then
            begin
@@ -1685,7 +1686,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
            log('**** Unprotecting Blob ****',1);
            if dpapi_unprotect_blob(@myblob,@input_[0] ,length(input_),nil,0,nil,ptr_,dw) then
              begin
-             log('dpapi_unprotect_blob ok',1);
+             log('dpapi_unprotect_blob ok');
              //SetLength(output_,dw);
              //CopyMemory(@output_[0],ptr_,dw);
              //log('Blob:'+ByteToHexaString (output_),1);
@@ -1704,10 +1705,22 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/decodemk',cmdline);
       if p>0 then
          begin
-         decodemk (binary,mk);
+         if binary='' then exit;
+         if input='' then
+            if decodemk (binary,nil)=false then
+            begin
+            log('not ok',1);
+            exit;
+            end;
+
          //
          if input<>'' then
            begin
+           if decodemk (binary,@mk)=false then
+              begin
+              log('not ok',1);
+              exit;
+              end;
            input_:=HexaStringToByte2(input);
            log('length(input_):'+inttostr(length(input_)));
            log('**** Unprotecting MasterKey ****',1);
@@ -1715,7 +1728,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              if dpapi_unprotect_masterkey_with_shaDerivedkey(mk,@input_[0],length(input_),ptr_,dw)
                 then
                  begin
-                 log('dpapi_unprotect_masterkey_with_shaDerivedkey ok',1);
+                 log('dpapi_unprotect_masterkey_with_shaDerivedkey ok',0);
                  log('dw:'+inttostr(dw));
                  //SetLength(output_,dw);
                  //CopyMemory(@output_[0],ptr_,dw);
@@ -1735,7 +1748,6 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              begin
               if input='' then exit;
               if mode='' then exit;
-             //SHA_DIGEST_LENGTH=20
              dw:=0;
              if mode='SHA512' then dw:=$0000800e;
              if mode='SHA256' then dw:=$0000800c;

@@ -660,7 +660,6 @@ const
  PTRN_WI60_MasterKeyCacheList_x86:array [0..9] of byte= ($8b, $f0, $81, $fe, $cc, $06, $00, $00, $0f, $84);
 //
   CALG_SHA1 = $00008004;
-  SHA_DIGEST_LENGTH = 20;
 var
   module:string='dpapisrv.dll';
   pattern:array of byte;
