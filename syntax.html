@@ -6,7 +6,8 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200101;14501162">
+	<META NAME="CHANGED" CONTENT="20200101;15160845">
+	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<STYLE TYPE="text/css">
 	<!--
@@ -15,23 +16,23 @@
 	</STYLE>
 </HEAD>
 <BODY LANG="fr-FR" DIR="LTR">
-<PRE CLASS="western" STYLE="font-style: normal; font-weight: normal"><FONT COLOR="#000000"><A HREF="#setntlm">setntlm</A> </FONT>
+<PRE CLASS="western"><FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#setntlm">setntlm</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#changentlm">changentlm</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000">getntlmhash /password:password</FONT>
 <FONT COLOR="#000000">getsid /user:username [/server:hostname]</FONT>
 <FONT COLOR="#000000">getusers [/server:hostname]</FONT>
 <FONT COLOR="#000000">getdomains [/server:hostname</FONT>
-<FONT COLOR="#000000"><A HREF="#dumpsam">dumpsam</A></FONT>
-<FONT COLOR="#000000"><A HREF="#dumphashes">dumphashes</A> </FONT>
+<A HREF="#dumpsam"><FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal">dumpsam</SPAN></SPAN></FONT></A>
+<FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#dumphashes">dumphashes</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000">getsamkey [/offline]</FONT>
 <FONT COLOR="#000000">getsyskey [/offline]</FONT>
 <FONT COLOR="#000000">getlsakeys</FONT>
-<FONT COLOR="#000000">wdigest</FONT>
-<FONT COLOR="#000000">logonpasswords</FONT>
+<FONT COLOR="#000000"><A HREF="#wdigest">wdigest</A></FONT>
+<FONT COLOR="#000000"><A HREF="#logonpasswords">logonpasswords</A></FONT>
 <FONT COLOR="#000000">pth /user:username /password:myhash /domain:mydomain</FONT>
-<FONT COLOR="#000000">enumcred</FONT>
-<FONT COLOR="#000000">enumcred2</FONT>
-<FONT COLOR="#000000">enumvault</FONT>
+<FONT COLOR="#000000"><A HREF="#enumcred">enumcred</A></FONT>
+<FONT COLOR="#000000"><A HREF="#enumcred2">enumcred2</A></FONT>
+<FONT COLOR="#000000"><A HREF="#enumvault">enumvault</A></FONT>
 <FONT COLOR="#000000">chrome [/binary:path_to_database]</FONT>
 <FONT COLOR="#000000">ccookies [/binary:path_to_database]</FONT>
 <FONT COLOR="#000000">firefox [/binary:path_to_database]</FONT>
@@ -46,8 +47,8 @@
 <FONT COLOR="#000000">base64decode /input:base64string</FONT>
 <FONT COLOR="#000000">getlsasecret /input:secret</FONT>
 <FONT COLOR="#000000">dpapimk</FONT>
-<FONT COLOR="#000000"><A HREF="#cryptunprotectdata">cryptunprotectdata</A> </FONT>
-<FONT COLOR="#000000"><A HREF="#cryptprotectdata">cryptprotectdata</A> </FONT>
+<FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptunprotectdata">cryptunprotectdata</A> </SPAN></SPAN></FONT>
+<FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptprotectdata">cryptprotectdata</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000">decodeblob /binary:filename [/input:hexabytes]</FONT>
 <FONT COLOR="#000000">decodemk /binary:filename [/input:hexabytes]</FONT>
 <FONT COLOR="#000000">gethash /mode:hashid /input:hexabytes</FONT>
@@ -56,10 +57,10 @@
 <FONT COLOR="#000000">getlsasecret /input:secret</FONT>
 <FONT COLOR="#000000">dpapi_system</FONT>
 <FONT COLOR="#000000">runasuser /user:username /password:password [/binary: x:\folder\bin.exe]</FONT>
-<FONT COLOR="#000000">runastoken /pid:12345 [/binary: x:\folder\bin.exe]</FONT>
-<FONT COLOR="#000000">runaschild /pid:12345 [/binary: x:\folder\bin.exe]</FONT>
-<FONT COLOR="#000000">runas [/binary: x:\folder\bin.exe]</FONT>
-<FONT COLOR="#000000">runts /user:session_id [/binary: x:\folder\bin.exe]</FONT>
+<FONT COLOR="#000000"><A HREF="#runastoken">runastoken</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#runaschild">runaschild</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#runas">runas</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#runts">runts</A> </FONT>
 <FONT COLOR="#000000">enumpriv</FONT>
 <FONT COLOR="#000000">enumproc</FONT>
 <FONT COLOR="#000000">dumpproc /pid:12345</FONT>
@@ -89,16 +90,16 @@
 <FONT COLOR="#000000">Retrieve the xml keyMaterial value and run nthash /cryptunprotectdata /input:keymateriel /system .</FONT>
 <FONT COLOR="#000000">Note that this data is encrypted/decrypted under the system account.</FONT>
 
-<FONT COLOR="#000000">enumcred will use CredEnumerate windows API to enumerate the logged on user credentials.</FONT>
-<FONT COLOR="#000000">enumcred2 will use CredEnumerate windows API to enumerate the logged on user credentials while also patching lsass to dump all credentials</FONT>
+<A NAME="enumcred"></A><FONT COLOR="#000000">enumcred will use CredEnumerate windows API to enumerate the logged on user credentials.</FONT>
+<A NAME="enumcred2"></A><FONT COLOR="#000000">enumcred2 will use CredEnumerate windows API to enumerate the logged on user credentials while also patching lsass to dump all credentials</FONT>
 
-<FONT COLOR="#000000">enumvault will use vaultcli.dll windows API to enumerate the logged on user vault credentials.</FONT>
+<A NAME="enumvault"></A><FONT COLOR="#000000">enumvault will use vaultcli.dll windows API to enumerate the logged on user vault credentials.</FONT>
 
-<FONT COLOR="#000000">logonpasswords will dump lsasrv logon sessions primary credentials (hashes) and credential managers (clear text)</FONT>
+<A NAME="logonpasswords"></A><FONT COLOR="#000000">logonpasswords will dump lsasrv logon sessions primary credentials (hashes) and credential managers (clear text)</FONT>
 
-<FONT COLOR="#000000">wdigest will dump wdigest sessions credentials (clear text)</FONT>
+<A NAME="wdigest"></A><FONT COLOR="#000000">wdigest will dump wdigest sessions credentials (clear text)</FONT>
 
-<FONT COLOR="#000000">runastoken can be used to run a process under a system account.</FONT>
+<A NAME="runastoken"></A><FONT COLOR="#000000">runastoken can be used to run a process under a system account.</FONT>
 <FONT COLOR="#000000">Once under a system account, you can also &quot;steal&quot; a token from trustedinstaller (net start trustedinstaller before hand.</FONT>
 <FONT COLOR="#000000">Note that you can steal a trustedinstaller token directly by using the /system switch.</FONT>
 <FONT COLOR="#000000">With a trustedinstaller token, you can perform actions like stop windefend (or kill the process, or modify the AV settings, etc).</FONT>
@@ -107,13 +108,13 @@
 <FONT COLOR="#000000">net start trustedinstaller</FONT>
 <FONT COLOR="#000000">for /F &quot;tokens=1&quot; %%K in (' nthash-win64 /enumproc ^| findstr /i &quot;trustedinstaller&quot; ') do ( nthash-win64 /runastoken /pid:%%K /system )</FONT>
 
-<FONT COLOR="#000000">runaschild can be used to run a process as a child of another existing/parent process.</FONT>
+<A NAME="runaschild"></A><FONT COLOR="#000000">runaschild can be used to run a process as a child of another existing/parent process.</FONT>
 <FONT COLOR="#000000">Note that some apps (like cmd.exe) will crash right after initialization with a c0000142.</FONT>
 <FONT COLOR="#000000">Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...</FONT>
 
-<FONT COLOR="#000000">runas will launch a process in elevated mode.</FONT>
+<A NAME="runas"></A><FONT COLOR="#000000">runas will launch a process in elevated mode.</FONT>
 
-<FONT COLOR="#000000">runts will launch a process in the context of another TS session.</FONT>
+<A NAME="runts"></A><FONT COLOR="#000000">runts will launch a process in the context of another TS session.</FONT>
 <FONT COLOR="#000000">Note that this one needs the setcbprivilege so you will have to find a token with such privilege first (like winlogon.exe).</FONT></PRE><P>
 <BR><BR>
 </P>
