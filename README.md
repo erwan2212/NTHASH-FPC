@@ -68,7 +68,7 @@ NTHASH /a_command /system <br/>
 
 <br/>
 
-Commands are commented with more details <a href="https://erwan2212.github.io/NTHASH-FPC/syntax.html">here</A>.
+Commands are commented with more details <a href="https://erwan2212.github.io/NTHASH-FPC/syntax.html" target=_blank>here</A>.
 
 <br/>
 
