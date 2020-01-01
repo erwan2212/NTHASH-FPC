@@ -6,7 +6,7 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200101;23034280">
+	<META NAME="CHANGED" CONTENT="20200101;23283804">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -36,10 +36,10 @@
 <A HREF="#enumcred"><FONT COLOR="#000000">enumcred</FONT></A>
 <A HREF="#enumcred2"><FONT COLOR="#000000">enumcred2</FONT></A>
 <A HREF="#enumvault"><FONT COLOR="#000000">enumvault</FONT></A>
-<FONT COLOR="#000000">chrome [/binary:path_to_database]</FONT>
-<FONT COLOR="#000000">ccookies [/binary:path_to_database]</FONT>
-<FONT COLOR="#000000">firefox [/binary:path_to_database]</FONT>
-<FONT COLOR="#000000">fcookies [/binary:path_to_database]</FONT>
+<FONT COLOR="#000000"><A HREF="#chrome">chrome</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#ccookies">ccookies</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#firefox">firefox</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#fcookies">fcookies</A> </FONT>
 <FONT COLOR="#000000">bytetostring /input:hexabytes</FONT>
 <FONT COLOR="#000000">stringtobyte /input:string</FONT>
 <FONT COLOR="#000000">filetobyte /binary:filename</FONT>
@@ -71,59 +71,68 @@
 <FONT COLOR="#000000">context</FONT>
 
 <A NAME="changentlm"></A>
-<FONT COLOR="#000000">changentlm, using a legacy api, may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607.</FONT>
+<FONT COLOR="#000000"><B>changentlm</B>, using a legacy api (SamiChangePasswordUser), may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607.</FONT>
 <FONT COLOR="#000000">Credits goes to https://github.com/vletoux/NTLMInjector</FONT>
 <A NAME="setntlm"></A>
-<FONT COLOR="#000000">setntlm on the other hand should always work and allow one to bypass password policy.</FONT>
+<FONT COLOR="#000000"><B>setntlm</B> on the other hand should always work (using SamSetInformationUser)  and allow one to bypass password policy.</FONT>
 <FONT COLOR="#000000">Credits goes to <A HREF="https://github.com/vletoux/NTLMInjector">https://github.com/vletoux/NTLMInjector</A></FONT>
 
-<A NAME="getntlmhash"></A><FONT COLOR="#000000">getntlmhash will generate a ntlm hash.</FONT>
+<A NAME="getntlmhash"></A><FONT COLOR="#000000"><B>getntlmhash</B> will generate a ntlm hash.</FONT>
 <FONT COLOR="#000000">Advapi32.dll undocumented function SystemFunction007 is used.</FONT>
 
-<A NAME="getsid"></A><FONT COLOR="#000000">getsid will provide the sid of a user.</FONT>
+<A NAME="getsid"></A><FONT COLOR="#000000"><B>getsid</B> will provide the sid of a user.</FONT>
 
-<A NAME="getusers"></A><FONT COLOR="#000000">getusers will provide a list of users.</FONT>
+<A NAME="getusers"></A><FONT COLOR="#000000"><B>getusers</B> will provide a list of users.</FONT>
 <FONT COLOR="#000000">Samlib.dll SamEnumerateUsersInDomain function is used.</FONT>
 
-<A NAME="getdomains"></A><FONT COLOR="#000000">getdomains will provide a list of domains.</FONT>
+<A NAME="getdomains"></A><FONT COLOR="#000000"><B>getdomains</B> will provide a list of domains.</FONT>
 <FONT COLOR="#000000">Samlib.dll SamEnumerateDomainsInSamServer function is used.</FONT>
 <A NAME="dumpsam"></A>
-<FONT COLOR="#000000">dumpsam will temporarily patch a module in lsass to be able to dump your SAM ntlm hashes from the lsass memory (need to cover/test as many windows version as possible).</FONT>
+<FONT COLOR="#000000"><B>dumpsam</B> will temporarily patch a module in lsass to be able to dump your SAM ntlm hashes from the lsass memory (need to cover/test as many windows version as possible).</FONT>
 
-<A NAME="dumphash"></A><A NAME="dumphashes"></A><FONT COLOR="#000000">dumphash and dumphashes will read the registry - you need to run as system to perform this action</FONT>
+<A NAME="dumphash"></A><A NAME="dumphashes"></A><FONT COLOR="#000000"><B>dumphash</B> and <B>dumphashes</B> will read the registry - you need to run as system to perform this action</FONT>
 <FONT COLOR="#000000">. Or you can use the /system switch</FONT>
 <FONT COLOR="#000000">. You can also perform this offline (and then no longer require to run as system).</FONT>
 <FONT COLOR="#000000">You can use reg save hklm\sam sam.sav and reg save hklm\system system.sav to generate offline hives.</FONT>
 <FONT COLOR="#000000">Both the RC4 and AES cipher are supported.</FONT>
 <FONT COLOR="#000000">https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/ is a must read to understand RC4 vs AES.</FONT>
 
-<A NAME="getsamkey"></A><FONT COLOR="#000000">getsamkey (also known as hashed bootkey) will read/decrypt SAM\sam\Domains\account\F.</FONT>
+<A NAME="getsamkey"></A><FONT COLOR="#000000"><B>getsamkey</B> (also known as hashed bootkey) will read/decrypt SAM\sam\Domains\account\F.</FONT>
 <FONT COLOR="#000000">Both AES and RC4 encryptions are supported.</FONT>
 <FONT COLOR="#000000">Samkey is required to dumphashes.</FONT>
 
-<A NAME="getsyskey"></A><FONT COLOR="#000000">getsyskey (also known as bootkey) will read/decode class attribute from SYSTEM\CurrentControlSet\Control\Lsa.</FONT>
+<A NAME="getsyskey"></A><FONT COLOR="#000000"><B>getsyskey</B> (also known as bootkey) will read/decode class attribute from SYSTEM\CurrentControlSet\Control\Lsa.</FONT>
 <FONT COLOR="#000000">Syskey is required to retrieve the samkey.</FONT>
 
-<A NAME="getlsakeys"></A><FONT COLOR="#000000">getlsakeys will read lsa keys from lsass memory (aes,des,iv).</FONT>
+<A NAME="getlsakeys"></A><FONT COLOR="#000000"><B>getlsakeys</B> will read lsa keys from lsass memory (aes,des,iv).</FONT>
 <FONT COLOR="#000000">These are required for logonpasswords, wdigest, dpapimk.</FONT>
 
-<A NAME="cryptunprotectdata"></A><A NAME="cryptprotectdata"></A><FONT COLOR="#000000">cryptunprotectdata and cryptprotectdata will decrypt datas using dpapi under the runnin user context.</FONT>
+<A NAME="cryptunprotectdata"></A><A NAME="cryptprotectdata"></A><FONT COLOR="#000000"><B>cryptunprotectdata</B> and <B>cryptprotectdata</B> will decrypt datas using dpapi under the runnin user context.</FONT>
 <FONT COLOR="#000000">You can for example decrypt the wireless stored password in C:\ProgramData\Microsoft\Wlansvc\Profiles\Interfaces{INTERFACE UUID} .</FONT>
 <FONT COLOR="#000000">Retrieve the xml keyMaterial value and run nthash /cryptunprotectdata /input:keymateriel /system .</FONT>
 <FONT COLOR="#000000">Note that this data is encrypted/decrypted under the system account.</FONT>
 
-<A NAME="enumcred"></A><FONT COLOR="#000000">enumcred will use CredEnumerate windows API to enumerate the logged on user credentials.</FONT>
-<A NAME="enumcred2"></A><FONT COLOR="#000000">enumcred2 will use CredEnumerate windows API to enumerate the logged on user credentials while also patching lsass to dump all credentials</FONT>
+<A NAME="enumcred"></A><FONT COLOR="#000000"><B>enumcred</B> will use CredEnumerate windows API to enumerate the logged on user credentials.</FONT>
 
-<A NAME="enumvault"></A><FONT COLOR="#000000">enumvault will use vaultcli.dll windows API to enumerate the logged on user vault credentials.</FONT>
+<A NAME="enumcred2"></A><FONT COLOR="#000000"><B>enumcred2</B> will use CredEnumerate windows API to enumerate the logged on user credentials while also patching lsass to dump all credentials</FONT>
 
-<A NAME="logonpasswords"></A><FONT COLOR="#000000">logonpasswords will dump lsasrv logon sessions primary credentials (hashes) and credential managers (clear text)</FONT>
+<A NAME="enumvault"></A><FONT COLOR="#000000"><B>enumvault</B> will use vaultcli.dll windows API to enumerate the logged on user vault credentials.</FONT>
 
-<A NAME="pth"></A><FONT COLOR="#000000">pth will create a suspended process with dummy credentials, dump logon sessions, path the session matching the suspended process with new credentials (ntlm hashed password).</FONT>
+<A NAME="chrome"></A><FONT COLOR="#000000"><B>chrome</B> will decrypt chrome browser passwords either online (using cryptunprotectdata) or offline (using decodeblob).</FONT>
 
-<A NAME="wdigest"></A><FONT COLOR="#000000">wdigest will dump wdigest sessions credentials (clear text)</FONT>
+<A NAME="ccookies"></A><FONT COLOR="#000000"><B>ccookies</B> will decrypt chrome browser cookies online (using cryptunprotectdata).</FONT>
 
-<A NAME="runastoken"></A><FONT COLOR="#000000">runastoken can be used to run a process under a system account.</FONT>
+<A NAME="firefox"></A><A NAME="chrome1"></A><FONT COLOR="#000000"><B>firefox</B> will decrypt firefox browser passwords.</FONT>
+
+<A NAME="fcookies"></A><FONT COLOR="#000000"><B>fcookies</B> will decrypt firefox browser cookies.</FONT>
+
+<A NAME="logonpasswords"></A><FONT COLOR="#000000"><B>logonpasswords</B> will dump (from lsass memory) lsasrv logon sessions primary credentials (hashes) and credential managers (clear text)</FONT>
+
+<A NAME="pth"></A><FONT COLOR="#000000"><B>pth</B> will create a suspended process with dummy credentials, dump logon sessions, path the session matching the suspended process with new credentials (ntlm hashed password).</FONT>
+
+<A NAME="wdigest"></A><FONT COLOR="#000000"><B>wdigest</B> will dump (from lsass memory) wdigest sessions credentials (clear text).</FONT>
+
+<A NAME="runastoken"></A><FONT COLOR="#000000"><B>runastoken</B> can be used to run a process under a system account.</FONT>
 <FONT COLOR="#000000">Once under a system account, you can also &quot;steal&quot; a token from trustedinstaller (net start trustedinstaller before hand.</FONT>
 <FONT COLOR="#000000">Note that you can steal a trustedinstaller token directly by using the /system switch.</FONT>
 <FONT COLOR="#000000">With a trustedinstaller token, you can perform actions like stop windefend (or kill the process, or modify the AV settings, etc).</FONT>
@@ -132,13 +141,13 @@
 <FONT COLOR="#000000">net start trustedinstaller</FONT>
 <FONT COLOR="#000000">for /F &quot;tokens=1&quot; %%K in (' nthash-win64 /enumproc ^| findstr /i &quot;trustedinstaller&quot; ') do ( nthash-win64 /runastoken /pid:%%K /system )</FONT>
 
-<A NAME="runaschild"></A><FONT COLOR="#000000">runaschild can be used to run a process as a child of another existing/parent process.</FONT>
+<A NAME="runaschild"></A><FONT COLOR="#000000"><B>runaschild</B> can be used to run a process as a child of another existing/parent process.</FONT>
 <FONT COLOR="#000000">Note that some apps (like cmd.exe) will crash right after initialization with a c0000142.</FONT>
 <FONT COLOR="#000000">Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...</FONT>
 
-<A NAME="runas"></A><FONT COLOR="#000000">runas will launch a process in elevated mode.</FONT>
+<A NAME="runas"></A><FONT COLOR="#000000"><B>runas</B> will launch a process in elevated mode.</FONT>
 
-<A NAME="runts"></A><FONT COLOR="#000000">runts will launch a process in the context of another TS session.</FONT>
+<A NAME="runts"></A><FONT COLOR="#000000"><B>runts</B> will launch a process in the context of another TS session.</FONT>
 <FONT COLOR="#000000">Note that this one needs the setcbprivilege so you will have to find a token with such privilege first (like winlogon.exe).</FONT></PRE><P>
 <BR><BR>
 </P>
