@@ -6,7 +6,8 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200102;84603">
+	<META NAME="CHANGED" CONTENT="20200102;95266">
+	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -29,11 +30,11 @@
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#dumphashes">dumphashes</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000"><A HREF="#getsamkey">getsamkey</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#getsyskey">getsyskey</A> </FONT>
-<FONT COLOR="#000000"><A HREF="#dumpsecret">dumpsecret</A></FONT>
+<A HREF="#dumpsecret"><FONT COLOR="#000000">dumpsecret</FONT></A>
 <A HREF="#getlsakeys"><FONT COLOR="#000000">getlsakeys</FONT></A>
 <A HREF="#wdigest"><FONT COLOR="#000000">wdigest</FONT></A>
 <A HREF="#logonpasswords"><FONT COLOR="#000000">logonpasswords</FONT></A>
-<FONT COLOR="#000000"><A HREF="#pth">pth</A></FONT>
+<A HREF="#pth"><FONT COLOR="#000000">pth</FONT></A>
 <A HREF="#enumcred"><FONT COLOR="#000000">enumcred</FONT></A>
 <A HREF="#enumcred2"><FONT COLOR="#000000">enumcred2</FONT></A>
 <A HREF="#enumvault"><FONT COLOR="#000000">enumvault</FONT></A>
@@ -41,16 +42,16 @@
 <FONT COLOR="#000000"><A HREF="#ccookies">ccookies</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#firefox">firefox</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#fcookies">fcookies</A> </FONT>
-<FONT COLOR="#000000"><A HREF="#bytetostring">bytetostring</A></FONT>
-<FONT COLOR="#000000"><A HREF="#stringtobyte">stringtobyte</A></FONT>
-<FONT COLOR="#000000"><A HREF="#filetobyte">filetobyte</A></FONT>
-<FONT COLOR="#000000"><A HREF="#bytetofile">bytetofile</A></FONT>
-<FONT COLOR="#000000"><A HREF="#widestringtobyte">widestringtobyte</A></FONT>
-<FONT COLOR="#000000"><A HREF="#base64encodew">base64encodew</A></FONT>
-<FONT COLOR="#000000"><A HREF="#base64encode">base64encode</A></FONT>
-<FONT COLOR="#000000"><A HREF="#base64decode">base64decode</A></FONT>
+<A HREF="#bytetostring"><FONT COLOR="#000000">bytetostring</FONT></A>
+<A HREF="#stringtobyte"><FONT COLOR="#000000">stringtobyte</FONT></A>
+<A HREF="#filetobyte"><FONT COLOR="#000000">filetobyte</FONT></A>
+<A HREF="#bytetofile"><FONT COLOR="#000000">bytetofile</FONT></A>
+<A HREF="#widestringtobyte"><FONT COLOR="#000000">widestringtobyte</FONT></A>
+<A HREF="#base64encodew"><FONT COLOR="#000000">base64encodew</FONT></A>
+<A HREF="#base64encode"><FONT COLOR="#000000">base64encode</FONT></A>
+<A HREF="#base64decode"><FONT COLOR="#000000">base64decode</FONT></A>
 <FONT COLOR="#000000"><A HREF="#getlsasecret">getlsasecret</A> </FONT>
-<FONT COLOR="#000000"><A HREF="#dpapimk">dpapimk</A></FONT>
+<A HREF="#dpapimk"><FONT COLOR="#000000">dpapimk</FONT></A>
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptunprotectdata">cryptunprotectdata</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptprotectdata">cryptprotectdata</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000">decodeblob /binary:filename [/input:hexabytes]</FONT>
@@ -71,8 +72,8 @@
 <FONT COLOR="#000000">runwmi /binary: x:\folder\bin.exe [/server:hostname]</FONT>
 <FONT COLOR="#000000">context</FONT>
 
-<A NAME="changentlm"></A>
-<FONT COLOR="#000000"><B>changentlm</B>, using a legacy api (SamiChangePasswordUser), may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607.</FONT>
+
+<FONT COLOR="#000000"><B>changentlm</B></FONT><FONT COLOR="#000000">, using a legacy api (SamiChangePasswordUser), may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607.</FONT>
 <FONT COLOR="#000000">Credits goes to https://github.com/vletoux/NTLMInjector</FONT>
 <A NAME="setntlm"></A>
 <FONT COLOR="#000000"><B>setntlm</B> on the other hand should always work (using SamSetInformationUser)  and allow one to bypass password policy.</FONT>
@@ -170,8 +171,7 @@
 
 <A NAME="base64encode"></A><FONT COLOR="#000000"><B>base64encode</B> will convert a string to base64</FONT>
 
-<A NAME="base64decode"></A><FONT COLOR="#000000"><B>base64decode</B> will convert a base64 string to a string</FONT>
-</PRE><P>
+<A NAME="base64decode"></A><FONT COLOR="#000000"><B>base64decode</B> will convert a base64 string to a string</FONT></PRE><P>
 <BR><BR>
 </P>
 </BODY>
