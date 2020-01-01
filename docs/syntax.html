@@ -6,7 +6,7 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200101;23310329">
+	<META NAME="CHANGED" CONTENT="20200101;23364465">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -29,6 +29,7 @@
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#dumphashes">dumphashes</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000"><A HREF="#getsamkey">getsamkey</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#getsyskey">getsyskey</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#dumpsecret">dumpsecret</A></FONT>
 <A HREF="#getlsakeys"><FONT COLOR="#000000">getlsakeys</FONT></A>
 <A HREF="#wdigest"><FONT COLOR="#000000">wdigest</FONT></A>
 <A HREF="#logonpasswords"><FONT COLOR="#000000">logonpasswords</FONT></A>
@@ -102,7 +103,9 @@
 <FONT COLOR="#000000">Samkey is required to dumphashes.</FONT>
 
 <A NAME="getsyskey"></A><FONT COLOR="#000000"><B>getsyskey</B> (also known as bootkey) will read/decode class attribute from SYSTEM\CurrentControlSet\Control\Lsa.</FONT>
-<FONT COLOR="#000000">Syskey is required to retrieve the samkey.</FONT>
+<FONT COLOR="#000000">Syskey is required to retrieve the samkey and dumpsecret.</FONT>
+
+<A NAME="dumpsecret"></A><FONT COLOR="#000000"><B>dumpsecret</B> will decrypt secret from the registry (Security\Policy\secrets).</FONT>
 
 <A NAME="getlsakeys"></A><FONT COLOR="#000000"><B>getlsakeys</B> will read lsa keys from lsass memory (aes,des,iv).</FONT>
 <FONT COLOR="#000000">These are required for logonpasswords, wdigest, dpapimk.</FONT>
