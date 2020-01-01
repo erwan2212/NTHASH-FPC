@@ -6,7 +6,8 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200101;15160845">
+	<META NAME="CHANGED" CONTENT="20200101;15335074">
+	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<STYLE TYPE="text/css">
@@ -24,15 +25,15 @@
 <FONT COLOR="#000000">getdomains [/server:hostname</FONT>
 <A HREF="#dumpsam"><FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal">dumpsam</SPAN></SPAN></FONT></A>
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#dumphashes">dumphashes</A> </SPAN></SPAN></FONT>
-<FONT COLOR="#000000">getsamkey [/offline]</FONT>
+<FONT COLOR="#000000"><A HREF="#getsamkey">getsamkey</A> [/offline]</FONT>
 <FONT COLOR="#000000">getsyskey [/offline]</FONT>
 <FONT COLOR="#000000">getlsakeys</FONT>
-<FONT COLOR="#000000"><A HREF="#wdigest">wdigest</A></FONT>
-<FONT COLOR="#000000"><A HREF="#logonpasswords">logonpasswords</A></FONT>
+<A HREF="#wdigest"><FONT COLOR="#000000">wdigest</FONT></A>
+<A HREF="#logonpasswords"><FONT COLOR="#000000">logonpasswords</FONT></A>
 <FONT COLOR="#000000">pth /user:username /password:myhash /domain:mydomain</FONT>
-<FONT COLOR="#000000"><A HREF="#enumcred">enumcred</A></FONT>
-<FONT COLOR="#000000"><A HREF="#enumcred2">enumcred2</A></FONT>
-<FONT COLOR="#000000"><A HREF="#enumvault">enumvault</A></FONT>
+<A HREF="#enumcred"><FONT COLOR="#000000">enumcred</FONT></A>
+<A HREF="#enumcred2"><FONT COLOR="#000000">enumcred2</FONT></A>
+<A HREF="#enumvault"><FONT COLOR="#000000">enumvault</FONT></A>
 <FONT COLOR="#000000">chrome [/binary:path_to_database]</FONT>
 <FONT COLOR="#000000">ccookies [/binary:path_to_database]</FONT>
 <FONT COLOR="#000000">firefox [/binary:path_to_database]</FONT>
@@ -84,6 +85,9 @@
 <FONT COLOR="#000000">You can use reg save hklm\sam sam.sav and reg save hklm\system system.sav to generate offline hives.</FONT>
 <FONT COLOR="#000000">Both the RC4 and AES cipher are supported.</FONT>
 <FONT COLOR="#000000">https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/ is a must read to understand RC4 vs AES.</FONT>
+
+<A NAME="getsamkey"></A><FONT COLOR="#000000">getsamkey (also known as bootkey) will read/decrypt SAM\sam\Domains\account\F.</FONT>
+<FONT COLOR="#000000">Both AES and RC4 encryptions are supported.</FONT>
 
 <A NAME="cryptunprotectdata"></A><A NAME="cryptprotectdata"></A><FONT COLOR="#000000">cryptunprotectdata and cryptprotectdata will decrypt datas using dpapi under the runnin user context.</FONT>
 <FONT COLOR="#000000">You can for example decrypt the wireless stored password in C:\ProgramData\Microsoft\Wlansvc\Profiles\Interfaces{INTERFACE UUID} .</FONT>
