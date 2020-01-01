@@ -6,7 +6,7 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200101;23364465">
+	<META NAME="CHANGED" CONTENT="20200102;34217">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -41,14 +41,14 @@
 <FONT COLOR="#000000"><A HREF="#ccookies">ccookies</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#firefox">firefox</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#fcookies">fcookies</A> </FONT>
-<FONT COLOR="#000000">bytetostring /input:hexabytes</FONT>
-<FONT COLOR="#000000">stringtobyte /input:string</FONT>
-<FONT COLOR="#000000">filetobyte /binary:filename</FONT>
-<FONT COLOR="#000000">bytetofile /input:hexabytes</FONT>
-<FONT COLOR="#000000">widestringtobyte /input:string</FONT>
-<FONT COLOR="#000000">base64encodew /input:string</FONT>
-<FONT COLOR="#000000">base64encode /input:string</FONT>
-<FONT COLOR="#000000">base64decode /input:base64string</FONT>
+<FONT COLOR="#000000">bytetostring</FONT>
+<FONT COLOR="#000000">stringtobyte</FONT>
+<FONT COLOR="#000000">filetobyte</FONT>
+<FONT COLOR="#000000">bytetofile</FONT>
+<FONT COLOR="#000000">widestringtobyte</FONT>
+<FONT COLOR="#000000">base64encodew</FONT>
+<FONT COLOR="#000000">base64encode</FONT>
+<FONT COLOR="#000000">base64decode</FONT>
 <FONT COLOR="#000000">getlsasecret /input:secret</FONT>
 <FONT COLOR="#000000"><A HREF="#dpapimk">dpapimk</A></FONT>
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptunprotectdata">cryptunprotectdata</A> </SPAN></SPAN></FONT>
@@ -153,7 +153,23 @@
 <A NAME="runas"></A><FONT COLOR="#000000"><B>runas</B> will launch a process in elevated mode.</FONT>
 
 <A NAME="runts"></A><FONT COLOR="#000000"><B>runts</B> will launch a process in the context of another TS session.</FONT>
-<FONT COLOR="#000000">Note that this one needs the setcbprivilege so you will have to find a token with such privilege first (like winlogon.exe).</FONT></PRE><P>
+<FONT COLOR="#000000">Note that this one needs the setcbprivilege so you will have to find a token with such privilege first (like winlogon.exe).</FONT>
+<A NAME="bytetostring"></A><FONT COLOR="#000000"><B>bytetostring</B> will convert hexadecimal to a string</FONT>
+
+<A NAME="stringtobyte"></A><FONT COLOR="#000000"><B>stringtobyte</B> will convert a string to hexadecimal</FONT>
+
+<A NAME="filetobyte"></A><FONT COLOR="#000000"><B>filetobyte</B> will convert file content to hexadecimal</FONT>
+
+<A NAME="bytetofile"></A><FONT COLOR="#000000"><B>bytetofile</B> will convert hexacimal to a file</FONT>
+
+<A NAME="widestringtobyte"></A><FONT COLOR="#000000"><B>widestringtobyte</B> will convert a string to unicode hexadecimal</FONT>
+
+<A NAME="base64encodew"></A><FONT COLOR="#000000"><B>base64encodew</B> will convert a string to unicode base64</FONT>
+
+<A NAME="base64encode"></A><FONT COLOR="#000000"><B>base64encode</B> will convert a string to base64</FONT>
+
+<A NAME="base64decode"></A><FONT COLOR="#000000"><B>base64decode</B> will convert a base64 string to a string</FONT>
+</PRE><P>
 <BR><BR>
 </P>
 </BODY>
