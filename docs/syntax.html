@@ -6,7 +6,7 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200101;23002265">
+	<META NAME="CHANGED" CONTENT="20200101;23034280">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -32,7 +32,7 @@
 <A HREF="#getlsakeys"><FONT COLOR="#000000">getlsakeys</FONT></A>
 <A HREF="#wdigest"><FONT COLOR="#000000">wdigest</FONT></A>
 <A HREF="#logonpasswords"><FONT COLOR="#000000">logonpasswords</FONT></A>
-<FONT COLOR="#000000">pth /user:username /password:myhash /domain:mydomain</FONT>
+<FONT COLOR="#000000"><A HREF="#pth">pth</A></FONT>
 <A HREF="#enumcred"><FONT COLOR="#000000">enumcred</FONT></A>
 <A HREF="#enumcred2"><FONT COLOR="#000000">enumcred2</FONT></A>
 <A HREF="#enumvault"><FONT COLOR="#000000">enumvault</FONT></A>
@@ -118,6 +118,8 @@
 <A NAME="enumvault"></A><FONT COLOR="#000000">enumvault will use vaultcli.dll windows API to enumerate the logged on user vault credentials.</FONT>
 
 <A NAME="logonpasswords"></A><FONT COLOR="#000000">logonpasswords will dump lsasrv logon sessions primary credentials (hashes) and credential managers (clear text)</FONT>
+
+<A NAME="pth"></A><FONT COLOR="#000000">pth will create a suspended process with dummy credentials, dump logon sessions, path the session matching the suspended process with new credentials (ntlm hashed password).</FONT>
 
 <A NAME="wdigest"></A><FONT COLOR="#000000">wdigest will dump wdigest sessions credentials (clear text)</FONT>
 
