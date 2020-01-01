@@ -6,7 +6,7 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200101;15380385">
+	<META NAME="CHANGED" CONTENT="20200101;15445523">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -27,7 +27,7 @@
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#dumphashes">dumphashes</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000"><A HREF="#getsamkey">getsamkey</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#getsyskey">getsyskey</A> </FONT>
-<FONT COLOR="#000000">getlsakeys</FONT>
+<FONT COLOR="#000000"><A HREF="#getlsakeys">getlsakeys</A></FONT>
 <A HREF="#wdigest"><FONT COLOR="#000000">wdigest</FONT></A>
 <A HREF="#logonpasswords"><FONT COLOR="#000000">logonpasswords</FONT></A>
 <FONT COLOR="#000000">pth /user:username /password:myhash /domain:mydomain</FONT>
@@ -88,8 +88,13 @@
 
 <A NAME="getsamkey"></A><FONT COLOR="#000000">getsamkey (also known as hashed bootkey) will read/decrypt SAM\sam\Domains\account\F.</FONT>
 <FONT COLOR="#000000">Both AES and RC4 encryptions are supported.</FONT>
+<FONT COLOR="#000000">Samkey is required to dumphashes.</FONT>
 
 <A NAME="getsyskey"></A><FONT COLOR="#000000">getsyskey (also known as bootkey) will read/decode class attribute from SYSTEM\CurrentControlSet\Control\Lsa.</FONT>
+<FONT COLOR="#000000">Syskey is required to retrieve the samkey.</FONT>
+
+<A NAME="getlsakeys"></A><FONT COLOR="#000000">getlsakeys will read lsa keys from lsass memory (aes,des,iv).</FONT>
+<FONT COLOR="#000000">These are required for logonpasswords, wdigest, dpapimk.</FONT>
 
 <A NAME="cryptunprotectdata"></A><A NAME="cryptprotectdata"></A><FONT COLOR="#000000">cryptunprotectdata and cryptprotectdata will decrypt datas using dpapi under the runnin user context.</FONT>
 <FONT COLOR="#000000">You can for example decrypt the wireless stored password in C:\ProgramData\Microsoft\Wlansvc\Profiles\Interfaces{INTERFACE UUID} .</FONT>
