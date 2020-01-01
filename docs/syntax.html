@@ -6,7 +6,7 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200102;34217">
+	<META NAME="CHANGED" CONTENT="20200102;84603">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -41,15 +41,15 @@
 <FONT COLOR="#000000"><A HREF="#ccookies">ccookies</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#firefox">firefox</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#fcookies">fcookies</A> </FONT>
-<FONT COLOR="#000000">bytetostring</FONT>
-<FONT COLOR="#000000">stringtobyte</FONT>
-<FONT COLOR="#000000">filetobyte</FONT>
-<FONT COLOR="#000000">bytetofile</FONT>
-<FONT COLOR="#000000">widestringtobyte</FONT>
-<FONT COLOR="#000000">base64encodew</FONT>
-<FONT COLOR="#000000">base64encode</FONT>
-<FONT COLOR="#000000">base64decode</FONT>
-<FONT COLOR="#000000">getlsasecret /input:secret</FONT>
+<FONT COLOR="#000000"><A HREF="#bytetostring">bytetostring</A></FONT>
+<FONT COLOR="#000000"><A HREF="#stringtobyte">stringtobyte</A></FONT>
+<FONT COLOR="#000000"><A HREF="#filetobyte">filetobyte</A></FONT>
+<FONT COLOR="#000000"><A HREF="#bytetofile">bytetofile</A></FONT>
+<FONT COLOR="#000000"><A HREF="#widestringtobyte">widestringtobyte</A></FONT>
+<FONT COLOR="#000000"><A HREF="#base64encodew">base64encodew</A></FONT>
+<FONT COLOR="#000000"><A HREF="#base64encode">base64encode</A></FONT>
+<FONT COLOR="#000000"><A HREF="#base64decode">base64decode</A></FONT>
+<FONT COLOR="#000000"><A HREF="#getlsasecret">getlsasecret</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#dpapimk">dpapimk</A></FONT>
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptunprotectdata">cryptunprotectdata</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptprotectdata">cryptprotectdata</A> </SPAN></SPAN></FONT>
@@ -136,6 +136,8 @@
 <A NAME="wdigest"></A><FONT COLOR="#000000"><B>wdigest</B> will dump (from lsass memory) wdigest sessions credentials (clear text).</FONT>
 
 <A NAME="dpapimk"></A><FONT COLOR="#000000"><B>dpapimk</B> will dump (from lsass memory) dpapi decrypted masterkey's.</FONT>
+
+<A NAME="getlsasecret"></A><FONT COLOR="#000000"><B>getlsasecret</B> will retrieve lsa secrets online via windows api lsaRetrievePrivateData.</FONT>
 
 <A NAME="runastoken"></A><FONT COLOR="#000000"><B>runastoken</B> can be used to run a process under a system account.</FONT>
 <FONT COLOR="#000000">Once under a system account, you can also &quot;steal&quot; a token from trustedinstaller (net start trustedinstaller before hand.</FONT>
