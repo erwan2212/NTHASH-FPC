@@ -1,7 +1,9 @@
 # NTHASH-FPC <br/>
 A tribute to https://github.com/gentilkiwi/mimikatz... <br/>
-And generally speaking a tool to handle windows passwords and perform lateral movement. <br/>
-https://attack.mitre.org/matrices/enterprise/windows/ is definitely worth reading as well. <br/>
+And generally speaking a tool to handle hashes and ciphers with a particular focus on windows secrets and lateral movement. <br/>
+https://attack.mitre.org/matrices/enterprise/windows/ is definitely worth reading when about lateral movement. <br/>
+
+I wrote a series of articles <a href="http://labalec.fr/erwan/?s=nthash&searchsubmit=">here</a> to illustrate what can be done with nthash.
 
 <br/>
 Command line as below: <br/>
