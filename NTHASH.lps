@@ -8,8 +8,9 @@
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="1228"/>
-        <CursorPos X="35" Y="1244"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="1198"/>
+        <CursorPos X="16" Y="1215"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -111,10 +112,9 @@
         <Filename Value="ulsa.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="uLSA"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="5"/>
         <TopLine Value="43"/>
-        <CursorPos X="38" Y="53"/>
+        <CursorPos X="15" Y="51"/>
         <UsageCount Value="208"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>

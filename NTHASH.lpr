@@ -1203,7 +1203,7 @@ begin
        end;
   //************* ENCODE/DECODE ***********************************************
   //FiletoHexaString ('encrypted.blob');
-  p:=pos('/filetobyte',cmdline);
+  p:=pos('/filetohexa',cmdline);
     if p>0 then
        begin
        if binary='' then exit;
@@ -1212,7 +1212,7 @@ begin
           then log('not ok',1);
        goto fin;
        end;
-  p:=pos('/bytetofile',cmdline);
+  p:=pos('/hexatofile',cmdline);
     if p>0 then
        begin
        if input='' then exit;
