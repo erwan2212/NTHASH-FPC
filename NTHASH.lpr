@@ -1337,7 +1337,7 @@ begin
               log('SAMKey:'+ByteToHexaString(samkey) ,1);
               if dumphash(samkey,strtoint(rid),ntlmhash,user)
                  then log('NTHASH:'+user+':'+rid+'::'+ByteToHexaString(ntlmhash) ,1)
-                 else log('gethash NOT OK' ,1);
+                 else log('dumphash NOT OK' ,1);
               end //if getsamkey(syskey,samkey)
            else log('getsamkey NOT OK' ,1);
         end //if getsyskey(syskey) then

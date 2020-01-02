@@ -6,7 +6,7 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200102;17183883">
+	<META NAME="CHANGED" CONTENT="20200102;18354347">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -55,13 +55,11 @@
 <A HREF="#dpapimk"><FONT COLOR="#000000">dpapimk</FONT></A>
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptunprotectdata">cryptunprotectdata</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptprotectdata">cryptprotectdata</A> </SPAN></SPAN></FONT>
-<FONT COLOR="#000000">decodeblob /binary:filename [/input:hexabytes]</FONT>
-<FONT COLOR="#000000">decodemk /binary:filename [/input:hexabytes]</FONT>
-<FONT COLOR="#000000">gethash /mode:hashid /input:hexabytes</FONT>
-<FONT COLOR="#000000">gethmac /mode:hashid /input:hexabytes /key:hexabytes</FONT>
-<FONT COLOR="#000000">getcipher /mode:cipherid /input:hexabytes /key:hexabytes</FONT>
-<FONT COLOR="#000000">getlsasecret /input:secret</FONT>
-<FONT COLOR="#000000">dpapi_system</FONT>
+<FONT COLOR="#000000"><A HREF="#decodeblob">decodeblob</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#decodemk">decodemk</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#gethash">gethash</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#gethmac">gethmac</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#getcipher">getcipher</A> </FONT>
 <FONT COLOR="#000000">runasuser /user:username /password:password [/binary: x:\folder\bin.exe]</FONT>
 <FONT COLOR="#000000"><A HREF="#runastoken">runastoken</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#runaschild">runaschild</A> </FONT>
@@ -107,7 +105,8 @@
 <A NAME="getsyskey"></A><FONT COLOR="#000000"><B>getsyskey</B> (also known as bootkey) will read/decode class attribute from SYSTEM\CurrentControlSet\Control\Lsa.</FONT>
 <FONT COLOR="#000000">Syskey is required to retrieve the samkey and dumpsecret.</FONT>
 
-<A NAME="dumpsecret"></A><FONT COLOR="#000000"><B>dumpsecret</B> will decrypt secret from the registry (Security\Policy\secrets).</FONT>
+<A NAME="dumpsecret"></A><FONT COLOR="#000000"><B>dumpsecret</B> will decrypt secret from the registry (Security\Policy\secrets), online of offline.</FONT>
+<FONT COLOR="#000000">Use dumpsecret /input:dpapi_system to retrieve the dpapi system keys (user and computer) to decrypt system masterkeys.</FONT>
 
 <A NAME="getlsakeys"></A><FONT COLOR="#000000"><B>getlsakeys</B> will read lsa keys from lsass memory (aes,des,iv).</FONT>
 <FONT COLOR="#000000">These are required for logonpasswords, wdigest, dpapimk.</FONT>
@@ -116,6 +115,33 @@
 <FONT COLOR="#000000">You can for example decrypt the wireless stored password in C:\ProgramData\Microsoft\Wlansvc\Profiles\Interfaces{INTERFACE UUID} .</FONT>
 <FONT COLOR="#000000">Retrieve the xml keyMaterial value and run nthash /cryptunprotectdata /input:keymateriel /system .</FONT>
 <FONT COLOR="#000000">Note that this data is encrypted/decrypted under the system account.</FONT>
+
+<A NAME="decodeblob"></A><FONT COLOR="#000000"><B>decodeblob</B> will decode an encrypted dpapi blob.</FONT>
+<FONT COLOR="#000000">If the decrypted masterkey is provided, it will also decrypt the blob and decode it.</FONT>
+<FONT COLOR="#000000">CryptDecrypt from cryptoapi is used.</FONT>
+
+<A NAME="decodemk"></A><FONT COLOR="#000000"><B>decodemk</B> will decode an encrypted dpapi masterley.</FONT>
+<FONT COLOR="#000000">If a pre key is provided, it will also decrypt the masterkey and decode it.</FONT>
+<FONT COLOR="#000000">CryptDecrypt from cryptoapi is used.</FONT>
+
+<A NAME="gethash"></A><FONT COLOR="#000000"><B>gethash</B> will hash a message.</FONT>
+<FONT COLOR="#000000">Supported hashes are SHA512, SHA256, SHA384, SHA1, MD5, MD4, MD2.</FONT>
+<FONT COLOR="#000000">CryptGetHashParam from cryptoapi is used.</FONT>
+<FONT COLOR="#000000">This function is internally used in many other crypt functions.</FONT>
+
+<A NAME="gethmac"></A><FONT COLOR="#000000"><B>gethmac</B> will generate a keyed-hash message authentication code.</FONT>
+<FONT COLOR="#000000">Supported hashes are SHA512, SHA256, SHA384, SHA1, MD5, MD4, MD2.</FONT>
+<FONT COLOR="#000000">CryptGetHashParam from cryptoapi is used.</FONT>
+<FONT COLOR="#000000">This function is internally used in many other crypt functions.</FONT>
+
+<A NAME="getcipher"></A><FONT COLOR="#000000"><B>getcipher</B> will</FONT>
+<FONT COLOR="#000000">Supported algo's are RC2, RC4, RC5, DES, 3DES, 3DES112, AES, AES128, AE256.</FONT>
+<FONT COLOR="#000000">Supported hashes are SHA512, SHA256, SHA384, SHA1, MD5 (default), MD4, MD2.</FONT>
+<FONT COLOR="#000000">You can alter the cipher mode by setting a dos var CRYPT_MODE with CBC, ECB (default), OFB, CFB, CTS.</FONT>
+<FONT COLOR="#000000">CryptEncrypt from cryptoapi is used.</FONT>
+
+<FONT COLOR="#000000"><B>getlsasecret</B> will retrieve lsa secrets using LsaRetrievePrivateData api.</FONT>
+<FONT COLOR="#000000">Use <SPAN STYLE="font-weight: normal">getlsasecret</SPAN> /input:dpapi_system to retrieve the dpapi system keys (user and computer) to decrypt system masterkeys. </FONT>
 
 <A NAME="enumcred"></A><FONT COLOR="#000000"><B>enumcred</B> will use CredEnumerate windows API to enumerate the logged on user credentials.</FONT>
 
@@ -139,9 +165,7 @@
 
 <A NAME="dpapimk"></A><FONT COLOR="#000000"><B>dpapimk</B> will dump (from lsass memory) dpapi decrypted masterkey's.</FONT>
 
-<A NAME="getlsasecret"></A><FONT COLOR="#000000"><B>getlsasecret</B> will retrieve lsa secrets online via windows api lsaRetrievePrivateData.</FONT>
-
-<A NAME="runastoken"></A><FONT COLOR="#000000"><B>runastoken</B> can be used to run a process under a system account.</FONT>
+<A NAME="runastoken"></A><FONT COLOR="#000000"><B>runastoken</B></FONT><FONT COLOR="#000000"> can be used to run a process under a system account.</FONT>
 <FONT COLOR="#000000">Once under a system account, you can also &quot;steal&quot; a token from trustedinstaller (net start trustedinstaller before hand.</FONT>
 <FONT COLOR="#000000">Note that you can steal a trustedinstaller token directly by using the /system switch.</FONT>
 <FONT COLOR="#000000">With a trustedinstaller token, you can perform actions like stop windefend (or kill the process, or modify the AV settings, etc).</FONT>
