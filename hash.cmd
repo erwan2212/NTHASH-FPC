@@ -4,7 +4,7 @@
  rem echo %input%
  set l=3
  set c=0
- for /f "delims=" %%1 in ('NTHASH-win64.exe /stringtobyte /input:%input%') do (
+ for /f "delims=" %%1 in ('NTHASH-win64.exe /stringtohexa /input:%input%') do (
    rem set /a c+=1 && if "!c!" equ "%l%" echo %%1%
    set /a c+=1 && if "!c!" equ "%l%" set ret=%%1%
  )

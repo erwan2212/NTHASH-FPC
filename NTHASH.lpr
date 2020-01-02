@@ -1221,30 +1221,30 @@ begin
           then log('data.blob written',1) else log('not ok',1);
        goto fin;
        end;
-  p:=pos('/bytetostring',cmdline);
+  p:=pos('/hexatostring',cmdline);
   if p>0 then
      begin
      if input='' then exit;
      //log('BytetoString:'+BytetoAnsiString (HexaStringToByte (input)),1);
-     log('BytetoString',1);
+     log('hexatostring',1);
      log(BytetoAnsiString (HexaStringToByte (input)),1);
      goto fin;
      end;
-  p:=pos('/stringtobyte',cmdline);
+  p:=pos('/stringtohexa',cmdline);
   if p>0 then
      begin
      if input='' then exit;
      //log('StringtoByte:'+ ByteToHexaString ( AnsiStringtoByte(input)),1);
-     log('StringtoByte',1);
+     log('stringtohexa',1);
      log(ByteToHexaString ( AnsiStringtoByte(input)),1);
      goto fin;
      end;
-  p:=pos('/widestringtobyte',cmdline);
+  p:=pos('/widestringtohexa',cmdline);
   if p>0 then
      begin
      if input='' then exit;
      //log('widestringtobyte:'+ ByteToHexaString ( AnsiStringtoByte(input,true)),1);
-     log('widestringtobyte',1);
+     log('widestringtohexa',1);
      log(ByteToHexaString ( AnsiStringtoByte(input,true)),1);
      goto fin;
      end;
