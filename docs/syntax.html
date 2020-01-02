@@ -6,7 +6,7 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200102;18354347">
+	<META NAME="CHANGED" CONTENT="20200102;19352096">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -60,7 +60,7 @@
 <FONT COLOR="#000000"><A HREF="#gethash">gethash</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#gethmac">gethmac</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#getcipher">getcipher</A> </FONT>
-<FONT COLOR="#000000">runasuser /user:username /password:password [/binary: x:\folder\bin.exe]</FONT>
+<FONT COLOR="#000000"><A HREF="#runasuser">runasuser</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#runastoken">runastoken</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#runaschild">runaschild</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#runas">runas</A> </FONT>
@@ -165,6 +165,10 @@
 
 <A NAME="dpapimk"></A><FONT COLOR="#000000"><B>dpapimk</B> will dump (from lsass memory) dpapi decrypted masterkey's.</FONT>
 
+<A NAME="runasuser"></A><FONT COLOR="#000000"><B>runasuser</B> will simply run a process with the provided cleartext credentials.</FONT>
+<FONT COLOR="#000000">Similar to the windows runas command.</FONT>
+
+
 <A NAME="runastoken"></A><FONT COLOR="#000000"><B>runastoken</B></FONT><FONT COLOR="#000000"> can be used to run a process under a system account.</FONT>
 <FONT COLOR="#000000">Once under a system account, you can also &quot;steal&quot; a token from trustedinstaller (net start trustedinstaller before hand.</FONT>
 <FONT COLOR="#000000">Note that you can steal a trustedinstaller token directly by using the /system switch.</FONT>
@@ -179,6 +183,7 @@
 <FONT COLOR="#000000">Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...</FONT>
 
 <A NAME="runas"></A><FONT COLOR="#000000"><B>runas</B> will launch a process in elevated mode.</FONT>
+<FONT COLOR="#000000">That command should actually be renamed runaselevated.</FONT>
 
 <A NAME="runts"></A><FONT COLOR="#000000"><B>runts</B> will launch a process in the context of another TS session.</FONT>
 <FONT COLOR="#000000">Note that this one needs the setcbprivilege so you will have to find a token with such privilege first (like winlogon.exe).</FONT>
