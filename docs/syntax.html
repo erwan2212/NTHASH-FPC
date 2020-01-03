@@ -6,7 +6,7 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200102;19352096">
+	<META NAME="CHANGED" CONTENT="20200103;16445098">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -65,9 +65,9 @@
 <FONT COLOR="#000000"><A HREF="#runaschild">runaschild</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#runas">runas</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#runts">runts</A> </FONT>
-<FONT COLOR="#000000">enumpriv</FONT>
-<FONT COLOR="#000000">enumproc</FONT>
-<FONT COLOR="#000000">dumpproc /pid:12345</FONT>
+<FONT COLOR="#000000"><A HREF="#enumpriv">enumpriv</A></FONT>
+<FONT COLOR="#000000"><A HREF="#enumproc">enumproc</A></FONT>
+<FONT COLOR="#000000"><A HREF="#dumpproc">dumpproc</A> </FONT>
 <FONT COLOR="#000000">runwmi /binary: x:\folder\bin.exe [/server:hostname]</FONT>
 <FONT COLOR="#000000">context</FONT>
 
@@ -95,17 +95,17 @@
 <FONT COLOR="#000000">. Or you can use the /system switch</FONT>
 <FONT COLOR="#000000">. You can also perform this offline (and then no longer require to run as system).</FONT>
 <FONT COLOR="#000000">You can use reg save hklm\sam sam.sav and reg save hklm\system system.sav to generate offline hives.</FONT>
-<FONT COLOR="#000000">Both the RC4 and AES cipher are supported.</FONT>
+<FONT COLOR="#000000">Both the RC4 (using advapi32.dll) and AES128 (using cryptoapi.dll) cipher are supported.</FONT>
 <FONT COLOR="#000000">https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/ is a must read to understand RC4 vs AES.</FONT>
 
 <A NAME="getsamkey"></A><FONT COLOR="#000000"><B>getsamkey</B> (also known as hashed bootkey) will read/decrypt SAM\sam\Domains\account\F.</FONT>
-<FONT COLOR="#000000">Both AES and RC4 encryptions are supported.</FONT>
+<FONT COLOR="#000000">Both the RC4 (using advapi32.dll) and AES128 (using cryptoapi.dll) cipher are supported.</FONT>
 <FONT COLOR="#000000">Samkey is required to dumphashes.</FONT>
 
 <A NAME="getsyskey"></A><FONT COLOR="#000000"><B>getsyskey</B> (also known as bootkey) will read/decode class attribute from SYSTEM\CurrentControlSet\Control\Lsa.</FONT>
 <FONT COLOR="#000000">Syskey is required to retrieve the samkey and dumpsecret.</FONT>
 
-<A NAME="dumpsecret"></A><FONT COLOR="#000000"><B>dumpsecret</B> will decrypt secret from the registry (Security\Policy\secrets), online of offline.</FONT>
+<A NAME="dumpsecret"></A><FONT COLOR="#000000"><B>dumpsecret</B> will decrypt secret (AES256 using cryptoapi.dll) from the registry (Security\Policy\secrets), online of offline.</FONT>
 <FONT COLOR="#000000">Use dumpsecret /input:dpapi_system to retrieve the dpapi system keys (user and computer) to decrypt system masterkeys.</FONT>
 
 <A NAME="getlsakeys"></A><FONT COLOR="#000000"><B>getlsakeys</B> will read lsa keys from lsass memory (aes,des,iv).</FONT>
@@ -187,6 +187,15 @@
 
 <A NAME="runts"></A><FONT COLOR="#000000"><B>runts</B> will launch a process in the context of another TS session.</FONT>
 <FONT COLOR="#000000">Note that this one needs the setcbprivilege so you will have to find a token with such privilege first (like winlogon.exe).</FONT>
+
+<A NAME="enumpriv"></A><FONT COLOR="#000000"><B>enumpriv</B> will list all privileges, enabled or not.</FONT>
+<FONT COLOR="#000000">Will possibly be used later on in batch mode.</FONT>
+
+<A NAME="enumproc"></A><FONT COLOR="#000000"><B>enumproc</B> will list (all &ndash; depending on the context) processes with the logged on user.</FONT>
+<FONT COLOR="#000000">Is used in the trusted.cmd batch.</FONT>
+
+<A NAME="dumpproc"></A><FONT COLOR="#000000"><B>dumpproc</B> will dump a process (similar to procdump).</FONT>
+<FONT COLOR="#000000">Will ideally be using syscalls later on to avoid AV/EDR,</FONT>
 
 <A NAME="hexatostring"></A><FONT COLOR="#000000"><B>hexatostring</B> will convert hexadecimal to a string</FONT>
 
