@@ -152,7 +152,7 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <TopLine Value="101"/>
-        <CursorPos X="45" Y="116"/>
+        <CursorPos X="59" Y="116"/>
         <UsageCount Value="243"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -162,7 +162,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1358"/>
         <CursorPos X="22" Y="1370"/>
-        <UsageCount Value="152"/>
+        <UsageCount Value="151"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit16>
       <Unit17>
@@ -180,7 +180,7 @@
         <EditorIndex Value="6"/>
         <TopLine Value="727"/>
         <CursorPos X="23" Y="740"/>
-        <UsageCount Value="38"/>
+        <UsageCount Value="39"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit18>
