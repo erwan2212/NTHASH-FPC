@@ -7,16 +7,46 @@ unit uwmi;
 interface
 
 uses
-  windows,SysUtils,ActiveX,ComObj,Variants;
+  windows,SysUtils,ActiveX,ComObj,Variants,utils;
 
 function _EnumProc(computer:widestring=''):boolean;
-function _Create(computer:string='';command:string=''):boolean;
+function _Create(computer:string='';command:string='';username:string='';password:string=''):boolean;
 Function _Killproc(server:string='';pid:dword=0):boolean;
 
 procedure  _ListFolder(Const Computer,WbemUser,WbemPassword,Path:widestring);
 function  _CopyFile(const computer,SourceFileName,DestFileName:widestring):integer;
 
 implementation
+
+const
+  //Impersonation Level Constants
+  //http://msdn.microsoft.com/en-us/library/ms693790%28v=vs.85%29.aspx
+  RPC_C_AUTHN_LEVEL_DEFAULT   = 0;
+  RPC_C_IMP_LEVEL_ANONYMOUS   = 1;
+  RPC_C_IMP_LEVEL_IDENTIFY    = 2;
+  RPC_C_IMP_LEVEL_IMPERSONATE = 3;
+  RPC_C_IMP_LEVEL_DELEGATE    = 4;
+
+  //Authentication Service Constants
+  //http://msdn.microsoft.com/en-us/library/ms692656%28v=vs.85%29.aspx
+  RPC_C_AUTHN_WINNT      = 10;
+  RPC_C_AUTHN_LEVEL_CALL = 3;
+  RPC_C_AUTHN_DEFAULT    = $FFFFFFFF;
+  EOAC_NONE              = 0;
+
+  //Authorization Constants
+  //http://msdn.microsoft.com/en-us/library/ms690276%28v=vs.85%29.aspx
+  RPC_C_AUTHZ_NONE       = 0;
+  RPC_C_AUTHZ_NAME       = 1;
+  RPC_C_AUTHZ_DCE        = 2;
+  RPC_C_AUTHZ_DEFAULT    = $FFFFFFFF;
+
+  //Authentication-Level Constants
+  //http://msdn.microsoft.com/en-us/library/aa373553%28v=vs.85%29.aspx
+  RPC_C_AUTHN_LEVEL_PKT_PRIVACY   = 6;
+
+  SEC_WINNT_AUTH_IDENTITY_ANSI    = 1;
+  SEC_WINNT_AUTH_IDENTITY_UNICODE = 2;
 
 function WbemTimeToDateTime(const V : OleVariant): TDateTime;
 var
@@ -62,7 +92,8 @@ begin;
   result:=true;
 end;
 
-function _Create(computer:string='';command:string=''):boolean;
+//check https://github.com/RRUZ/wmi-delphi-code-creator/wiki/DelphiDevelopers
+function _Create(computer:string='';command:string='';username:string='';password:string=''):boolean;
 const
   wbemFlagForwardOnly = $00000020;
   HIDDEN_WINDOW       = 0;
@@ -78,9 +109,16 @@ begin;
   if command='' then exit;
   writeln('computer:'+computer);
   writeln('command:'+command);
+  writeln('username:'+username);
+  writeln('password:'+password);
   //writeln(process);
   FSWbemLocator := CreateOleObject('WbemScripting.SWbemLocator');
-  FWMIService   := FSWbemLocator.ConnectServer(widestring(computer), 'root\CIMV2', '', '');
+  //if computer='' then ...
+  //if Failed(CoInitializeSecurity(nil, -1, nil, nil, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IDENTIFY, nil, EOAC_NONE, nil))
+  //if computer<>'' then ...
+  //if Failed(CoInitializeSecurity(nil, -1, nil, nil, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IDENTIFY, nil, EOAC_NONE, nil))
+  //  then log('failed CoInitializeSecurity');
+  FWMIService   := FSWbemLocator.ConnectServer(widestring(computer), 'root\CIMV2', widestring(username), widestring(password));
   FWbemObject   := FWMIService.Get('Win32_ProcessStartup');
   objConfig     := FWbemObject.SpawnInstance_;
   objConfig.ShowWindow := SW_HIDE ;

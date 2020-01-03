@@ -1042,6 +1042,7 @@ begin
   //**************************************
   //log('NTHASH /enumprocwmi [/server:hostname]',1);
   //log('NTHASH /killprocwmi /pid:12345 [/server:hostname]',1);
+  //log('NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname] [/user:username] [/password:password]',1);
   log('NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname]',1);
   //log('NTHASH /dirwmi /input:path [/server:hostname]',1);
   //***************************************
@@ -1155,6 +1156,30 @@ begin
        delete(server,pos(' ',server),255);
        //log(server);
        end;
+  p:=pos('/user:',cmdline);
+      if p>0 then
+           begin
+           user:=copy(cmdline,p,255);
+           user:=stringreplace(user,'/user:','',[rfReplaceAll, rfIgnoreCase]);
+           delete(user,pos(' ',user),255);
+           //log(user);
+           end;
+      p:=pos('/password:',cmdline);
+        if p>0 then
+             begin
+             password:=copy(cmdline,p,255);
+             password:=stringreplace(password,'/password:','',[rfReplaceAll, rfIgnoreCase]);
+             delete(user,pos(' ',password),255);
+             //log(user);
+             end;
+        p:=pos('/domain:',cmdline);
+          if p>0 then
+               begin
+               domain:=copy(cmdline,p,255);
+               domain:=stringreplace(domain,'/domain:','',[rfReplaceAll, rfIgnoreCase]);
+               delete(domain,pos(' ',domain),255);
+               //log(domain);
+               end;
   p:=pos('/pid:',cmdline);
   if p>0 then
        begin
@@ -1356,7 +1381,7 @@ begin
          begin
          if binary='' then exit;
          binary:=StringReplace (binary,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
-         uwmi._Create (server,binary);
+         uwmi._Create (server,binary,user,password);
          goto fin;
          end;
     p:=pos('/killprocwmi',cmdline);  //can be done with wmic
@@ -1437,31 +1462,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if dumpsam (lsass_pid ,'') then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
-  p:=pos('/user:',cmdline);
-    if p>0 then
-         begin
-         user:=copy(cmdline,p,255);
-         user:=stringreplace(user,'/user:','',[rfReplaceAll, rfIgnoreCase]);
-         delete(user,pos(' ',user),255);
-         //log(user);
-         end;
-    p:=pos('/password:',cmdline);
-      if p>0 then
-           begin
-           password:=copy(cmdline,p,255);
-           password:=stringreplace(password,'/password:','',[rfReplaceAll, rfIgnoreCase]);
-           delete(user,pos(' ',password),255);
-           //log(user);
-           end;
-      p:=pos('/domain:',cmdline);
-        if p>0 then
-             begin
-             domain:=copy(cmdline,p,255);
-             domain:=stringreplace(domain,'/domain:','',[rfReplaceAll, rfIgnoreCase]);
-             delete(domain,pos(' ',domain),255);
-             //log(domain);
-             end;
-    p:=pos('/getntlmhash',cmdline);
+  p:=pos('/getntlmhash',cmdline);
       if p>0 then
            begin
            if input='' then exit;
