@@ -124,7 +124,7 @@ StringToWideChar(svaluename, wvaluename, length(svaluename)+1);
 pcbdata:=0;
 
 ret:=ORGetValue (key,nil,wvaluename,@pdwtype,nil,@pcbData);
-if ret<>0 then raise exception.Create('ORGetValue failed:'+inttostr(ret)+':'+SysErrorMessage(ret));
+if ret<>0 then raise exception.Create('ORGetValue '+svaluename+' NOT OK:'+inttostr(ret)+':'+SysErrorMessage(ret));
 
 if (pcbData=0) then
     begin
@@ -174,11 +174,11 @@ uofflinereg.init ;
 
 log('hive:'+hive);
 ret:=OROpenHive(pwidechar(widestring(hive)),hkey);
-if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
+if ret<>0 then begin log('OROpenHive '+hive+' NOT OK',0);exit;end;
 
 log('subkey:'+subkey);
 ret:=OROpenKey (hkey,pwidechar(widestring(subkey)),hkresult);
-if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
+if ret<>0 then begin log('OROpenKey '+subkey+' NOT OK',0);exit;end;
 
 log('value:'+value);
 cbdata:=getvaluePTR (hkresult,value,ptr);
