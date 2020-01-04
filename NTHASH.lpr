@@ -1466,6 +1466,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
       if p>0 then
            begin
            if input='' then exit;
+           log('getntlmhash',1);
            log (GenerateNTLMHash (input),1);
            goto fin;
            end;
