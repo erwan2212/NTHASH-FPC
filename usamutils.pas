@@ -8,7 +8,7 @@ uses
   windows,Classes, SysUtils,utils,uadvapi32,uofflinereg,ucryptoapi;
 
 function getsyskey(var output:tbyte16):boolean;
-function getsamkey(syskey:tbyte16;var output:tbyte16):boolean;
+function getsamkey(syskey:tbyte16;var output:tbyte16;server:string=''):boolean;
 function dumphash(samkey:tbyte16;rid:dword;var output:tbyte16;var username:string):boolean;
 
 function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes):boolean;
@@ -234,7 +234,7 @@ log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
 end;
 
 //also known as hashed bootkey
-function getsamkey(syskey:tbyte16;var output:tbyte16):boolean;
+function getsamkey(syskey:tbyte16;var output:tbyte16;server:string=''):boolean;
 var
   ret:long;
   topkey:thandle;
@@ -253,7 +253,7 @@ if offline=true then
    end;
 //only if run as system
 //contains our salt and encrypted sam key
-if MyRegQueryValue(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account'),pchar('F'),data)=true then
+if MyRegQueryValue(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account'),pchar('F'),data,server)=true then
   begin
   log('MyRegQueryValue OK',0);
   cbdata:=length(data);

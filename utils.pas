@@ -54,7 +54,7 @@ function ByteSwap64(Value: Int64): Int64;
 function ByteSwap32(dw: cardinal): cardinal;
 function ByteSwap16(w: word): word;
 
-function MyRegQueryValue(hk:hkey;subkey:pchar;value:pchar;var data:tbytes):boolean;
+function MyRegQueryValue(hk:hkey;subkey:pchar;value:pchar;var data:tbytes;server:string=''):boolean;
 
 
 var
@@ -100,15 +100,33 @@ end;
 
 
 
-function MyRegQueryValue(hk:hkey;subkey:pchar;value:pchar;var data:tbytes):boolean;
+function MyRegQueryValue(hk:hkey;subkey:pchar;value:pchar;var data:tbytes;server:string=''):boolean;
 var
   ret:long;
-  topkey:thandle;
+  topkey,rk:thandle;
   cbdata,lptype:dword;
+  dwDisposition:dword=0;
 begin
+log('**** MyRegQueryValue ****');
+log('server:'+server);
+log('subkey:'+subkey);
+log('value:'+value);
 result:=false;
 topkey:=thandle(-1);
-ret:=RegOpenKeyEx(hk, subkey,0, KEY_READ, topkey);
+if server<>''
+   then
+   begin
+   SetLastError(0) ;
+   ret:=RegConnectRegistry (pchar(server),hk,rk );
+   log('RegConnectRegistry:'+inttostr(ret),0);
+   //log('RegConnectRegistry:'+inttostr(getlasterror));
+   //KEY_QUERY_VALUE or KEY_READ? // KEY_WOW64_32KEY or
+   SetLastError(0) ;
+   if ret=0 then ret:=RegOpenKeyEx(rk, subkey,0, KEY_READ, topkey);
+   //log('RegOpenKeyEx:'+inttostr(getlasterror));
+   //if ret=0 then ret := RegCreateKeyEx(rk,subkey,0,nil,REG_OPTION_NON_VOLATILE,KEY_QUERY_VALUE,nil,topKey,@dwDisposition);
+   end
+   else ret:=RegOpenKeyEx(hk, subkey,0, KEY_READ, topkey);
 if ret=0 then
 begin
   log('RegOpenKeyEx OK',0);
@@ -123,7 +141,8 @@ begin
      if (ret=0) and (cbdata>0) then result:=true;
      end;
 RegCloseKey(topkey);
-end; //RegOpenKeyEx
+end //RegOpenKeyEx
+else log('RegOpenKeyEx NOT OK',0);
 end;
 
 function FiletoHexaString(filename:string):boolean;

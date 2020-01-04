@@ -15,7 +15,7 @@ function findlsakeys(pid:dword;var DesKey,aeskey,iv:tbytes):boolean;
 function wdigest(pid:dword):boolean;
 function dpapi(pid:dword):boolean;
 
-function lsasecret(key:string;var output:tbytes):boolean;
+function lsasecret(server:string;key:string;var output:tbytes):boolean;
 //function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes):boolean;
 
 var
@@ -277,7 +277,7 @@ begin
 log('**** dumpsecret:'+BoolToStr (result)+' ****');
 end;
 
-function lsasecret(key:string;var output:tbytes):boolean;
+function lsasecret(server:string;key:string;var output:tbytes):boolean;
 const
   POLICY_ALL_ACCESS = $00F0FFF;
 var
@@ -286,16 +286,25 @@ var
   PrivateData,secret:LSA_UNICODE_STRING ;
   data:PLSA_UNICODE_STRING =nil;
   pol:LSA_HANDLE ;
+  ustr_server : _LSA_UNICODE_STRING;
 begin
   result:=false;
+log('Server:'+server);
 log('Key:'+key);
 
 ZeroMemory(@lObjectAttributes, sizeof(lObjectAttributes));
 //writeln('sizeof(lObjectAttributes):'+inttostr(sizeof(lObjectAttributes)));
 //writeln('sizeof(LSA_UNICODE_STRING):'+inttostr(sizeof(LSA_UNICODE_STRING))); //{$align 8} needed for x64
 
+if server<>'' then
+       begin
+       CreateFromStr (ustr_server,server);
+       Status := _LsaOpenPolicy(@ustr_server, lObjectAttributes, POLICY_ALL_ACCESS{POLICY_GET_PRIVATE_INFORMATION}{0}, pol);
+       //ReallocMem (unicode_domain.Buffer, 0);
+       end
+       else  Status := _LsaOpenPolicy(nil, lObjectAttributes, POLICY_ALL_ACCESS{POLICY_GET_PRIVATE_INFORMATION}{0}, pol);
 
-Status := _LsaOpenPolicy(nil, lObjectAttributes, POLICY_ALL_ACCESS{POLICY_GET_PRIVATE_INFORMATION}{0}, pol);
+
 
 log('_LsaOpenPolicy ok');
 if ( status<>ERROR_SUCCESS ) then
