@@ -85,7 +85,8 @@ todo/news: <br/>
 -decrypt firefox and chrome passwords/cookies : done in 1.5 </br>
 -dpapimk command to dump all masterkeys : done in 1.6 </br>
 -getlsassecret using LsaRetrievePrivateData: done in 1.6</br>
--todo : work out offline decryption of lsasecrets as well as currval and oldval </br>
 -todo : work out LsaICryptUnprotectData thru dll injection </br>
--todo : work out masterkey decryption based on sha1 user password: done in 1.7 </br>
--todo : work out credential blob decryption based on decrypted masterkey: done in 1.7 </br>
+-work out masterkey decryption based on sha1 user password: done in 1.7 </br>
+-work out credential blob decryption based on decrypted masterkey: done in 1.7 </br>
+-work out offline decryption of lsasecrets as well: done in 1.7 </br>
+-todo : work out credhist decryption </br>
