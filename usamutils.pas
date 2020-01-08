@@ -808,19 +808,22 @@ begin
        log('clearsecret:'+ByteToHexaString (clearsecret));
        log('SecretSize:'+inttostr(PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize)) ;
        //retrieve secret field from clearsecret
-       setlength(secret,PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize);
-       copymemory(@secret[0],@clearsecret[sizeof(dword)*4],length(secret));
-       log('secret:'+ByteToHexaString (secret));
-       //_NT6_SYSTEM_KEYS
-       //only one key supported for now
-       log('nbKeys:'+inttostr(PNT6_SYSTEM_KEYS(@secret[0])^.nbKeys)) ;
-       setlength(system_key,1024);
-       copymemory(@system_key[0],@secret[sizeof(dword)*3+sizeof(guid)],length(secret));
-       log('KeyId:'+GUIDToString(PNT6_SYSTEM_KEY(@system_key[0])^.KeyId )) ;
-       setlength(key,PNT6_SYSTEM_KEY(@system_key[0])^.KeySize );
-       copymemory(@key[0],@system_key[sizeof(dword)*2+sizeof(guid)],length(key));
-       //log('Key:'+ByteToHexaString(@PNT6_SYSTEM_KEY(@system_key[0])^.Key[0],PNT6_SYSTEM_KEY(@system_key[0])^.KeySize ),1);
-       log('Key:'+ByteToHexaString(key));
+       if PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize>0 then
+          begin
+          setlength(secret,PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize);
+          copymemory(@secret[0],@clearsecret[sizeof(dword)*4],length(secret));
+          log('secret:'+ByteToHexaString (secret));
+          //_NT6_SYSTEM_KEYS
+          //only one key supported for now
+          log('nbKeys:'+inttostr(PNT6_SYSTEM_KEYS(@secret[0])^.nbKeys)) ;
+          setlength(system_key,1024);
+          copymemory(@system_key[0],@secret[sizeof(dword)*3+sizeof(guid)],length(secret));
+          log('KeyId:'+GUIDToString(PNT6_SYSTEM_KEY(@system_key[0])^.KeyId )) ;
+          setlength(key,PNT6_SYSTEM_KEY(@system_key[0])^.KeySize );
+          copymemory(@key[0],@system_key[sizeof(dword)*2+sizeof(guid)],length(key));
+          //log('Key:'+ByteToHexaString(@PNT6_SYSTEM_KEY(@system_key[0])^.Key[0],PNT6_SYSTEM_KEY(@system_key[0])^.KeySize ),1);
+          log('Key:'+ByteToHexaString(key));
+          end; //if PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize>0 then
        end; //if lsadump_sec_aes256(data,cbdata,nil,@syskey[0]) then
 
     //if we got a system key, lets decrypt a secret stored in the registry
@@ -848,12 +851,15 @@ begin
                 log('clearsecret:'+ByteToHexaString (clearsecret));
                 log('SecretSize:'+inttostr(PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize)) ;
                 //retrieve secret field from clearsecret
+                if PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize>0 then
+                begin
                 setlength(secret,PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize);
                 copymemory(@secret[0],@clearsecret[sizeof(dword)*4],length(secret));
                 log('secret:'+ByteToHexaString (secret));
                 setlength(output,length(secret));
                 CopyMemory(@output[0],@secret[0],length(secret));
                 result:=true;
+                end; //if PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize)>0 then
                 end; //if lsadump_sec_aes256(data,cbdata,@system_key[0],nil) then
          end;//MyRegQueryValue
       end;//if length(key)>0 then
