@@ -11,7 +11,8 @@ function getsyskey(var output:tbyte16):boolean;
 function getsamkey(syskey:tbyte16;var output:tbyte16;server:string=''):boolean;
 function dumphash(samkey:tbyte16;rid:dword;var output:tbyte16;var username:string):boolean;
 
-function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes):boolean;
+//function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes):boolean;
+function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes;val:string='CurrVal'):boolean;
 
 function callback_SamUsers(param:pointer=nil):dword;stdcall;
 function query_samusers(samkey:tbyte16;func:pointer =nil):boolean;
@@ -122,6 +123,7 @@ var
   i:byte;
   //dummy:string;
 begin
+log('**** getsyskey ****');
 result:=false;
 //get the encoded syskey
 result:=get_encoded_syskey(bytes);
@@ -245,6 +247,7 @@ var
   encrypted_samkey:array[0..31] of byte;
   //bytes:array[0..15] of byte;
 begin
+log('**** getsamkey ****');
 result:=false;
 if offline=true then
    begin
@@ -778,7 +781,7 @@ end;
 end;
 
 //**********************************************************
-function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes):boolean;
+function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes;val:string='CurrVal'):boolean;
 var
   ret:boolean;
   cbdata:dword;
@@ -830,8 +833,8 @@ begin
     if length(system_key)>0 then
       begin
       if offline
-      then ret:=MyOrQueryValue('security.sav',pchar('Policy\secrets\'+regkey+'\CurrVal'),pchar(''),data)
-      else ret:=MyRegQueryValue(HKEY_LOCAL_MACHINE ,pchar('Security\Policy\secrets\'+regkey+'\CurrVal'),pchar(''),data);
+      then ret:=MyOrQueryValue('security.sav',pchar('Policy\secrets\'+regkey+'\'+val),pchar(''),data)
+      else ret:=MyRegQueryValue(HKEY_LOCAL_MACHINE ,pchar('Security\Policy\secrets\'+regkey+'\'+val),pchar(''),data);
       if ret then
       begin
         log('MyRegQueryValue OK',0);

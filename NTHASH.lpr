@@ -1607,16 +1607,39 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
      begin
      if input='' then exit;
-     if getsyskey(syskey) then
-      if dumpsecret(syskey,input,output_) then
+     if getsyskey(syskey)=false then begin log('getsyskey NOT OK',1);exit; end;
+     //
+     if dumpsecret(syskey,input,output_,'currval') then
+      begin
+      log('CurrVal',1);
+      if lowercase(input)='dpapi_system' then
        begin
+       log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+       log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+       log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+       end
+       else //if lowercase(input)='dpapi_system' then
+       begin
+       log('secret:'+ByteToHexaString (@output_ [0],length(output_)),1);
+       log('secret:'+BytetoAnsiString (@output_ [0],length(output_)),1);
+       end;
+      end
+      else log('dumpsecret NOT OK, try adding /system' ,1);
+      //
+      if dumpsecret(syskey,input,output_,'oldval') then
+       begin
+       log('OldVal',1);
        if lowercase(input)='dpapi_system' then
         begin
         log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
         log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
         log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
         end
-        else log('secret:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+        else //if lowercase(input)='dpapi_system' then
+        begin
+        log('secret:'+ByteToHexaString (@output_ [0],length(output_)),1);
+        log('secret:'+BytetoAnsiString (@output_ [0],length(output_)),1);
+        end;
        end
        else log('dumpsecret NOT OK, try adding /system' ,1);
      end;

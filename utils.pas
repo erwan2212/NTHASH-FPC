@@ -44,7 +44,9 @@ function ByteToHexaString(hash:pbyte;len:dword):string;overload;
 function HexaStringToByte(hash:string):tbyte16;
 function HexaStringToByte2(hash:string):tbytes;
 
-function BytetoAnsiString(input:array of byte):string;
+function BytetoAnsiString(buffer:pbyte;len:dword):string;overload;
+function BytetoAnsiString(input:array of byte):string;overload;
+
 function AnsiStringtoByte(input:string;unicode:boolean=false):tbytes;
 
 Function SplitUserSID(user:pchar;var domain:string;var rid:dword):boolean;
@@ -210,6 +212,16 @@ end;
 except
 on e:exception do log('AnsiStringtoByte'+e.Message );
 end;
+end;
+
+function BytetoAnsiString(buffer:pbyte;len:dword):string;overload;
+var
+  tmp:tbytes;
+begin
+SetLength(tmp,len);
+ZeroMemory(@tmp[0],len);
+CopyMemory(@tmp[0],buffer,len) ;
+result:=BytetoAnsiString(tmp);
 end;
 
 function BytetoAnsiString(input:array of byte):string;
