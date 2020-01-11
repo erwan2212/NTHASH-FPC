@@ -756,13 +756,13 @@ begin
       copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
       patch_pos:=11;
       end;
-   if (pos('-1803',winver)>0) {or (pos('-1709',winver)>0)} then //win10
+   if (pos('-1803',winver)>0) {or (pos('-1809',winver)>0)} then //win10
       begin
       setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
       copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
       patch_pos:=11;
       end;
-   if (pos('-1903',winver)>0) {or (pos('-1709',winver)>0)} then //win10
+   if (pos('-1903',winver)>0) {or (pos('-1909',winver)>0)} then //win10
       begin
       setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
       copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
