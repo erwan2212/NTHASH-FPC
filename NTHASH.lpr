@@ -364,6 +364,7 @@ WIN_BUILD_10_1703:ShortInt=	-19;
 WIN_BUILD_10_1709:ShortInt=	-21;
 WIN_BUILD_10_1803:ShortInt=	-21; //verified
 WIN_BUILD_10_1809:ShortInt=	-24;
+WIN_BUILD_10_1903:ShortInt=	-24;
 //offset x86
 WIN_BUILD_XP_86:ShortInt=-8;
 WIN_BUILD_7_86:ShortInt=-8; //verified
@@ -402,6 +403,7 @@ begin
      if (pos('-1709',winver)>0) then patch_pos :=WIN_BUILD_10_1709;
      if (pos('-1803',winver)>0) then patch_pos :=WIN_BUILD_10_1803;
      if (pos('-1809',winver)>0) then patch_pos :=WIN_BUILD_10_1809;
+     if (pos('-1903',winver)>0) then patch_pos :=WIN_BUILD_10_1903; //verified
      end;
   if (lowercase(osarch)='x86') then
      begin
