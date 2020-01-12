@@ -12,3 +12,4 @@ lib
 *.bin
 *.blob
 *.txt
+*.i64
