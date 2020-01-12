@@ -6,7 +6,8 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200103;22074433">
+	<META NAME="CHANGED" CONTENT="20200112;20580551">
+	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -57,7 +58,7 @@
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptprotectdata">cryptprotectdata</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000"><A HREF="#decodeblob">decodeblob</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#decodemk">decodemk</A> </FONT>
-<FONT COLOR="#000000"><A HREF="#wlansvc">wlansvc</A> </FONT>	
+<FONT COLOR="#000000"><A HREF="#wlansvc">wlansvc</A> </FONT>        
 <FONT COLOR="#000000"><A HREF="#gethash">gethash</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#gethmac">gethmac</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#getcipher">getcipher</A> </FONT>
@@ -66,11 +67,11 @@
 <FONT COLOR="#000000"><A HREF="#runaschild">runaschild</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#runas">runas</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#runts">runts</A> </FONT>
-<FONT COLOR="#000000"><A HREF="#enumpriv">enumpriv</A></FONT>
-<FONT COLOR="#000000"><A HREF="#enumproc">enumproc</A></FONT>
+<A HREF="#enumpriv"><FONT COLOR="#000000">enumpriv</FONT></A>
+<A HREF="#enumproc"><FONT COLOR="#000000">enumproc</FONT></A>
 <FONT COLOR="#000000"><A HREF="#dumpproc">dumpproc</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#runwmi">runwmi</A> </FONT>
-<FONT COLOR="#000000"><A HREF="#context">context</A></FONT>
+<A HREF="#context"><FONT COLOR="#000000">context</FONT></A>
 
 
 <FONT COLOR="#000000"><B>changentlm</B></FONT><FONT COLOR="#000000">, using a legacy api (SamiChangePasswordUser), may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607.</FONT>
@@ -112,10 +113,7 @@
 <A NAME="getlsakeys"></A><FONT COLOR="#000000"><B>getlsakeys</B> will read lsa keys from lsass memory (aes,des,iv).</FONT>
 <FONT COLOR="#000000">These are required for logonpasswords, wdigest, dpapimk.</FONT>
 
-<A NAME="cryptunprotectdata"></A><A NAME="cryptprotectdata"></A><FONT COLOR="#000000"><B>cryptunprotectdata</B> and <B>cryptprotectdata</B> will decrypt datas using dpapi under the runnin user context.</FONT>
-<FONT COLOR="#000000">You can for example decrypt the wireless stored password in C:\ProgramData\Microsoft\Wlansvc\Profiles\Interfaces{INTERFACE UUID} .</FONT>
-<FONT COLOR="#000000">Retrieve the xml keyMaterial value and run nthash /cryptunprotectdata /input:keymateriel /system .</FONT>
-<FONT COLOR="#000000">Note that this data is encrypted/decrypted under the system account.</FONT>
+<A NAME="cryptunprotectdata"></A><A NAME="cryptprotectdata"></A><FONT COLOR="#000000"><B>cryptunprotectdata</B> and <B>cryptprotectdata</B> will decrypt/encrypt datas using dpapi under the running user context (or machine context actually).</FONT>
 
 <A NAME="decodeblob"></A><FONT COLOR="#000000"><B>decodeblob</B> will decode an encrypted dpapi blob.</FONT>
 <FONT COLOR="#000000">If the decrypted masterkey is provided, it will also decrypt the blob and decode it.</FONT>
@@ -124,8 +122,10 @@
 <A NAME="decodemk"></A><FONT COLOR="#000000"><B>decodemk</B> will decode an encrypted dpapi masterley.</FONT>
 <FONT COLOR="#000000">If a pre key is provided, it will also decrypt the masterkey and decode it.</FONT>
 <FONT COLOR="#000000">CryptDecrypt from cryptoapi is used.</FONT>
-	
-<A NAME="wlansvc"></A><FONT COLOR="#000000"><B>wlansvc</B> will decrypt a blob used by the wlansvc service.</FONT>
+        
+<A NAME="wlansvc"></A><FONT COLOR="#000000"><B>wlansvc</B> will decrypt a blob (contained in xml files) used by the wlansvc service.</FONT>
+<FONT COLOR="#000000">Find these xml files with <I>dir %programdata% /s /a /b | findstr /i interfaces</I>.</FONT>
+<FONT COLOR="#000000">Note that this data is encrypted/decrypted under the system account</FONT>
 <FONT COLOR="#000000">If it cannot decrypt it, then it will dump the blob in blob.encrypted which can then be used with decodeblob.</FONT>
 <FONT COLOR="#000000">cryptunprotectdata is used.</FONT>
 
