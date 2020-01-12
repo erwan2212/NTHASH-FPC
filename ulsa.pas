@@ -778,6 +778,12 @@ if patch_pos=0 then
    exit;
    end;
 //
+if search_module_mem (pid,module,pattern,offset)=false then
+   begin
+   log('search_module_mem NOT OK');
+   exit;
+   end;
+//
 hprocess:=thandle(-1);
 hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
                                       false,pid);
