@@ -147,7 +147,8 @@ result:=false;
                                  result:=true;
                                  end; //if offset<>0 then
                             end;//if GetModuleInformation...
-                         end; //if pos('samsrv.dll',dummy)>0 then
+                         break; //no need to go thru the whole list - only one module if of interest
+                         end; //if pos(lowercase(module),dummy)>0 then
                       end; //if GetModuleFileNameExA
                    end; //for count:=0...
                end; //if EnumProcessModules...

