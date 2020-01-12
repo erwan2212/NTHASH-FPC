@@ -57,6 +57,7 @@
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptprotectdata">cryptprotectdata</A> </SPAN></SPAN></FONT>
 <FONT COLOR="#000000"><A HREF="#decodeblob">decodeblob</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#decodemk">decodemk</A> </FONT>
+<FONT COLOR="#000000"><A HREF="#wlansvc">wlansvc</A> </FONT>	
 <FONT COLOR="#000000"><A HREF="#gethash">gethash</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#gethmac">gethmac</A> </FONT>
 <FONT COLOR="#000000"><A HREF="#getcipher">getcipher</A> </FONT>
@@ -123,6 +124,10 @@
 <A NAME="decodemk"></A><FONT COLOR="#000000"><B>decodemk</B> will decode an encrypted dpapi masterley.</FONT>
 <FONT COLOR="#000000">If a pre key is provided, it will also decrypt the masterkey and decode it.</FONT>
 <FONT COLOR="#000000">CryptDecrypt from cryptoapi is used.</FONT>
+	
+<A NAME="wlansvc"></A><FONT COLOR="#000000"><B>wlansvc</B> will decrypt a blob used by the wlansvc service.</FONT>
+<FONT COLOR="#000000">If it cannot decrypt it, then it will dump the blob in blob.encrypted which can then be used with decodeblob.</FONT>
+<FONT COLOR="#000000">cryptunprotectdata is used.</FONT>
 
 <A NAME="gethash"></A><FONT COLOR="#000000"><B>gethash</B> will hash a message.</FONT>
 <FONT COLOR="#000000">Supported hashes are SHA512, SHA256, SHA384, SHA1, MD5, MD4, MD2.</FONT>
