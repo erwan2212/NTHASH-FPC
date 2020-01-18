@@ -78,7 +78,9 @@ var
 begin
 result:=0;
 setlength(buffer,length(pattern));
-//log('**** SearchMem ****',0);
+log('Searching...',0);
+log('start:'+inttohex(nativeint(addr),sizeof(addr)));
+log('sizeofimage:'+inttostr(sizeofimage));
   for i:=nativeint(addr) to nativeint(addr)+sizeofimage-length(buffer) do
       begin
       //fillchar(buffer,4,0);
@@ -134,20 +136,21 @@ result:=false;
                             begin
                             log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
                             log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
+
                             {
-                            if offset<>0 then
+                            if found<>0 then
                                begin
-                               //a relative offset was provided
-                               offset:=MODINFO.lpBaseOfDll+offset
-                               end
-                               else
+                               log('relative offset:'+inttohex(found,sizeof(found)));
+                               offset:=nativeint(MODINFO.lpBaseOfDll)+found;
+                               end;
                             }
-                            log('Searching...',0);
-                            offset:=searchmem(hprocess,MODINFO.lpBaseOfDll,MODINFO.SizeOfImage,pattern);
+
+                            {if found=0 then} offset:=searchmem(hprocess,MODINFO.lpBaseOfDll,MODINFO.SizeOfImage,pattern);
+
                             log('Done!',0);
                             if offset<>0 then
                                  begin
-                                 log('found pattern:'+inttohex(offset,sizeof(pointer)),0);
+                                 log('found :'+inttohex(offset,sizeof(pointer)),0);
                                  found:=offset;
                                  result:=true;
                                  end; //if offset<>0 then

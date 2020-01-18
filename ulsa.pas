@@ -916,12 +916,14 @@ result:=false;
         end;
      end; //if (lowercase(osarch)='amd64') then
 
+  {
   if lowercase(getenv('g_fParameter_UseLogonCredential'))<>'' then
      begin
-     //patch_pos:=-1;
+     patch_pos:=-1;
      offset:=int64(strtoint('$'+getenv('g_fParameter_UseLogonCredential')));
      log('env g_fParameter_UseLogonCredential:'+inttohex(offset,sizeof(offset)));
      end;
+  }
 
   if patch_pos =0 then
      begin
@@ -946,6 +948,7 @@ result:=false;
     if hprocess<>thandle(-1) then
     begin
     log('openprocess ok',0);
+
     if patch_pos =-1 then
         begin
         log('g_fParameter_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
@@ -957,6 +960,8 @@ result:=false;
         writemem(hprocess,offset,@dw,4);
         result:=true;
         end;
+
+    if patch_pos <>-1 then
     if ReadMem  (hprocess,offset+sizeof(PTRN_WIN81_UseLogonCredential),@offset_dword,4) then
         begin
         //CopyMemory(@offset_dword,@offset_byte[0],4);
@@ -971,6 +976,7 @@ result:=false;
         writemem(hprocess,offset,@dw,4);
         result:=true;
         end; //if readmem
+
     closehandle(hprocess);
     end;
     end; //if offset<>0 then
