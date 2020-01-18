@@ -90,3 +90,4 @@ todo/news: <br/>
 -work out credential blob decryption based on decrypted masterkey: done in 1.7 </br>
 -work out offline decryption of lsasecrets as well: done in 1.7 </br>
 -todo : work out credhist decryption </br>
+-todo : see to use ms symbol server to retrieve offset on the fly </br>
