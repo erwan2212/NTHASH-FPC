@@ -99,12 +99,11 @@ function search_module_mem(pid:dword;module:string;pattern:tbytes;var found:nati
 
 var
   dummy:string;
-  hprocess,hmod:thandle;
+  hprocess:thandle;
   hmods:array[0..1023] of thandle;
   MODINFO:  MODULEINFO;
   cbNeeded,count:	 DWORD;
   szModName:array[0..254] of char;
-  addr:pointer;
   offset:nativeint=0;
 begin
 log('**** search_module_mem ****');
@@ -135,10 +134,16 @@ result:=false;
                             begin
                             log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
                             log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
-                            addr:=MODINFO.lpBaseOfDll;
-                            //offset:=search(hprocess,addr,MODINFO.SizeOfImage);
+                            {
+                            if offset<>0 then
+                               begin
+                               //a relative offset was provided
+                               offset:=MODINFO.lpBaseOfDll+offset
+                               end
+                               else
+                            }
                             log('Searching...',0);
-                            offset:=searchmem(hprocess,addr,MODINFO.SizeOfImage,pattern);
+                            offset:=searchmem(hprocess,MODINFO.lpBaseOfDll,MODINFO.SizeOfImage,pattern);
                             log('Done!',0);
                             if offset<>0 then
                                  begin

