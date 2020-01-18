@@ -78,7 +78,7 @@ var
 begin
 result:=0;
 setlength(buffer,length(pattern));
-//log('Searching...',0);
+//log('**** SearchMem ****',0);
   for i:=nativeint(addr) to nativeint(addr)+sizeofimage-length(buffer) do
       begin
       //fillchar(buffer,4,0);
@@ -142,7 +142,7 @@ result:=false;
                             log('Done!',0);
                             if offset<>0 then
                                  begin
-                                 log('found:'+inttohex(offset,sizeof(pointer)),0);
+                                 log('found pattern:'+inttohex(offset,sizeof(pointer)),0);
                                  found:=offset;
                                  result:=true;
                                  end; //if offset<>0 then
@@ -154,7 +154,7 @@ result:=false;
                end; //if EnumProcessModules...
        closehandle(hprocess);
        end;//if openprocess...
-
+  log('**** search_module_mem: '+booltostr(result)+' ****');
 end;
 
 end.

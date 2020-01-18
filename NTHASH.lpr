@@ -8,7 +8,6 @@
 program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,
-  dom,XMLRead,
   uadvapi32, untdll, utils, umemory, ucryptoapi, usamutils, uofflinereg,
   uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport, wtsapi32, uwmi, base64,
   udpapi;
@@ -562,7 +561,7 @@ begin
                                    {$ifdef CPU32}
                                    offset:= offset_list_dword{+patch_pos};
                                    {$endif CPU32}
-                                   log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
+                                   log('offset LogonSessionList:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
                                    //read sesslist at offset
                                    ReadMem  (hprocess,offset,logsesslist );
                                    //lets skip the first one
@@ -901,85 +900,7 @@ end;
 
 
 
-function findnodes(list:tdomnodelist;search:string):tdomnode;
-//*******************************************
-function recursexml(n:tdomnode;search:string):tdomnode;
-var
-  w:word;
-begin
-  result:=nil;
-  //log(n.ChildNodes.Count);
 
-  if (search<>'') and (lowercase(search)=lowercase(n.NodeName)) then
-     begin
-     result:=n;
-     exit;
-     end;
-
-  if n.firstchild.NodeValue<>''
-     then log(n.NodeName+':'+n.firstchild.NodeValue )
-     else log(n.NodeName);
-
-  if n.FirstChild.nodename<>'#text' then
-  for w:=0 to n.ChildNodes.Count-1 do
-      begin
-      result:=recursexml(n.childnodes[w],search);
-      end;
-
-end;
-//*******************************************
-var
-  w:word;
-begin
-  result:=nil;
-  log('search:'+search);
-
-  for w:=0 to list.Count-1 do
-      begin
-      log('----');
-      result:= recursexml(list[w],search);
-      if result<>nil then break;
-      end;
-
-end;
-
-function parsexml(binary,key:string;var output:string):boolean;
-
-  var
-  PassNode: TDOMNode=nil;
-  Doc: TXMLDocument;
-  w:word;
-begin
-  result:=false;
-  log('binary:'+binary);
-  log('key:'+key);
-  try
-    // Read in xml file from disk
-    ReadXMLFile(Doc, binary);
-    //log('ReadXMLFile ok');
-    // Retrieve the "password" node
-    //PassNode := Doc.DocumentElement.FindNode(node);
-    //log('FindNode ok');
-    passnode:=findnodes(doc.DocumentElement.ChildNodes,key);
-
-
-    // Write out value of the selected node
-    if passnode<>nil then
-    begin
-    //log(PassNode.NodeValue); // will be blank
-    // The text of the node is actually a separate child node
-    log(PassNode.FirstChild.NodeValue); // correctly prints "abc"
-    output:=PassNode.FirstChild.NodeValue;
-    result:=true;
-    // alternatively
-    //log(PassNode.TextContent);
-    end
-    else log('passnode=nil');
-  finally
-    // finally, free the document
-    Doc.Free;
-  end;
-end;
 
 
 begin

