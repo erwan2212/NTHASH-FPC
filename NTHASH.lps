@@ -62,10 +62,9 @@
       <Unit6>
         <Filename Value="umemory.pas"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="11"/>
         <TopLine Value="132"/>
-        <CursorPos X="58" Y="148"/>
+        <CursorPos X="39" Y="146"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -114,9 +113,10 @@
         <Filename Value="ulsa.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="uLSA"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="10"/>
-        <TopLine Value="904"/>
-        <CursorPos X="19" Y="954"/>
+        <TopLine Value="952"/>
+        <CursorPos X="73" Y="964"/>
         <UsageCount Value="208"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>

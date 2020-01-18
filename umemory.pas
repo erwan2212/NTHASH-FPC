@@ -137,15 +137,16 @@ result:=false;
                             log('lpBaseOfDll:'+inttohex(nativeint(MODINFO.lpBaseOfDll),sizeof(pointer)),0 );
                             log('SizeOfImage:'+inttostr(MODINFO.SizeOfImage),0);
 
-                            {
+
                             if found<>0 then
                                begin
                                log('relative offset:'+inttohex(found,sizeof(found)));
                                offset:=nativeint(MODINFO.lpBaseOfDll)+found;
+                               log('virtual relative offset:'+inttohex(offset,sizeof(offset)));
                                end;
-                            }
 
-                            {if found=0 then} offset:=searchmem(hprocess,MODINFO.lpBaseOfDll,MODINFO.SizeOfImage,pattern);
+
+                            if found=0 then offset:=searchmem(hprocess,MODINFO.lpBaseOfDll,MODINFO.SizeOfImage,pattern);
 
                             log('Done!',0);
                             if offset<>0 then

