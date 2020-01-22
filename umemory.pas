@@ -90,6 +90,7 @@ log('sizeofimage:'+inttostr(sizeofimage));
         if CompareMem (@pattern [0],@buffer[0],length(buffer)) then
            begin
            result:=i;
+           //log('found:'+inttohex(i,sizeof(i)));
            break;
            end;
         end;//if readprocessmemory...

