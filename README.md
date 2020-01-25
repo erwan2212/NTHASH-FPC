@@ -21,10 +21,11 @@ NTHASH /dumpsam <br/>
 NTHASH /dumphashes [/offline] <br/>
 NTHASH /getsamkey [/offline] <br/>
 NTHASH /getsyskey [/offline] <br/>
-NTHASH /getlsakeys <br/>
-NTHASH /wdigest <br/>
-NTHASH /logonpasswords <br/>
-NTHASH /pth /user:username /password:myhash /domain:mydomain <br/>
+NTHASH /getlsakeys [/symbol] <br/>
+NTHASH /wdigest [/symbol] <br/>
+NTHASH /wdigeston [/symbol] <br/>
+NTHASH /logonpasswords [/symbol] <br/>
+NTHASH /pth /user:username /password:myhash /domain:mydomain [/symbol] <br/>
 NTHASH /enumcred <br/>
 NTHASH /enumcred2 <br/>
 NTHASH /enumvault <br/>
@@ -40,11 +41,12 @@ NTHASH /widestringtobyte /input:string <br/>
 NTHASH /base64encodew /input:string <br/>
 NTHASH /base64encode /input:string <br/>
 NTHASH /base64decode /input:base64string <br/>
+NTHASH /base64decodehexa /input:base64string <br/>
 NTHASH /cryptunprotectdata /binary:filename <br/>
 NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
 NTHASH /getlsasecret /input:secret <br/>
-NTHASH /dpapimk <br/>
+NTHASH /dpapimk [/symbol] <br/>
 NTHASH /cryptunprotectdata /binary:filename <br/>
 NTHASH /cryptunprotectdata /input:string <br/>
 NTHASH /cryptprotectdata /input:string <br/>
@@ -90,4 +92,4 @@ todo/news: <br/>
 -work out credential blob decryption based on decrypted masterkey: done in 1.7 </br>
 -work out offline decryption of lsasecrets as well: done in 1.7 </br>
 -todo : work out credhist decryption </br>
--todo : see to use ms symbol server to retrieve offset on the fly </br>
+-see to use ms symbol server to retrieve offset on the fly: done in 1.8 </br>
