@@ -912,7 +912,7 @@ end;
 
 
 begin
-  log('NTHASH 1.7 '+{$ifdef CPU64}'x64'{$endif cpu64}{$ifdef CPU32}'x32'{$endif cpu32}+' by erwan2212@gmail.com',1);
+  log('NTHASH 1.8 '+{$ifdef CPU64}'x64'{$endif cpu64}{$ifdef CPU32}'x32'{$endif cpu32}+' by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   getmem(sysdir,Max_Path );
