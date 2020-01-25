@@ -26,6 +26,11 @@ var
 
 implementation
 
+type _LUID =record
+     LowPart:DWORD;
+     HighPart:LONG;
+end;
+
 type
   //{$PackRecords 8}
 PLSA_UNICODE_STRING=^LSA_UNICODE_STRING;
@@ -37,6 +42,10 @@ _LSA_UNICODE_STRING = record
   //{$PackRecords default}
 end;
 LSA_UNICODE_STRING = _LSA_UNICODE_STRING;
+
+
+
+
 
 type
   _LSA_OBJECT_ATTRIBUTES = record
@@ -68,10 +77,6 @@ external 'advapi32.dll' name 'LsaOpenPolicy';
 function _LsaClose(ObjectHandle: LSA_HANDLE): NTSTATUS; stdcall;
 external 'advapi32.dll' name 'LsaClose';
 
-type _LUID =record
-     LowPart:DWORD;
-     HighPart:LONG;
-end;
 
 type _KIWI_MASTERKEY_CACHE_ENTRY =record
 	Flink:nativeuint;
@@ -374,6 +379,7 @@ end;
        status:ntstatus;
        tempiv:tbytes;
      begin
+     log('**** encryptLSA ****');
        //fillchar(decrypted,sizeof(decrypted),0); //will nullify the array?
      setlength(encrypted,length(decrypted));
      for i:=0 to length(encrypted)-1 do encrypted[i]:=0;
@@ -526,6 +532,7 @@ var
   ivOffset,desOffset,aesOffset:int64;
   hmod:thandle;
 begin
+log('**** findlsakeys_sym ****');
 result:=false;
 ivOffset:=0;desOffset:=0;aesOffset:=0;
 
@@ -605,9 +612,9 @@ var
  //extracted3DesKey:pointer;
  i:byte;
 begin
+log('**** findlsakeys ****');
   result:=false;
   if symmode =true then begin result:=findlsakeys_sym (pid,DesKey ,aeskey ,iv);exit;end;
-  writeln('test');
   // OS detection
 if lowercase(osarch) ='x86' then
    begin
@@ -1241,9 +1248,8 @@ begin
      end;
    //
   if offset=0 then exit;
-  //
   log('found:'+inttohex(offset,sizeof(pointer)),0);
-
+  //
   hprocess:=thandle(-1);
   hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
                                         false,pid);

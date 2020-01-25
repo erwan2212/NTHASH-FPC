@@ -301,6 +301,7 @@ function BytetoAnsiString(buffer:pbyte;len:dword):string;overload;
 var
   tmp:tbytes;
 begin
+if len=0 then exit;
 SetLength(tmp,len);
 ZeroMemory(@tmp[0],len);
 CopyMemory(@tmp[0],buffer,len) ;

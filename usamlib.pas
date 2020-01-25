@@ -10,12 +10,6 @@ uses
 type
 NTStatus = DWORD;
 
-{
-type
- tbyte16_=array[0..15] of byte;
- tbyte=array of byte;
-}
-
 type tdomainuser=record
      domain_handle:thandle;
      username:string;
@@ -28,6 +22,7 @@ type
   _LSA_UNICODE_STRING = record
     Length: USHORT;
     MaximumLength: USHORT;
+    //{$ifdef CPU64}dummy:dword;{$endif cpu64} //to force/ensure alignement
     Buffer: PWSTR;
   end;
   LSA_UNICODE_STRING=_LSA_UNICODE_STRING;
