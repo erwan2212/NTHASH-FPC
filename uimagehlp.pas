@@ -5,7 +5,8 @@ unit uimagehlp;
 interface
 
 uses
-  Classes, SysUtils,windows;
+  Classes, SysUtils,windows,
+  utils;
 
 const
   MiniDumpNormal         = $0000;
@@ -39,7 +40,7 @@ const
   TMinidumpType = MINIDUMP_TYPE;
 
 
-  function MiniDumpWriteDump(hProcess: HANDLE; ProcessId: DWORD; hFile: HANDLE; DumpType: MINIDUMP_TYPE; ExceptionParam: pointer; UserStreamParam: pointer; CallbackParam: pointer): BOOL; stdcall; external 'Dbghelp.dll';
+  //function MiniDumpWriteDump(hProcess: HANDLE; ProcessId: DWORD; hFile: HANDLE; DumpType: MINIDUMP_TYPE; ExceptionParam: pointer; UserStreamParam: pointer; CallbackParam: pointer): BOOL; stdcall; external 'Dbghelp.dll';
 {$EXTERNALSYM MiniDumpWriteDump}
 
 //
@@ -47,10 +48,25 @@ function dumpprocess(pid:dword):boolean;
 
 implementation
 
+var
+MiniDumpWriteDump:function (hProcess: HANDLE; ProcessId: DWORD; hFile: HANDLE; DumpType: MINIDUMP_TYPE; ExceptionParam: pointer; UserStreamParam: pointer; CallbackParam: pointer): BOOL; stdcall;
+
 function dumpprocess(pid:dword):boolean;
 var
   processHandle,hfile:thandle;
+  //
+  {$IFDEF win32}lib:cardinal;{$endif}
+{$IFDEF win64}lib:int64;{$endif}
 begin
+lib:=0;
+lib:=loadlibrary(pchar(sysdir+'\dbghelp.dll')); //we go for the default system one
+if lib<=0 then
+  begin
+  raise exception.Create  ('could not loadlibrary:'+inttostr(getlasterror));
+  exit;
+  end;
+MiniDumpWriteDump:=getProcAddress(lib,'MiniDumpWriteDump');
+//
 processHandle:=thandle(-1);
 processHandle := OpenProcess(PROCESS_ALL_ACCESS, false, PID);
 if processHandle<>thandle(-1) then
@@ -62,6 +78,7 @@ if processHandle<>thandle(-1) then
    end;
  end;
 
+//initialization
 
 end.
 

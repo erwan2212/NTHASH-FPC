@@ -64,6 +64,7 @@ function parsexml(binary,key:string;var output:string):boolean;
 var
   verbose:boolean=false;
   winver,osarch:string;
+  sysdir:pchar;
   debugpriv:boolean=false;
   symmode:boolean=false;
 

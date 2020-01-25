@@ -110,7 +110,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);..\jwa\branches\2.3\Includes"/>
-      <OtherUnitFiles Value="..\jwa\branches\2.3\Win32API;..\..\databases\mORMot-1.18;..\..\system\ikjson"/>
+      <OtherUnitFiles Value="..\jwa\branches\2.3\Win32API;..\..\databases\mORMot-1.18;..\..\system\ikjson;..\SymFromName"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
