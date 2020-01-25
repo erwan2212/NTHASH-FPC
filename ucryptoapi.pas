@@ -1091,6 +1091,7 @@ var
   decryptedPassLen,cbiv:ULONG;
   //gInitializationVector:array[0..15] of uchar;
 begin
+  log('**** bdecrypt ****');
   result:=0;
   cbiv:=0;
   log('algo:'+strpas(algo) );
@@ -1125,7 +1126,7 @@ begin
   status := BCryptDecrypt(hkey, @encryped[0], sizeof(encryped), 0, @initializationVector[0], cbiv, @decrypted[0], length(decrypted), result, 0);
   if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));exit;end;
   log('resultlen:'+inttostr(result));
-  log('decrypted:'+ByteToHexaString  (decrypted ));
+  log('decrypted:'+ByteToHexaString  (@decrypted[0],Result  ));
   //log(strpas (pwidechar(@decrypted[0]) ));
   if output=nil then output:=allocmem(result);
   copymemory(output,@decrypted[0],result);

