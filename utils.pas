@@ -261,7 +261,7 @@ log('**** HexaStringToFile ****');
 result:=false;
 outFile := CreateFile(pchar(filename), GENERIC_WRITE, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 byteswritten :=0;
-log('length(buffer):'+inttostr(length(buffer)));
+log('length:'+inttostr(length(buffer)));
 result:=writefile(outfile ,buffer[0],length(buffer),byteswritten,nil);
 log('byteswritten:'+inttostr(byteswritten));
 if byteswritten>0 then result:=true;
@@ -272,8 +272,9 @@ function AnsiStringtoByte(input:string;unicode:boolean=false):tbytes;
 var
   i:word;
 begin
+log('**** AnsiStringtoByte ****');
+log('length:'+inttostr(length(input)));
 try
-
 if unicode=false then
 begin
 setlength(result,length(input));
@@ -293,7 +294,7 @@ for i:=1 to length(input)  do
 end;
 
 except
-on e:exception do log('AnsiStringtoByte'+e.Message );
+on e:exception do log('AnsiStringtoByte:'+e.Message );
 end;
 end;
 
@@ -313,13 +314,15 @@ var
   i:word;
   dummy:string='';
 begin
+log('**** ByteToHexaString ****');
+log('sizeof:'+inttostr(sizeof(input)));
 if sizeof(input)=0 then exit;
 try
 //writeln(sizeof(input));
   for i:=0 to sizeof(input)-1 do  dummy:=dummy+chr(input[i]);
   result:=dummy;
 except
-on e:exception do log('AnsiStringtoByte'+e.Message );
+on e:exception do log('BytetoAnsiString:'+e.Message );
 end;
 end;
 
@@ -339,13 +342,15 @@ var
   i:word;
   dummy:string='';
 begin
+log('**** ByteToHexaString ****');
+log('sizeof:'+inttostr(sizeof(hash)));
 try
 //writeln('sizeof(hash):'+inttostr(sizeof(hash)));
 //writeln('length(hash):'+inttostr(length(hash)));
   for i:=0 to sizeof(hash)-1 do  dummy:=dummy+inttohex(hash[i],2);
   result:=dummy;
 except
-on e:exception do log('AnsiStringtoByte'+e.Message );
+on e:exception do log('ByteToHexaString:'+e.Message );
 end;
 end;
 
@@ -364,7 +369,7 @@ i:=1;
       inc(i,2);
       end;
 except
-on e:exception do log('AnsiStringtoByte'+e.Message );
+on e:exception do log('HexaStringToByte:'+e.Message );
 end;
 end;
 
@@ -372,6 +377,7 @@ function HexaStringToByte2(hash:string):tbytes;
 var
   i:word;
   tmp:string;
+  b:longint;
 begin
 try
 i:=1;
@@ -381,11 +387,12 @@ setlength(result,length(hash) div 2);
   while I<length(hash) do
       begin
       tmp:=copy(hash,i,2);
-      result[i div 2]:=strtoint('$'+tmp);
+      if TryStrToInt ('$'+tmp,b) then result[i div 2]:=b;
+      //result[i div 2]:=strtoint('$'+tmp);
       inc(i,2);
       end;
 except
-on e:exception do log('AnsiStringtoByte'+e.Message );
+on e:exception do log('HexaStringToByte2:'+e.Message );
 end;
 end;
 

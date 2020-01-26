@@ -256,7 +256,8 @@ end;
 
 var
   lsass_pid:dword=0;
-  p,ret,dw,dw1,dw2:dword;
+  consoletype,p,ret,dw,dw1,dw2:dword;
+  consolecp:uint;
   rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key:string;
   inputw:widestring;
   oldhashbyte,newhashbyte:tbyte16;
@@ -912,7 +913,15 @@ end;
 
 
 begin
-  log('NTHASH 1.8 '+{$ifdef CPU64}'x64'{$endif cpu64}{$ifdef CPU32}'x32'{$endif cpu32}+' by erwan2212@gmail.com',1);
+  consoletype:=GetFileType(GetStdHandle(STD_OUTPUT_HANDLE));
+  consolecp:=GetConsoleCP ; //in case you want alter/restore the console codepage
+  //
+  //FILE_TYPE_DISK : to a file
+  //FILE_TYPE_CHAR : to output console
+  //FILE_TYPE_PIPE : to a pipe
+  //
+  if consoletype<>FILE_TYPE_PIPE then
+    log('NTHASH 1.8 '+{$ifdef CPU64}'x64'{$endif cpu64}{$ifdef CPU32}'x32'{$endif cpu32}+' by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   getmem(sysdir,Max_Path );
@@ -974,8 +983,8 @@ begin
   //****************************************************
   log('NTHASH /bytetostring /input:hexabytes',1);
   log('NTHASH /stringtobyte /input:string',1);
-  log('NTHASH /filetobyte /binary:filename');
-  log('NTHASH /bytetofile /input:hexabytes');
+  log('NTHASH /filetohexa /binary:filename',1);
+  log('NTHASH /hexatofile /input:hexabytes',1);
   log('NTHASH /widestringtobyte /input:string',1);
   log('NTHASH /base64encodew /input:string',1);
   log('NTHASH /base64encode /input:string',1);
@@ -1040,6 +1049,23 @@ begin
         log('sam.sav and/or system.sav missing',1);
         goto fin;
         end;
+     end;
+  //any input?
+  if GetFileType(GetStdHandle(STD_INPUT_HANDLE)) <> FILE_TYPE_CHAR then
+     begin
+     //writeln('echo in');
+     setlength(input_,256);
+     input:='';
+     while Readfile(GetStdHandle(STD_INPUT_HANDLE),input_[0],256,dw ,nil) =true do
+        begin
+        //log('dw:'+inttostr(dw));
+        input:=input+strpas(@input_[0]);
+        ZeroMemory(@input_[0],256);
+        end;
+     //input:=StringReplace (input,chr(13)+chr(10),'',[]);
+     //writeln('.'+input+'.');
+     log('input length:'+inttostr(length(input)));
+     //exit;
      end;
   //
   //enum_samusers(samkey);
@@ -1214,7 +1240,7 @@ begin
     if p>0 then
        begin
        if binary='' then exit;
-       log('filetobyte',1);
+       if consoletype<>FILE_TYPE_PIPE then log('filetohexa',1);
        if not FiletoHexaString(binary)
           then log('not ok',1);
        goto fin;
@@ -1223,7 +1249,7 @@ begin
     if p>0 then
        begin
        if input='' then exit;
-       log('bytetofile',1);
+       if consoletype<>FILE_TYPE_PIPE then log('hexatofile',1);
        if HexaStringToFile ('data.blob',HexaStringToByte2(input))
           then log('data.blob written',1) else log('not ok',1);
        goto fin;
@@ -1233,7 +1259,7 @@ begin
      begin
      if input='' then exit;
      //log('BytetoString:'+BytetoAnsiString (HexaStringToByte (input)),1);
-     log('hexatostring',1);
+     if consoletype<>FILE_TYPE_PIPE then log('hexatostring',1);
      log(BytetoAnsiString (HexaStringToByte (input)),1);
      goto fin;
      end;
@@ -1242,7 +1268,7 @@ begin
      begin
      if input='' then exit;
      //log('StringtoByte:'+ ByteToHexaString ( AnsiStringtoByte(input)),1);
-     log('stringtohexa',1);
+     if consoletype<>FILE_TYPE_PIPE then log('stringtohexa',1);
      log(ByteToHexaString ( AnsiStringtoByte(input)),1);
      goto fin;
      end;
@@ -1251,7 +1277,7 @@ begin
      begin
      if input='' then exit;
      //log('widestringtobyte:'+ ByteToHexaString ( AnsiStringtoByte(input,true)),1);
-     log('widestringtohexa',1);
+     if consoletype<>FILE_TYPE_PIPE then log('widestringtohexa',1);
      log(ByteToHexaString ( AnsiStringtoByte(input,true)),1);
      goto fin;
      end;
@@ -1261,7 +1287,7 @@ begin
      if input='' then exit;
      input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
      //writeln('input:'+input);
-     log('base64encodew',1);
+     if consoletype<>FILE_TYPE_PIPE then log('base64encodew',1);
      log(EncodeStringBase64w (widestring(input)) ,1);
      goto fin;
      end;
@@ -1271,7 +1297,7 @@ begin
      if input='' then exit;
      input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
      //writeln('input:'+input);
-     log('base64encode',1);
+     if consoletype<>FILE_TYPE_PIPE then log('base64encode',1);
      log(base64.EncodeStringBase64 ((input)) ,1);
      goto fin;
      end;
@@ -1289,7 +1315,7 @@ begin
      begin
      if input='' then exit;
      //log(inttostr(length(input)));
-     log('base64decodehexa',1);
+     if consoletype<>FILE_TYPE_PIPE then log('base64decodehexa',1);
      log(ByteToHexaString (AnsiStringtoByte (base64.DecodeStringBase64 (input))) ,1);
      goto fin;
      end;
@@ -1297,8 +1323,10 @@ begin
   if p>0 then
      begin
      if input='' then exit;
-     log('base64decode',1);
+     if consoletype<>FILE_TYPE_PIPE then log('base64decode',1);
+     //SetConsoleOutputCP(437  );
      log(base64.DecodeStringBase64 (input) ,1);
+     //SetConsoleOutputCP(consolecp);
      goto fin;
      end;
   //************************************************************
