@@ -67,6 +67,7 @@ var
   sysdir:pchar;
   debugpriv:boolean=false;
   symmode:boolean=false;
+  console_output_type:dword;
 
 implementation
 
@@ -77,7 +78,7 @@ begin
 try
 if verbose=false then
    if status<>0 then writeln(msg);
-if verbose=true then writeln(msg);
+if (verbose=true) and (console_output_type<>FILE_TYPE_PIPE) then writeln(msg);
 except
 on e:exception do writeln('log:'+e.message);
 end;

