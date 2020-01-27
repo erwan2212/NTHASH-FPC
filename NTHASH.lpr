@@ -977,18 +977,19 @@ begin
   log('NTHASH /enumcred2',1); //will patch lsass
   log('NTHASH /enumvault',1);
   //***************************************************
-  log('NTHASH /chrome [/binary:path_to_database] [/input:hexabytes]',1);
+  log('NTHASH /chrome [/binary:path_to_database] [/input:hexastring]',1);
   log('NTHASH /ccookies [/binary:path_to_database]',1);
   log('NTHASH /firefox [/binary:path_to_database]',1);
   log('NTHASH /fcookies [/binary:path_to_database]',1);
   //****************************************************
-  log('NTHASH /bytetostring /input:hexabytes',1);
+  log('NTHASH /bytetostring /input:hexastring',1);
   log('NTHASH /stringtobyte /input:string',1);
   log('NTHASH /filetohexa /binary:filename',1);
-  log('NTHASH /hexatofile /input:hexabytes',1);
+  log('NTHASH /hexatofile /input:hexastring',1);
   log('NTHASH /widestringtobyte /input:string',1);
   log('NTHASH /base64encodew /input:string',1);
   log('NTHASH /base64encode /input:string',1);
+  log('NTHASH /base64encodehexa /input:hexastring',1);
   log('NTHASH /base64decode /input:base64string',1);
   log('NTHASH /base64decodehexa /input:base64string',1);
   //****************************************************
@@ -996,12 +997,12 @@ begin
   log('NTHASH /cryptunprotectdata /binary:filename',1);
   log('NTHASH /cryptunprotectdata /input:string',1);
   log('NTHASH /cryptprotectdata /input:string [mode:MACHINE]',1);
-  log('NTHASH /decodeblob /binary:filename [/input:hexabytes]',1);
-  log('NTHASH /decodemk /binary:filename [/input:hexabytes]',1);
+  log('NTHASH /decodeblob /binary:filename [/input:hexastring]',1);
+  log('NTHASH /decodemk /binary:filename [/input:hexastring]',1);
   log('NTHASH /wlansvc /binary:filename',1);
-  log('NTHASH /gethash /mode:hashid /input:hexabytes',1);
-  log('NTHASH /gethmac /mode:hashid /input:hexabytes /key:hexabytes',1);
-  log('NTHASH /getcipher /mode:cipherid /input:hexabytes /key:hexabytes',1);
+  log('NTHASH /gethash /mode:hashid /input:hexastring',1);
+  log('NTHASH /gethmac /mode:hashid /input:hexastring /key:hexastring',1);
+  log('NTHASH /getcipher /mode:cipherid /input:hexastring /key:hexastring',1);
   log('NTHASH /getlsasecret /input:secret [/server:hostname]',1);
   log('NTHASH /getlsasecret /input:dpapi_system [/server:hostname]',1);
   //log('NTHASH /dpapi_system',1);
@@ -1044,7 +1045,7 @@ begin
   if p>0 then
      begin
      usamutils.offline :=true;
-     log('Offline=true',1);
+     if console_output_type<>FILE_TYPE_PIPE then log('Offline=true',1);
      if (not FileExists ('sam.sav')) or (not FileExists ('system.sav')) then
         begin
         log('sam.sav and/or system.sav and/or security.sav missing',1);
@@ -1272,12 +1273,14 @@ if p>0 then
    goto fin;
    end;
 //************* ENCODE/DECODE ***********************************************
-  //FiletoHexaString ('encrypted.blob');
+  //FiletoHexaString ('data.blob');
   p:=pos('/filetohexa',cmdline);
     if p>0 then
        begin
+       if (binary='') and FileExists ('data.blob') then binary:='data.blob';
        if binary='' then exit;
        if console_output_type<>FILE_TYPE_PIPE then log('filetohexa',1);
+       if console_output_type<>FILE_TYPE_PIPE then log('filename:'+extractfilename(binary),1);
        if not FiletoHexaString(binary)
           then log('not ok',1);
        goto fin;
@@ -1286,9 +1289,12 @@ if p>0 then
     if p>0 then
        begin
        if input='' then exit;
+       if (binary='') and FileExists ('data.blob') then binary:='data.blob';
+       if binary='' then exit;
        if console_output_type<>FILE_TYPE_PIPE then log('hexatofile',1);
-       if HexaStringToFile ('data.blob',HexaStringToByte2(input))
-          then log('data.blob written',1) else log('not ok',1);
+       if console_output_type<>FILE_TYPE_PIPE then log('filename:'+extractfilename(binary),1);
+       if HexaStringToFile (binary,HexaStringToByte2(input))
+          then log(extractfilename(binary)+' written',1) else log('not ok',1);
        goto fin;
        end;
   p:=pos('/hexatostring',cmdline);
@@ -1326,6 +1332,16 @@ if p>0 then
      //writeln('input:'+input);
      if console_output_type<>FILE_TYPE_PIPE then log('base64encodew',1);
      log(EncodeStringBase64w (widestring(input)) ,1);
+     goto fin;
+     end;
+  p:=pos('/base64encodehexa',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     //input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
+     //writeln('input:'+input);
+     if console_output_type<>FILE_TYPE_PIPE then log('base64encodehexa',1);
+     log(base64.EncodeStringBase64 (BytetoAnsiString (HexaStringToByte2 (input))) ,1);
      goto fin;
      end;
   p:=pos('/base64encode',cmdline);
@@ -1641,12 +1657,17 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      //
      if dumpsecret(syskey,input,output_,'currval') then
       begin
-      log('CurrVal',1);
+      if console_output_type<>FILE_TYPE_PIPE then log('CurrVal',1);
       if lowercase(input)='dpapi_system' then
+       begin
+       if mode='' then
        begin
        log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
        log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
        log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+       end;
+       if lowercase(mode)='machine' then log(ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+       if lowercase(mode)='user' then log(ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
        end
        else //if lowercase(input)='dpapi_system' then
        begin
@@ -1658,12 +1679,21 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
       //
       if dumpsecret(syskey,input,output_,'oldval') then
        begin
-       log('OldVal',1);
+       if console_output_type<>FILE_TYPE_PIPE then log('OldVal',1);
        if lowercase(input)='dpapi_system' then
+        begin
+        if mode='' then
         begin
         log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
         log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
         log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+        end;
+        //if piping out, then we will only display the currval
+        if console_output_type<>FILE_TYPE_PIPE then
+           begin
+           if lowercase(mode)='machine' then log(ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+           if lowercase(mode)='user' then log(ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+           end;
         end
         else //if lowercase(input)='dpapi_system' then
         begin
@@ -1691,7 +1721,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
         end;
      goto fin;
      end;
-  p:=pos('/dpapi_system',cmdline);
+  p:=pos('/dpapi_system',cmdline); //online ONLY
   if p>0 then
      begin
      input:='dpapi_system';
@@ -1723,7 +1753,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
          then
          begin
          log('CryptUnProtectData_ NOT OK',1);
-         if HexaStringToFile ('encrypted.blob',HexaStringToByte2 (key)) then log('blob saved to encrypted.blob',1);
+         if HexaStringToFile ('data.blob',HexaStringToByte2 (key)) then log('blob saved to data.blob',1);
          end
          else log('Decrypted:'+BytetoAnsiString (output_),1);
         end
@@ -1754,14 +1784,14 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if input='' then exit;
      dw:=0;
      if lowercase(mode)='machine' then dw:=4; //CRYPTPROTECT_LOCAL_MACHINE
-      if CryptProtectData_(AnsiStringtoByte (input) ,'encrypted.blob',dw)=false
+      if CryptProtectData_(AnsiStringtoByte (input) ,'data.blob',dw)=false
          then log('CryptUnProtectData_ NOT OK',1)
-         else log('CryptUnProtectData_ OK - written : encrypted.blob',1);
+         else log('CryptUnProtectData_ OK - written : data.blob',1);
      end;
   p:=pos('/decodeblob',cmdline);
     if p>0 then
        begin
-       if (binary='') and FileExists ('encrypted.blob') then binary:='encrypted.blob';
+       if (binary='') and FileExists ('data.blob') then binary:='data.blob';
        if binary='' then exit;
        log('filename:'+extractfilename(binary),1);
        if input='' then

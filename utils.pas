@@ -380,6 +380,8 @@ var
   tmp:string;
   b:longint;
 begin
+log('**** HexaStringToByte2 ****');
+log('length:'+inttostr(length(hash)));
 try
 i:=1;
 //log('hash:'+hash);
