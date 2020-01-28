@@ -5,74 +5,7 @@ https://attack.mitre.org/matrices/enterprise/windows/ is definitely worth readin
 
 I wrote a series of articles <a href="http://labalec.fr/erwan/?s=nthash&searchsubmit=">here</a> to illustrate what can be done with nthash.
 
-<br/>
-Command line as below: <br/>
-NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx <br/>
-NTHASH /setntlm [/server:hostname] /user:username /newpwd:xxx <br/>
-NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newpwd:xxx <br/>
-NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newpwd:xxx <br/>
-NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newhash:xxx <br/>
-NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newhash:xxx <br/>
-NTHASH /getntlmhash /password:password <br/>
-NTHASH /getsid /user:username [/server:hostname] <br/>
-NTHASH /getusers [/server:hostname] <br/>
-NTHASH /getdomains [/server:hostname <br/>
-NTHASH /dumpsam <br/>
-NTHASH /dumphashes [/offline] <br/>
-NTHASH /getsamkey [/offline] <br/>
-NTHASH /getsyskey [/offline] <br/>
-NTHASH /getlsakeys [/symbol] <br/>
-NTHASH /wdigest [/symbol] <br/>
-NTHASH /wdigeston [/symbol] <br/>
-NTHASH /logonpasswords [/symbol] <br/>
-NTHASH /pth /user:username /password:myhash /domain:mydomain [/symbol] <br/>
-NTHASH /enumcred <br/>
-NTHASH /enumcred2 <br/>
-NTHASH /enumvault <br/>
-NTHASH /chrome [/binary:path_to_database] <br/>
-NTHASH /ccookies [/binary:path_to_database] <br/>
-NTHASH /firefox [/binary:path_to_database] <br/>
-NTHASH /fcookies [/binary:path_to_database] <br/>
-NTHASH /bytetostring /input:hexabytes <br/>
-NTHASH /stringtobyte /input:string <br/>
-NTHASH /filetobyte /binary:filename <br/>
-NTHASH /bytetofile /input:hexabytes <br/>   
-NTHASH /widestringtobyte /input:string <br/>
-NTHASH /base64encodew /input:string <br/>
-NTHASH /base64encode /input:string <br/>
-NTHASH /base64decode /input:base64string <br/>
-NTHASH /base64decodehexa /input:base64string <br/>
-NTHASH /cryptunprotectdata /binary:filename <br/>
-NTHASH /cryptunprotectdata /input:string <br/>
-NTHASH /cryptprotectdata /input:string <br/>
-NTHASH /getlsasecret /input:secret <br/>
-NTHASH /dpapimk [/symbol] <br/>
-NTHASH /cryptunprotectdata /binary:filename <br/>
-NTHASH /cryptunprotectdata /input:string <br/>
-NTHASH /cryptprotectdata /input:string <br/>
-NTHASH /decodeblob /binary:filename [/input:hexabytes] <br/>
-NTHASH /decodemk /binary:filename [/input:hexabytes] <br/>
-NTHASH /gethash /mode:hashid /input:hexabytes <br/>
-NTHASH /gethmac /mode:hashid /input:hexabytes /key:hexabytes <br/>
-NTHASH /getcipher /mode:cipherid /input:hexabytes /key:hexabytes <br/>
-NTHASH /getlsasecret /input:secret <br/>
-NTHASH /dpapi_system <br/>
-NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe] <br/>
-NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe] <br/>
-NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe] <br/>
-NTHASH /runas [/binary: x:\folder\bin.exe] <br/>
-NTHASH /runts /user:session_id [/binary: x:\folder\bin.exe] <br/>
-NTHASH /enumpriv <br/>
-NTHASH /enumproc <br/>
-NTHASH /dumpproc /pid:12345 <br/>
-NTHASH /runwmi /binary: x:\folder\bin.exe [/server:hostname] <br/>
-NTHASH /context <br/>
-NTHASH /a_command /verbose <br/>
-NTHASH /a_command /system <br/>
-
-<br/>
-
-Commands are commented with more details <a href="https://erwan2212.github.io/NTHASH-FPC/syntax.html" target="_blank">here</A>.
+Syntax/Commands are detailed (as much as possible) <a href="https://erwan2212.github.io/NTHASH-FPC/syntax.html" target="_blank">here</A>.
 
 <br/>
 
@@ -92,4 +25,5 @@ todo/news: <br/>
 -work out credential blob decryption based on decrypted masterkey: done in 1.7 </br>
 -work out offline decryption of lsasecrets as well: done in 1.7 </br>
 -todo : work out credhist decryption </br>
--see to use ms symbol server to retrieve offset on the fly: done in 1.8 </br>
+-use ms symbol server to retrieve offset on the fly: done in 1.8 </br>
+-introduce pipe - /input will always be fed by the pipe in : done o, 1.8 </br>
