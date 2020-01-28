@@ -6,7 +6,8 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200112;20580551">
+	<META NAME="CHANGED" CONTENT="20200128;21235061">
+	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -17,7 +18,9 @@
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<STYLE TYPE="text/css">
 	<!--
-		PRE.cjk { font-family: "NSimSun", monospace }
+		PRE.western { font-style: italic; font-weight: normal }
+		PRE.cjk { font-family: "NSimSun", monospace; font-style: italic; font-weight: normal }
+		PRE.ctl { font-style: italic; font-weight: normal }
 	-->
 	</STYLE>
 </HEAD>
@@ -35,6 +38,7 @@
 <A HREF="#dumpsecret"><FONT COLOR="#000000">dumpsecret</FONT></A>
 <A HREF="#getlsakeys"><FONT COLOR="#000000">getlsakeys</FONT></A>
 <A HREF="#wdigest"><FONT COLOR="#000000">wdigest</FONT></A>
+<A HREF="#wdigeston"><FONT COLOR="#000000">wdigeston</FONT></A>
 <A HREF="#logonpasswords"><FONT COLOR="#000000">logonpasswords</FONT></A>
 <A HREF="#pth"><FONT COLOR="#000000">pth</FONT></A>
 <A HREF="#enumcred"><FONT COLOR="#000000">enumcred</FONT></A>
@@ -51,7 +55,9 @@
 <A HREF="#hexatofile"><FONT COLOR="#000000">hexatofile</FONT></A>
 <A HREF="#base64encodew"><FONT COLOR="#000000">base64encodew</FONT></A>
 <A HREF="#base64encode"><FONT COLOR="#000000">base64encode</FONT></A>
+<FONT COLOR="#000000"><FONT FACE="Courier New, monospace"><FONT SIZE=2><A HREF="#base64encodehexa">base64encodehexa</A></FONT></FONT></FONT>
 <A HREF="#base64decode"><FONT COLOR="#000000">base64decode</FONT></A>
+<A HREF="#base64decodehexa"><FONT COLOR="#000000">base64decodehexa</FONT></A>
 <FONT COLOR="#000000"><A HREF="#getlsasecret">getlsasecret</A> </FONT>
 <A HREF="#dpapimk"><FONT COLOR="#000000">dpapimk</FONT></A>
 <FONT COLOR="#000000"><SPAN STYLE="font-style: normal"><SPAN STYLE="font-weight: normal"><A HREF="#cryptunprotectdata">cryptunprotectdata</A> </SPAN></SPAN></FONT>
@@ -75,23 +81,35 @@
 
 
 <FONT COLOR="#000000"><B>changentlm</B></FONT><FONT COLOR="#000000">, using a legacy api (SamiChangePasswordUser), may not work if your ntlm hashes are encrypted with AES (i.e starting with win10 1607.</FONT>
-<FONT COLOR="#000000">Credits goes to https://github.com/vletoux/NTLMInjector</FONT>
+<FONT COLOR="#000000">Credits goes to <A HREF="https://github.com/vletoux/NTLMInjector">https://github.com/vletoux/NTLMInjector</A></FONT>
+<FONT COLOR="#000000"><I>NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newpwd:xxx</I></FONT>
+<FONT COLOR="#000000"><I>NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newpwd:xxx</I></FONT>
+<FONT COLOR="#000000"><I>NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newhash:xxx</I></FONT>
+<FONT COLOR="#000000"><I>NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newhash:xxx</I></FONT>
 <A NAME="setntlm"></A>
 <FONT COLOR="#000000"><B>setntlm</B> on the other hand should always work (using SamSetInformationUser)  and allow one to bypass password policy.</FONT>
 <FONT COLOR="#000000">Credits goes to <A HREF="https://github.com/vletoux/NTLMInjector">https://github.com/vletoux/NTLMInjector</A></FONT>
+<I><FONT COLOR="#000000">NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx</FONT></I>
+<I><FONT COLOR="#000000">NTHASH /setntlm [/server:hostname] /user:username /newpwd:xxx</FONT></I>
 
 <A NAME="getntlmhash"></A><FONT COLOR="#000000"><B>getntlmhash</B> will generate a ntlm hash.</FONT>
 <FONT COLOR="#000000">Advapi32.dll undocumented function SystemFunction007 is used.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /getntlmhash /password:password</I></FONT>
+<FONT COLOR="#000000"><I>echo password | nthash-win64 /getntlmhash | wtee output.ntlm</I></FONT>
 
 <A NAME="getsid"></A><FONT COLOR="#000000"><B>getsid</B> will provide the sid of a user.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /getsid /user:username [/server:hostname]</I></FONT>
 
 <A NAME="getusers"></A><FONT COLOR="#000000"><B>getusers</B> will provide a list of users.</FONT>
 <FONT COLOR="#000000">Samlib.dll SamEnumerateUsersInDomain function is used.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /getusers [/server:hostname]</I></FONT>
 
 <A NAME="getdomains"></A><FONT COLOR="#000000"><B>getdomains</B> will provide a list of domains.</FONT>
 <FONT COLOR="#000000">Samlib.dll SamEnumerateDomainsInSamServer function is used.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /getdomains [/server:hostname</I></FONT>
 <A NAME="dumpsam"></A>
 <FONT COLOR="#000000"><B>dumpsam</B> will temporarily patch a module in lsass to be able to dump your SAM ntlm hashes from the lsass memory (need to cover/test as many windows version as possible).</FONT>
+<FONT COLOR="#000000"><I>NTHASH /dumpsam</I></FONT>
 
 <A NAME="dumphash"></A><A NAME="dumphashes"></A><FONT COLOR="#000000"><B>dumphash</B> and <B>dumphashes</B> will read the registry - you need to run as system to perform this action</FONT>
 <FONT COLOR="#000000">. Or you can use the /system switch</FONT>
@@ -99,83 +117,116 @@
 <FONT COLOR="#000000">You can use reg save hklm\sam sam.sav and reg save hklm\system system.sav to generate offline hives.</FONT>
 <FONT COLOR="#000000">Both the RC4 (using advapi32.dll) and AES128 (using cryptoapi.dll) cipher are supported.</FONT>
 <FONT COLOR="#000000">https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/ is a must read to understand RC4 vs AES.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /dumphashes [/offline]</I></FONT>
 
 <A NAME="getsamkey"></A><FONT COLOR="#000000"><B>getsamkey</B> (also known as hashed bootkey) will read/decrypt SAM\sam\Domains\account\F.</FONT>
 <FONT COLOR="#000000">Both the RC4 (using advapi32.dll) and AES128 (using cryptoapi.dll) cipher are supported.</FONT>
 <FONT COLOR="#000000">Samkey is required to dumphashes.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /getsamkey [/offline]</I></FONT>
 
 <A NAME="getsyskey"></A><FONT COLOR="#000000"><B>getsyskey</B> (also known as bootkey) will read/decode class attribute from SYSTEM\CurrentControlSet\Control\Lsa.</FONT>
 <FONT COLOR="#000000">Syskey is required to retrieve the samkey and dumpsecret.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /getsyskey [/offline]</I></FONT>
 
 <A NAME="dumpsecret"></A><FONT COLOR="#000000"><B>dumpsecret</B> will decrypt secret (AES256 using cryptoapi.dll) from the registry (Security\Policy\secrets), online of offline.</FONT>
 <FONT COLOR="#000000">Use dumpsecret /input:dpapi_system to retrieve the dpapi system keys (user and computer) to decrypt system masterkeys.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /dumpsecret /input:secret [/offline]</I></FONT>
+<FONT COLOR="#000000"><I>NTHASH /dumpsecret /input:dpapi_system [/offline]</I></FONT>
 
 <A NAME="getlsakeys"></A><FONT COLOR="#000000"><B>getlsakeys</B> will read lsa keys from lsass memory (aes,des,iv).</FONT>
 <FONT COLOR="#000000">These are required for logonpasswords, wdigest, dpapimk.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /getlsakeys [/symbol]</I></FONT>
 
 <A NAME="cryptunprotectdata"></A><A NAME="cryptprotectdata"></A><FONT COLOR="#000000"><B>cryptunprotectdata</B> and <B>cryptprotectdata</B> will decrypt/encrypt datas using dpapi under the running user context (or machine context actually).</FONT>
+<FONT COLOR="#000000">NTHASH /cryptunprotectdata /binary:filename</FONT>
+<FONT COLOR="#000000">NTHASH /cryptunprotectdata /input:hexastring</FONT>
+<FONT COLOR="#000000">NTHASH /cryptprotectdata /input:string</FONT>
+<FONT COLOR="#000000">echo Passw0rd1234 | nthash-win64 /cryptprotectdata</FONT>
 
 <A NAME="decodeblob"></A><FONT COLOR="#000000"><B>decodeblob</B> will decode an encrypted dpapi blob.</FONT>
 <FONT COLOR="#000000">If the decrypted masterkey is provided, it will also decrypt the blob and decode it.</FONT>
 <FONT COLOR="#000000">CryptDecrypt from cryptoapi is used.</FONT>
+<FONT COLOR="#000000">data.blob is the default filename.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /decodeblob /binary:filename [/input:sha1MK]</I></FONT>
 
 <A NAME="decodemk"></A><FONT COLOR="#000000"><B>decodemk</B> will decode an encrypted dpapi masterley.</FONT>
 <FONT COLOR="#000000">If a pre key is provided, it will also decrypt the masterkey and decode it.</FONT>
 <FONT COLOR="#000000">CryptDecrypt from cryptoapi is used.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /decodemk /binary:filename [/input:hexabytes]</I></FONT>
         
 <A NAME="wlansvc"></A><FONT COLOR="#000000"><B>wlansvc</B> will decrypt a blob (contained in xml files) used by the wlansvc service.</FONT>
 <FONT COLOR="#000000">Find these xml files with <I>dir %programdata% /s /a /b | findstr /i interfaces</I>.</FONT>
 <FONT COLOR="#000000">Note that this data is encrypted/decrypted under the system account</FONT>
 <FONT COLOR="#000000">If it cannot decrypt it, then it will dump the blob in blob.encrypted which can then be used with decodeblob.</FONT>
 <FONT COLOR="#000000">cryptunprotectdata is used.</FONT>
+<FONT COLOR="#000000">NTHASH /wlansvc /binary:filename</FONT>
 
 <A NAME="gethash"></A><FONT COLOR="#000000"><B>gethash</B> will hash a message.</FONT>
 <FONT COLOR="#000000">Supported hashes are SHA512, SHA256, SHA384, SHA1, MD5, MD4, MD2.</FONT>
 <FONT COLOR="#000000">CryptGetHashParam from cryptoapi is used.</FONT>
 <FONT COLOR="#000000">This function is internally used in many other crypt functions.</FONT>
+<FONT COLOR="#000000"><FONT FACE="Courier New, monospace"><FONT SIZE=2>NTHASH /gethash /mode:hashid /input:hexabytes</FONT></FONT></FONT>
 
 <A NAME="gethmac"></A><FONT COLOR="#000000"><B>gethmac</B> will generate a keyed-hash message authentication code.</FONT>
 <FONT COLOR="#000000">Supported hashes are SHA512, SHA256, SHA384, SHA1, MD5, MD4, MD2.</FONT>
 <FONT COLOR="#000000">CryptGetHashParam from cryptoapi is used.</FONT>
 <FONT COLOR="#000000">This function is internally used in many other crypt functions.</FONT>
+<FONT COLOR="#000000"><FONT FACE="Courier New, monospace"><FONT SIZE=2>NTHASH /gethmac /mode:hashid /input:hexabytes /key:hexabytes</FONT></FONT></FONT>
 
-<A NAME="getcipher"></A><FONT COLOR="#000000"><B>getcipher</B> will</FONT>
+<A NAME="getcipher"></A><FONT COLOR="#000000"><B>getcipher</B> will cipher a message with a key.</FONT>
 <FONT COLOR="#000000">Supported algo's are RC2, RC4, RC5, DES, 3DES, 3DES112, AES, AES128, AE256.</FONT>
 <FONT COLOR="#000000">Supported hashes are SHA512, SHA256, SHA384, SHA1, MD5 (default), MD4, MD2.</FONT>
 <FONT COLOR="#000000">You can alter the cipher mode by setting a dos var CRYPT_MODE with CBC, ECB (default), OFB, CFB, CTS.</FONT>
 <FONT COLOR="#000000">CryptEncrypt from cryptoapi is used.</FONT>
+<FONT COLOR="#000000">NTHASH /getcipher /mode:cipherid /input:hexabytes /key:hexabytes</FONT>
 
 <FONT COLOR="#000000"><B>getlsasecret</B> will retrieve lsa secrets using LsaRetrievePrivateData api.</FONT>
 <FONT COLOR="#000000">Use <SPAN STYLE="font-weight: normal">getlsasecret</SPAN> /input:dpapi_system to retrieve the dpapi system keys (user and computer) to decrypt system masterkeys. </FONT>
+<FONT COLOR="#000000"><I>NTHASH /getlsasecret /input:secret [/server:hostname]</I></FONT>
+<FONT COLOR="#000000"><I>NTHASH /getlsasecret /input:dpapi_system [/server:hostname]</I></FONT>
 
 <A NAME="enumcred"></A><FONT COLOR="#000000"><B>enumcred</B> will use CredEnumerate windows API to enumerate the logged on user credentials.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /enumcred</I></FONT>
 
-<A NAME="enumcred2"></A><FONT COLOR="#000000"><B>enumcred2</B> will use CredEnumerate windows API to enumerate the logged on user credentials while also patching lsass to dump all credentials</FONT>
+<A NAME="enumcred2"></A><FONT COLOR="#000000"><B>enumcred2</B> will use CredEnumerate windows API to enumerate the logged on user credentials while also patching lsass to dump all credentials.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /enumcred2</I></FONT>
 
 <A NAME="enumvault"></A><FONT COLOR="#000000"><B>enumvault</B> will use vaultcli.dll windows API to enumerate the logged on user vault credentials.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /enumvault</I></FONT>
 
 <A NAME="chrome"></A><FONT COLOR="#000000"><B>chrome</B> will decrypt chrome browser passwords either online (using cryptunprotectdata) or offline (using decodeblob).</FONT>
+<FONT COLOR="#000000"><I>NTHASH /chrome [/binary:path_to_database] [/input:decryptedMK]</I></FONT>
 
 <A NAME="ccookies"></A><FONT COLOR="#000000"><B>ccookies</B> will decrypt chrome browser cookies online (using cryptunprotectdata).</FONT>
+<FONT COLOR="#000000"><I>NTHASH /ccookies [/binary:path_to_database]</I></FONT>
 
 <A NAME="firefox"></A><FONT COLOR="#000000"><B>firefox</B> will decrypt firefox browser passwords.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /firefox [/binary:path_to_database]</I></FONT>
 
 <A NAME="fcookies"></A><FONT COLOR="#000000"><B>fcookies</B> will decrypt firefox browser cookies.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /fcookies [/binary:path_to_database]</I></FONT>
 
 <A NAME="logonpasswords"></A><FONT COLOR="#000000"><B>logonpasswords</B> will dump (from lsass memory) lsasrv logon sessions primary credentials (hashes) and credential managers (clear text).</FONT>
 <FONT COLOR="#000000">Note that credentials are decrypted using the lsa keys and BcryptEncrypt from bcrypt32.dll.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /logonpasswords [/symbol]</I></FONT>
 
 <A NAME="pth"></A><FONT COLOR="#000000"><B>pth</B> will create a suspended process with dummy credentials, dump logon sessions, patch the session matching the suspended process with new credentials (ntlm hashed password).</FONT>
 <FONT COLOR="#000000">Note that credentials are encrypted using the lsa keys and BcryptEncrypt from bcrypt32.dll.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /pth /user:username /password:myhash /domain:mydomain [/symbol]</I></FONT>
 
 <A NAME="wdigest"></A><FONT COLOR="#000000"><B>wdigest</B> will dump (from lsass memory) wdigest sessions credentials (clear text).</FONT>
+<FONT COLOR="#000000"><I>NTHASH /wdigest [/symbol]</I></FONT>
+
+<A NAME="wdigeston"></A><FONT COLOR="#000000"><B>wdigeston</B> will reenable wdigest by patching lsass.exe</FONT>
+<FONT COLOR="#000000"><I>NTHASH /wdigeston [/symbol]</I></FONT>
 
 <A NAME="dpapimk"></A><FONT COLOR="#000000"><B>dpapimk</B> will dump (from lsass memory) dpapi decrypted masterkey's.</FONT>
 <FONT COLOR="#000000">Note that credentials are decrypted using the lsa keys and BcryptEncrypt from bcrypt32.dll.</FONT>
+<FONT COLOR="#000000"><I>NTHASH /dpapimk [/symbol]</I></FONT>
 
 <A NAME="runasuser"></A><FONT COLOR="#000000"><B>runasuser</B> will simply run a process with the provided cleartext credentials.</FONT>
 <FONT COLOR="#000000">Similar to the windows runas command.</FONT>
-
+NTHASH /runasuser /user:username /password:password [/binary: x:\folder\bin.exe]
 
 <A NAME="runastoken"></A><FONT COLOR="#000000"><B>runastoken</B></FONT><FONT COLOR="#000000"> can be used to run a process under a system account.</FONT>
 <FONT COLOR="#000000">Once under a system account, you can also &quot;steal&quot; a token from trustedinstaller (net start trustedinstaller before hand.</FONT>
@@ -185,46 +236,78 @@
 <FONT COLOR="#000000">@echo off</FONT>
 <FONT COLOR="#000000">net start trustedinstaller</FONT>
 <FONT COLOR="#000000">for /F &quot;tokens=1&quot; %%K in (' nthash-win64 /enumproc ^| findstr /i &quot;trustedinstaller&quot; ') do ( nthash-win64 /runastoken /pid:%%K /system )</FONT>
+NTHASH /runastoken /pid:12345 [/binary: x:\folder\bin.exe]
+NTHASH-win64 /enumproc /input:trustedinstaller.exe | nthash-win64 /runastoken /system
 
 <A NAME="runaschild"></A><FONT COLOR="#000000"><B>runaschild</B> can be used to run a process as a child of another existing/parent process.</FONT>
 <FONT COLOR="#000000">Note that some apps (like cmd.exe) will crash right after initialization with a c0000142.</FONT>
 <FONT COLOR="#000000">Wierdly enough, loading notepad.exe with this method and then launching cmd.exe from there works...</FONT>
+NTHASH /runaschild /pid:12345 [/binary: x:\folder\bin.exe]
 
 <A NAME="runas"></A><FONT COLOR="#000000"><B>runas</B> will launch a process in elevated mode.</FONT>
 <FONT COLOR="#000000">That command should actually be renamed runaselevated.</FONT>
+<FONT COLOR="#000000">NTHASH /runas [/binary: x:\folder\bin.exe]</FONT>
 
 <A NAME="runts"></A><FONT COLOR="#000000"><B>runts</B> will launch a process in the context of another TS session.</FONT>
 <FONT COLOR="#000000">Note that this one needs the setcbprivilege so you will have to find a token with such privilege first (like winlogon.exe).</FONT>
+<FONT COLOR="#000000">NTHASH /runts /user:session_id [/binary: x:\folder\bin.exe]</FONT>
 
 <A NAME="runwmi"></A><FONT COLOR="#000000"><B>runwmi</B> will launch a process using wmi, locally or remotely</FONT>
+NTHASH /runwmi /binary: x:\folder\bin.exe [/server:hostname]
 
-<A NAME="context"></A><FONT COLOR="#000000"><B>context</B> will display various informations such as windows platform, version, elevated y/n, debugprivilege y/n, admin y/n ...</FONT>
+<A NAME="context"></A><FONT COLOR="#000000"><B>context</B> will display various informations such as windows platform, version, elevated y/n, debugprivilege y/n, admin y/n &hellip;</FONT>
+<FONT COLOR="#000000">NTHASH /context</FONT>
 
 <A NAME="enumpriv"></A><FONT COLOR="#000000"><B>enumpriv</B> will list all privileges, enabled or not.</FONT>
 <FONT COLOR="#000000">Will possibly be used later on in batch mode.</FONT>
+<FONT COLOR="#000000">NTHASH /enumpriv</FONT>
 
 <A NAME="enumproc"></A><FONT COLOR="#000000"><B>enumproc</B> will list (all &ndash; depending on the context) processes with the logged on user.</FONT>
 <FONT COLOR="#000000">Is used in the trusted.cmd batch.</FONT>
+<FONT COLOR="#000000">NTHASH /enumproc [/input:some.exe]</FONT>
+<FONT COLOR="#000000">echo lsass.exe | nthash-win64 /enumproc | nthash-win64 /killproc</FONT>
 
 <A NAME="dumpproc"></A><FONT COLOR="#000000"><B>dumpproc</B> will dump a process (similar to procdump).</FONT>
-<FONT COLOR="#000000">Will ideally be using syscalls later on to avoid AV/EDR,</FONT>
+<FONT COLOR="#000000">In the future, should ideally be using syscalls later on to avoid AV/EDR.</FONT>
+<FONT COLOR="#000000">NTHASH /dumpproc /pid:12345</FONT>
 
 <A NAME="hexatostring"></A><FONT COLOR="#000000"><B>hexatostring</B> will convert hexadecimal to a string</FONT>
+<FONT COLOR="#000000"><I>NTHASH /hexatostring /input:hexabytes</I></FONT>
 
 <A NAME="stringtohexa"></A><FONT COLOR="#000000"><B>stringtohexa</B> will convert a string to hexadecimal</FONT>
+<FONT COLOR="#000000"><I>NTHASH /stringtohexa /input:string</I></FONT>
+<FONT COLOR="#000000"><I>echo password | NTHASH-win64.exe /stringtohexa | NTHASH-win64.exe /gethash /mode:MD5 | wtee output.md5</I></FONT>
 
 <A NAME="widestringtohexa"></A><FONT COLOR="#000000"><B>widestringtohexa</B> will convert a string to unicode hexadecimal</FONT>
+<FONT COLOR="#000000"><I>NTHASH /widestringtohexa /input:string</I></FONT>
 
 <A NAME="filetohexa"></A><FONT COLOR="#000000"><B>filetohexa</B> will convert file content to hexadecimal</FONT>
+<FONT COLOR="#000000"><I>NTHASH /filetohexa [/binary:filename]</I></FONT>
+<FONT COLOR="#000000"><I>data.blob is the default filename.</I></FONT>
+<FONT COLOR="#000000">nthash-win64 /filetohexa | nthash-win64 /base64encodehexa | wtee output.base64</FONT>
 
 <A NAME="hexatofile"></A><FONT COLOR="#000000"><B>hexatofile</B> will convert hexacimal to a file</FONT>
+<FONT COLOR="#000000"><I>NTHASH /hexatofile /input:hexabytes [/binary:filename]</I></FONT>
+<FONT COLOR="#000000"><I>data.blob is the default filename.</I></FONT>
 
 <A NAME="base64encodew"></A><FONT COLOR="#000000"><B>base64encodew</B></FONT><FONT COLOR="#000000"> will convert a string to unicode base64</FONT>
+<I><FONT COLOR="#000000">NTHASH /base64encodew /input:string</FONT></I>
 
 <A NAME="base64encode"></A><FONT COLOR="#000000"><B>base64encode</B> will convert a string to base64</FONT>
+<FONT COLOR="#000000"><I>NTHASH /base64encode /input:string</I></FONT>
+<FONT COLOR="#000000"><I>echo password | nthash-win64 /base64encode | wtee output.base64</I></FONT>
 
-<A NAME="base64decode"></A><FONT COLOR="#000000"><B>base64decode</B> will convert a base64 string to a string</FONT></PRE><P>
-<BR><BR>
-</P>
+<A NAME="base64encodehexa"></A><FONT COLOR="#000000"><I><B>base64encodehexa</B> will convert a hexa string to base64</I></FONT>
+<FONT COLOR="#000000"><I>NTHASH /base64encodehexa /input:hexastring</I></FONT>
+
+<A NAME="base64decode"></A><FONT COLOR="#000000"><FONT FACE="Courier New, monospace"><FONT SIZE=2><B>base64decode</B> will convert a base64 string to a string</FONT></FONT></FONT>
+<FONT COLOR="#000000"><I>NTHASH /base64decode /input:base64string</I></FONT>
+<FONT COLOR="#000000"><I>echo cGFzc3dvcmQg | nthash-win64 /base64decode</I></FONT>
+<FONT COLOR="#000000"><I>type output.base64 | nthash-win64 /base64decode</I></FONT>
+
+<A NAME="base64decodehexa"></A><FONT COLOR="#000000"><FONT FACE="Courier New, monospace"><FONT SIZE=2><B>base64decodehexa</B> will convert a base64 string to a hexa string</FONT></FONT></FONT>
+<FONT COLOR="#000000"><I>NTHASH /base64decodehexa /input:base64string</I></FONT>
+<FONT COLOR="#000000"><I>type output.base64 | nthash-win64 /base64decodehexa </I></FONT>
+</PRE>
 </BODY>
 </HTML>

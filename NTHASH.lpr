@@ -982,8 +982,8 @@ begin
   log('NTHASH /firefox [/binary:path_to_database]',1);
   log('NTHASH /fcookies [/binary:path_to_database]',1);
   //****************************************************
-  log('NTHASH /bytetostring /input:hexastring',1);
-  log('NTHASH /stringtobyte /input:string',1);
+  log('NTHASH /hexatostring /input:hexastring',1);
+  log('NTHASH /stringtohexa /input:string',1);
   log('NTHASH /filetohexa /binary:filename',1);
   log('NTHASH /hexatofile /input:hexastring',1);
   log('NTHASH /widestringtobyte /input:string',1);
@@ -995,7 +995,7 @@ begin
   //****************************************************
   log('NTHASH /dpapimk',1);  //will read mem
   log('NTHASH /cryptunprotectdata /binary:filename',1);
-  log('NTHASH /cryptunprotectdata /input:string',1);
+  log('NTHASH /cryptunprotectdata /input:hexastring',1);
   log('NTHASH /cryptprotectdata /input:string [mode:MACHINE]',1);
   log('NTHASH /decodeblob /binary:filename [/input:hexastring]',1);
   log('NTHASH /decodemk /binary:filename [/input:hexastring]',1);
@@ -1713,15 +1713,21 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
         begin
         if lowercase(input)='dpapi_system' then
          begin
-         log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
-         log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
-         log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
-         end
+         if mode='' then
+                begin
+                log('Full:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+                log('Machine:'+ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+                log('User:'+ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+                end; //if mode='' then
+                if lowercase(mode)='machine' then log(ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
+                if lowercase(mode)='user' then log(ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
+                end
          else log('secret:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
         end;
      goto fin;
      end;
-  p:=pos('/dpapi_system',cmdline); //online ONLY
+  {
+  p:=pos('/dpapi_system',cmdline); //online ONLY, will actually called
   if p>0 then
      begin
      input:='dpapi_system';
@@ -1742,6 +1748,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
         end;
      goto fin;
      end;
+  }
   //******************* CRYPT **************************
   p:=pos('/wlansvc',cmdline);
   if p>0 then
