@@ -14,7 +14,7 @@ function ReadMem(hprocess:thandle;offset:nativeuint;var bytes:array of byte):boo
 function ReadMem(hprocess:thandle;offset:nativeuint;bytes:pointer;len:PtrUInt):boolean;overload;
 
 function SearchMem(hprocess:thandle;addr:pointer;sizeofimage:DWORD;pattern:array of byte):nativeint;
-function search_module_mem(pid:dword;module:string;pattern:tbytes;var found:nativeint):boolean;
+function search_module_mem(pid:dword;module:string;pattern:tbytes;var found:nativeuint):boolean;
 
 
 implementation
@@ -98,7 +98,7 @@ log('sizeofimage:'+inttostr(sizeofimage));
 //log('Done!',0);
 end;
 
-function search_module_mem(pid:dword;module:string;pattern:tbytes;var found:nativeint):boolean;
+function search_module_mem(pid:dword;module:string;pattern:tbytes;var found:nativeuint):boolean;
 
 var
   dummy:string;

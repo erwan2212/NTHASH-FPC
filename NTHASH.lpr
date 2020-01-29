@@ -336,7 +336,7 @@ var
   hprocess:thandle;
   backup:array[0..1] of byte;
   read:cardinal;
-  offset:nativeint=0;
+  offset:nativeuint=0;
   patch_pos:ShortInt=0;
   pattern:tbytes;
 begin
@@ -445,7 +445,7 @@ var
   //offset_list:array[0..3] of byte;
   offset_list_dword:dword;
   read:cardinal;
-  offset:nativeint=0;
+  offset:nativeuint=0;
   patch_pos:ShortInt=0;
   pattern:array of byte;
   logsesslist:array [0..sizeof(_KIWI_MSV1_0_LIST_63)-1] of byte;

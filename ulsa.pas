@@ -529,7 +529,7 @@ end;
 function findlsakeys_sym(pid:dword;var DesKey,aeskey,iv:tbytes):boolean;
 var
   module:string='lsasrv.dll';
-  ivOffset,desOffset,aesOffset:int64;
+  ivOffset,desOffset,aesOffset:nativeuint; //int64;
   hmod:thandle;
 begin
 log('**** findlsakeys_sym ****');
@@ -824,7 +824,7 @@ var
   cbNeeded,count:	 DWORD;
   szModName:array[0..254] of char;
   addr_:pointer;
-  offset:nativeint=0;
+  offset:nativeuint=0;
   offset_list:array[0..3] of byte;
   offset_list_dword:dword;
   list:array[0..sizeof(_KIWI_MASTERKEY_CACHE_ENTRY)-1] of byte;
@@ -844,6 +844,16 @@ begin
       copymemory(@pattern[0],@PTRN_WALL_MasterKeyCacheList_x86[0],sizeof(PTRN_WALL_MasterKeyCacheList_x86));
       patch_pos:=-4;
       end;
+   if copy(winver,1,3)='6.0' then //vista
+      begin
+      //symbol only?
+      module:='lsasrv.dll';
+      end ;
+   if copy(winver,1,3)='6.1' then  //win7 & 2k8
+      begin
+      //symbol only?
+      module:='lsasrv.dll';
+      end ;
    if copy(winver,1,3)='6.2' then  //win8.0
       begin
       setlength(pattern,sizeof(PTRN_WI60_MasterKeyCacheList_x86));
@@ -864,12 +874,14 @@ begin
       setlength(pattern,sizeof(PTRN_WI60_MasterKeyCacheList));
       copymemory(@pattern[0],@PTRN_WI60_MasterKeyCacheList[0],sizeof(PTRN_WI60_MasterKeyCacheList));
       patch_pos:=-4;
+      module:='lsasrv.dll';  //?
       end ;
    if copy(winver,1,3)='6.1' then  //win7 & 2k8
       begin
       setlength(pattern,sizeof(PTRN_WI61_MasterKeyCacheList));
       copymemory(@pattern[0],@PTRN_WI61_MasterKeyCacheList[0],sizeof(PTRN_WI61_MasterKeyCacheList));
       patch_pos:=7;
+      module:='lsasrv.dll'; //?
       end ;
    if copy(winver,1,3)='6.2' then  //win8.0
       begin
@@ -1037,7 +1049,7 @@ var
   module:string='wdigest.dll';
   hprocess:thandle;
   offset_dword:dword;
-  offset:nativeint=0;
+  offset:nativeuint=0;
   patch_pos:ShortInt=0;
   pattern:tbytes; //array of byte;
   dw:dword;
@@ -1172,7 +1184,7 @@ var
   offset_list:array[0..3] of byte;
   offset_list_dword:dword;
   read:cardinal;
-  offset:nativeint=0;
+  offset:nativeuint=0;
   patch_pos:ShortInt=0;
   pattern:array of byte;
   logsesslist:array [0..sizeof(i_logsesslist)-1] of byte;

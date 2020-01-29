@@ -413,7 +413,7 @@ var
   hprocess:thandle;
   after,backup:array of byte; //array[0..0] of byte;
   read:cardinal;
-  offset:nativeint=0;
+  offset:nativeuint=0;
   patch_pos:ShortInt=0;
   pattern:tbytes;
 begin
