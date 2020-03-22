@@ -5,7 +5,7 @@ unit untdll;
 interface
 
 uses
-  Classes, SysUtils;
+  windows,Classes, SysUtils;
 
 type TOSVersionInfoExW = record
        dwOSVersionInfoSize: DWORD;
@@ -21,7 +21,7 @@ type TOSVersionInfoExW = record
        wReserved: byte;
      end;
 
- function RtlGetVersion (var lpVersionInformation: TOSVERSIONINFOEXW): DWORD; stdcall; external 'ntdll.dll' name 'RtlGetVersion';
+ //function RtlGetVersion (var lpVersionInformation: TOSVERSIONINFOEXW): DWORD; stdcall; external 'ntdll.dll' name 'RtlGetVersion';
 
 //
 function GetWindowsVer:string;
@@ -32,6 +32,7 @@ implementation
 function GetWindowsVer:string;
 var
   osver:TOSVersionInfoExW ;
+  RtlGetVersion:function(var lpVersionInformation: TOSVERSIONINFOEXW): DWORD; stdcall;
 begin
 {
 windows 10's
@@ -46,6 +47,9 @@ version buildnumber
 1903	18362
 1909    18362
 }
+//
+RtlGetVersion:=getProcAddress(loadlibrary('ntdll.dll'),'RtlGetVersion');
+//
    RtlGetVersion(osver ) ;
    result:=(inttostr(osver.dwMajorVersion)
              +'.'+inttostr(osver.dwMinorVersion)

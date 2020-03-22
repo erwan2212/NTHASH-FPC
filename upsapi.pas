@@ -33,6 +33,167 @@ type phmodule=^hmodule;
 
     type PSIZE_T=^SIZE_T;
 
+    type
+  _SYSTEM_INFORMATION_CLASS = (
+    SystemBasicInformation,
+    SystemProcessorInformation,
+    SystemPerformanceInformation,
+    SystemTimeOfDayInformation,
+    SystemNotImplemented1,
+    SystemProcessesAndThreadsInformation,
+    SystemCallCounts,
+    SystemConfigurationInformation,
+    SystemProcessorTimes,
+    SystemGlobalFlag,
+    SystemNotImplemented2,
+    SystemModuleInformation,
+    SystemLockInformation,
+    SystemNotImplemented3,
+    SystemNotImplemented4,
+    SystemNotImplemented5,
+    SystemHandleInformation,
+    SystemObjectInformation,
+    SystemPagefileInformation,
+    SystemInstructionEmulationCounts,
+    SystemInvalidInfoClass1,
+    SystemCacheInformation,
+    SystemPoolTagInformation,
+    SystemProcessorStatistics,
+    SystemDpcInformation,
+    SystemNotImplemented6,
+    SystemLoadImage,
+    SystemUnloadImage,
+    SystemTimeAdjustment,
+    SystemNotImplemented7,
+    SystemNotImplemented8,
+    SystemNotImplemented9,
+    SystemCrashDumpInformation,
+    SystemExceptionInformation,
+    SystemCrashDumpStateInformation,
+    SystemKernelDebuggerInformation,
+    SystemContextSwitchInformation,
+    SystemRegistryQuotaInformation,
+    SystemLoadAndCallImage,
+    SystemPrioritySeparation,
+    SystemNotImplemented10,
+    SystemNotImplemented11,
+    SystemInvalidInfoClass2,
+    SystemInvalidInfoClass3,
+    SystemTimeZoneInformation,
+    SystemLookasideInformation,
+    SystemSetTimeSlipEvent,
+    SystemCreateSession,
+    SystemDeleteSession,
+    SystemInvalidInfoClass4,
+    SystemRangeStartInformation,
+    SystemVerifierInformation,
+    SystemAddVerifier,
+    SystemSessionProcessesInformation);
+  SYSTEM_INFORMATION_CLASS = _SYSTEM_INFORMATION_CLASS;
+
+    type TUNICODE_STRING  = packed record
+                      wLength       : ushort;
+                      wMaximumLength: ushort;
+                      {$ifdef CPU64}dummy:dword;{$endif cpu64}
+                      Buffer       : PWideChar;
+                    end;
+UNICODE_STRING = TUNICODE_STRING;
+PUNICODE_STRING = ^TUNICODE_STRING;
+
+type KPRIORITY = Integer;
+
+VM_COUNTERS = packed record
+    PeakVirtualSize : ULONG;
+    VirtualSize : ULONG;
+    PageFaultCount : ULONG;
+    PeakWorkingSetSize : ULONG;
+    WorkingSetSize : ULONG;
+    QuotaPeakPagedPoolUsage : ULONG;
+    QuotaPagedPoolUsage : ULONG;
+    QuotaPeakNonPagedPoolUsage : ULONG;
+    QuotaNonPagedPoolUsage : ULONG;
+    PageFileUsage : ULONG;
+    PeakPageFileUsage : ULONG;
+  end;
+
+  IO_COUNTERS = packed record
+    ReadOperationCount : LARGE_INTEGER;
+    WriteOperationCount : LARGE_INTEGER;
+    OtherOperationCount : LARGE_INTEGER;
+    ReadTransferCount : LARGE_INTEGER;
+    WriteTransferCount : LARGE_INTEGER;
+    OtherTransferCount : LARGE_INTEGER;
+  end;
+
+  SClientID=record
+       UniqueProcess:DWORD;
+       UniqueThread:DWORD;
+end;
+
+  _SYSTEM_THREADS =record
+        KernelTime:LARGE_INTEGER;
+        UserTime:LARGE_INTEGER;
+        CreateTime:LARGE_INTEGER;
+        WaitTime:ULONG;
+        StartAddress:pointer; //pvoid
+        ClientId:SClientId;
+        Priority:LongInt; //long
+        BasePriority:LongInt;
+        ContextSwitchCount:LongInt;
+        State:LongInt;
+        WaitReason:LongInt;
+  end;
+
+  //https://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/ex/sysinfo/process.htm
+
+    type _SYSTEM_PROCESSES = record // Information Class 5
+        NextEntryDelta: ULONG;
+        ThreadCount: ULONG;
+        Reserved1: array [0..5] of ULONG;
+
+        {
+        Reserved1:  nativeint; //LARGE_INTEGER;
+        Reserved2:  ULONG;
+        Reserved3:  ULONG;
+        reserved4:  ULONGLONG;
+        }
+
+        CreateTime: nativeint; //LARGE_INTEGER;
+        UserTime: nativeint; //LARGE_INTEGER;
+        KernelTime: nativeint; //LARGE_INTEGER;
+        ProcessName: UNICODE_STRING;
+        BasePriority: nativeint; //long //KPRIORITY;
+        ProcessId: ULONG;
+        InheritedFromProcessId: ULONG;
+        HandleCount: ULONG;
+        SessionId: ULONG;
+        Reservedx: ULONG;
+        VmCounters: VM_COUNTERS;
+        IoCounters: IO_COUNTERS;  // Windows 2000 only
+        Threads: array [0..0] of _SYSTEM_THREADS;
+      end;
+      SYSTEM_PROCESSES = _SYSTEM_PROCESSES;
+      PSYSTEM_PROCESSES = ^SYSTEM_PROCESSES;
+      TSystemProcesses = SYSTEM_PROCESSES;
+      PSystemProcesses = PSYSTEM_PROCESSES;
+
+      Process = record // Information Class 5
+    ProcessName: string;
+    user:string;
+    ProcessId: ULONG;
+    InheritedFromProcessId: ULONG;
+    SessionId: ULONG;
+    threads:array of DWORD;
+  end;
+
+      {
+      function NtQuerySystemInformation(SystemInformationClass: SYSTEM_INFORMATION_CLASS;
+                                        SystemInformation: PVOID;
+                                        SystemInformationLength: ULONG;
+                                        ReturnLength: PULONG
+                                        ): NTSTATUS; stdcall;external 'ntdll.dll';
+      }
+
 function GetModuleInformation(hProcess: HANDLE; hModule: HMODULE;
   var lpmodinfo: MODULEINFO; cb: DWORD): BOOL; stdcall;external 'psapi.dll';
 
@@ -67,6 +228,7 @@ nSize: DWORD): DWORD; stdcall;external 'psapi.dll';
   }
 
   //
+  function _EnumProc2(search:string='';buser:boolean=false):dword;
   function _EnumProc(search:string=''):dword;
   function _EnumMod(pid:dword;search:string=''):dword;
   function _killproc(pid:dword):boolean;
@@ -181,6 +343,101 @@ hProcess := OpenProcess( PROCESS_QUERY_INFORMATION or
    closehandle(hProcess);
 end;
 
+//uses NtQuerySystemInformation which does not need to openprocess with PROCESS_QUERY_INFORMATION or PROCESS_VM_READ
+//therefore, less likely to be blocked by AV's
+function _EnumProc2(search:string='';buser:boolean=false):dword;
+var
+ i,rl,cp : dword;
+ pinfo : PSystemProcesses;
+ buf : Pointer;
+ dim: dword;
+ username,domain,tmp:string;
+ t:_SYSTEM_THREADS ;
+ //
+ processes:array of process;
+ //
+ NtQuerySystemInformation:function (SystemInformationClass: SYSTEM_INFORMATION_CLASS;
+                                        SystemInformation: PVOID;
+                                        SystemInformationLength: ULONG;
+                                        ReturnLength: PULONG
+                                        ): NTSTATUS; stdcall;
+begin
+   {$ifdef CPU32}result:=_enumproc(search);exit;{$endif cpu32}
+   //
+   NtQuerySystemInformation:=getProcAddress(loadlibrary('ntdll.dll'),'NtQuerySystemInformation');
+   //
+   result:=0;
+   log('**** _EnumProc2 ****');
+  dim := 256*1024;
+  GetMem(buf, dim);
+  rl := 0;
+  //messageboxa(0,'test1','',0);
+  i := NtQuerySystemInformation(SystemProcessesAndThreadsInformation, buf, dim, @rl);
+  while (i = $C0000004) do
+    begin
+      dim := dim + (256*1024);
+      FreeMem(buf);
+      GetMem(buf, dim);
+      i := NtQuerySystemInformation(SystemProcessesAndThreadsInformation, buf, dim, @rl);
+    end;
+  if i = 0 then
+    begin
+      cp := 0;
+      setlength(processes,0);
+
+      repeat
+        pinfo := PSystemProcesses(Pointer(nativeuint(buf) + cp));
+        if pinfo=nil then break;
+        cp := cp + pinfo.NextEntryDelta;
+        //setlength(processes,length(processes)+1);
+        with pinfo^ do
+          begin
+          if search='' then
+          begin
+          if buser then
+          if GetProcessUserAndDomain (ProcessId,username,domain)=true
+                   then tmp:=domain+'\'+username
+                   else tmp:='';
+          //log(WideCharToString(ProcessName.Buffer)+#9+tmp,1 );
+          log(inttostr(ProcessId)+ #9+WideCharToString(ProcessName.Buffer)+#9+tmp,1 );
+          end; //if search='' then
+          if search<>'' then
+          if lowercase(search)=lowercase(strpas(ProcessName.Buffer) ) then
+             begin
+             result:=ProcessId;
+             break;
+             end; //if lowercase...
+          //threads
+          {
+          SetLength(processes[length(processes)-1].threads,pinfo^.ThreadCount);
+          for i:=0 to pinfo^.ThreadCount -1 do
+            begin
+            CopyMemory(@t,pointer(dword(@pinfo^.Threads[0])+(sizeof(t)*i)),sizeof(t));
+            processes[length(processes)-1].threads[i]:=t.ClientId.UniqueThread;
+            end;
+          //
+          }
+          {
+            if (ProcessName.Buffer <> nil)
+              then processes[length(processes)-1].ProcessName :=WideCharToString(ProcessName.Buffer)
+              else processes[length(processes)-1].ProcessName:='System Idle';
+            processes[length(processes)-1].user:=(' ');
+            if buser then if GetProcessUserAndDomain(ProcessId,user,domain)
+              then processes[length(processes)-1].user:= user;
+            //li.SubItems.Add(IntToStr(ThreadCount));
+            processes[length(processes)-1].ProcessId :=ProcessId;
+            processes[length(processes)-1].InheritedFromProcessId :=InheritedFromProcessId;
+            //li.SubItems.Add(IntToStr(HandleCount));
+            processes[length(processes)-1].SessionId :=SessionId;
+           }
+            //
+
+          end; //with
+      until (pinfo.NextEntryDelta = 0);
+    end;
+ FreeMem(buf);
+end;
+
 function _EnumProc(search:string=''):dword;
 var
   cb,cbneeded,cbneeded2:dword;
@@ -200,7 +457,8 @@ result:=0;
           //beware of 32bit process onto 64bits processes...
           hProcess := OpenProcess( PROCESS_QUERY_INFORMATION or PROCESS_VM_READ,
                                    FALSE, pids[count] );
-          //log( inttostr(pids[count])+' '+inttostr(hprocess));
+          if hprocess<=0 then log( inttostr(pids[count])+', OpenProcess failed - '+inttostr(getlasterror));
+          if hprocess>0 then
           if GetModuleBaseNameA( hProcess, 0, szProcessName,sizeof(szProcessName))<>0 then
              begin
              if search='' then
@@ -208,16 +466,16 @@ result:=0;
                 if GetProcessUserAndDomain (pids[count],username,domain)=true
                    then tmp:=domain+'\'+username
                    else tmp:='';
-                writeln(inttostr(pids[count])+ #9+szProcessName+#9+tmp );
+                log(inttostr(pids[count])+ #9+szProcessName+#9+tmp,1 );
                 end; //if search='' then
              if lowercase(search)=lowercase(strpas(szProcessName) ) then
                 begin
                 result:=pids[count];
                 break;
                 end; //if lowercase...
-             end;// if GetModuleBaseNameA...
-          closehandle(hProcess);
-             //else writeln(getlasterror);
+             end// if GetModuleBaseNameA...
+             else log( inttostr(pids[count])+', GetModuleBaseNameA failed - '+inttostr(getlasterror));
+             closehandle(hProcess);
           end; //for count:=0...
       end//if EnumProcesses...
       else log('EnumProcesses failed, '+inttostr(getlasterror));

