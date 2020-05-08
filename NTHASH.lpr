@@ -1086,6 +1086,21 @@ begin
   //wdigest_on (lsass_pid );
   //writeln(sizeof(_LSA_UNICODE_STRING));
   //exit;
+  {
+  master key=  ('43A1899600562CE62D7481622A49D19D2FAE7640794C3F3A8238BE3CB627F7EB'),
+  iv=   ('AF62B9200C99BC02774738BF'),
+  encrypted data =   ('12CC7D67B22B4160BE6D47FBB4D1DD71C5109DA857C640B15C4DC344'),
+  tag = B4D1DD71C5109DA857C640B15C4DC344
+  //https://github.com/gentilkiwi/mimikatz/blob/master/mimikatz/modules/dpapi/packages/kuhl_m_dpapi_chrome.c
+  setlength(output_,12); //length of encrypted - 16
+  bdecrypt_gcm('AES', //AES-GMAC
+     HexaStringToByte2 ('12CC7D67B22B4160BE6D47FBB4D1DD71C5109DA857C640B15C4DC344'),
+     @output_[0],
+     HexaStringToByte2 ('43A1899600562CE62D7481622A49D19D2FAE7640794C3F3A8238BE3CB627F7EB'),
+     HexaStringToByte2 ('AF62B9200C99BC02774738BF'));
+  log('decrypted:'+BytetoAnsiString  (output_));
+  exit;
+  }
   //
   p:=pos('/server:',cmdline);
   if p>0 then

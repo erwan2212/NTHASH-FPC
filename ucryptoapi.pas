@@ -75,11 +75,32 @@ type tdpapi_blob=record
   end;
   pdpapi_blob=^tdpapi_blob;
 
+  type _BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO =record
+         cbSize:ULONG;
+         dwInfoVersion:ULONG;
+         pbNonce:PBYTE; //PUCHAR;
+         cbNonce:ULONG;
+         pbAuthData:PBYTE; //PUCHAR;
+         cbAuthData:ULONG;
+         pbTag:PBYTE; //PUCHAR;
+         cbTag:ULONG;
+         pbMacContext:PBYTE; //PUCHAR;
+         cbMacContext:ULONG;
+         cbAAD:ULONG;
+         cbData:ULONGLONG;
+         dwFlags:ULONG;
+  end;
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO=_BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO;
+    PBCRYPT_AUTHENTICATED_CIPHER_MODE_INFO=^BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO;
+
 
 function DecryptAES128(const Key: tbyte16;const IV:array of byte;const data: tbyte16;var output:tbyte16): boolean;
+
 function EnCryptDecrypt(algid:dword;hashid:dword;CRYPT_MODE:dword;const key: tbytes;var buffer:tbytes;const decrypt:boolean=false):boolean;
 
-function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
+//function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
+function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte;CHAINING_MODE:widestring=''):ULONG;
+function bdecrypt_gcm(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
 function bencrypt(algo:lpcwstr;decrypted:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
 
 function CryptProtectData_(dataBytes:array of byte;var output:tbytes;flags:dword=0):boolean;overload;
@@ -289,7 +310,8 @@ const
 BCRYPT_CHAIN_MODE_CBC_:widestring       = 'ChainingModeCBC';
 BCRYPT_CHAIN_MODE_ECB_:widestring       = 'ChainingModeECB';
 BCRYPT_CHAIN_MODE_CFB_:widestring       = 'ChainingModeCFB';
-BCRYPT_CHAINING_MODE_:widestring        = 'ChainingMode';
+BCRYPT_CHAINING_MODE_ :widestring       = 'ChainingMode';
+BCRYPT_CHAIN_MODE_GCM_:widestring       = 'ChainingModeGCM';
 
 
 procedure RtlCopyMemory(Destination: PVOID; Source: PVOID; Length: SIZE_T); stdcall;
@@ -959,7 +981,11 @@ begin
   //3rd param is entropy
   //5th param is password
   result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, 0{CRYPTPROTECT_LOCAL_MACHINE}, @decryptedBlob);
-  if result=false then result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
+  if result=false then
+     begin
+     log('trying CRYPTPROTECT_LOCAL_MACHINE...');
+     result:=CryptunProtectData(@plainBlob, nil, pEntropy, nil, nil, CRYPTPROTECT_LOCAL_MACHINE, @decryptedBlob);
+     end;
 
   log('decryptedBlob.cbData:'+inttostr(decryptedBlob.cbData) );
   //log(strpas(pchar(decryptedBlob.pbData)));
@@ -1082,7 +1108,7 @@ begin
 end;
 
 
-function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
+function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte;CHAINING_MODE:widestring=''):ULONG;
 var
   hProvider:BCRYPT_ALG_HANDLE=0;
   decrypted:array[0..1023] of byte;
@@ -1105,14 +1131,19 @@ begin
   status:=BCryptOpenAlgorithmProvider(hProvider, algo, nil, 0);
   //log('hProvider:'+inttostr(hProvider));
   if status<>0 then begin log('BCryptOpenAlgorithmProvider NOT OK');exit;end;
+  //https://docs.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers
   if algo=BCRYPT_AES_ALGORITHM then
      begin
-       status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @BCRYPT_CHAIN_MODE_CFB_[1], sizeof(BCRYPT_CHAIN_MODE_CFB_), 0);
+       if  CHAINING_MODE=''
+          then status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @BCRYPT_CHAIN_MODE_CFB_[1], sizeof(BCRYPT_CHAIN_MODE_CFB_), 0)
+          else status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @CHAINING_MODE[1], sizeof(CHAINING_MODE), 0);
        cbiv:=sizeof(initializationVector );
      end;
   if algo=BCRYPT_3DES_ALGORITHM then
      begin
-       status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @BCRYPT_CHAIN_MODE_CBC_[1], sizeof(BCRYPT_CHAIN_MODE_CBC_), 0);
+       if  CHAINING_MODE=''
+          then status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @BCRYPT_CHAIN_MODE_CBC_[1], sizeof(BCRYPT_CHAIN_MODE_CBC_), 0)
+          else status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @CHAINING_MODE[1], sizeof(CHAINING_MODE), 0);
        cbiv:=sizeof(initializationVector ) div 2;
      end;
   //writeln('cbiv:'+inttostr(cbiv));
@@ -1128,6 +1159,72 @@ begin
   log('resultlen:'+inttostr(result));
   //log('decrypted:'+ByteToHexaString  (@decrypted[0],result  ));
   log('decrypted:'+ByteToHexaString  (decrypted));
+  //log(strpas (pwidechar(@decrypted[0]) ));
+  if output=nil then output:=allocmem(result);
+  copymemory(output,@decrypted[0],result);
+  //https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
+  //0xC0000023  STATUS_BUFFER_TOO_SMALL
+end;
+
+function bdecrypt_gcm(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
+const AES_BLOCK_SIZE=16 ;
+var
+  hProvider:BCRYPT_ALG_HANDLE=0;
+  decrypted:array[0..1023] of byte;
+  hkey:BCRYPT_KEY_HANDLE=0;
+  status:NTSTATUS;
+  decryptedPassLen,cbiv:ULONG;
+  //gInitializationVector:array[0..15] of uchar;
+  info:BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO;
+begin
+  log('**** bdecrypt_gcm ****');
+  result:=0;
+  cbiv:=0;
+  {
+  log('algo:'+strpas(algo) );
+  log('encrypted size:'+inttostr(sizeof(encryped) ));
+  log('decrypted size:'+inttostr(sizeof(decrypted) ));
+  log('decrypted length:'+inttostr(length(decrypted) ));
+  log('sizeof(gkey):'+inttostr(sizeof(gkey)));
+  log('sizeof(iv):'+inttostr(sizeof(initializationVector )));
+  }
+  status:=BCryptOpenAlgorithmProvider(hProvider, algo, nil, 0);
+  //log('hProvider:'+inttostr(hProvider));
+  if status<>0 then begin log('BCryptOpenAlgorithmProvider NOT OK');exit;end;
+  //https://docs.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers
+  if algo=BCRYPT_AES_ALGORITHM then
+     begin
+       status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @BCRYPT_CHAIN_MODE_GCM_[1], sizeof(BCRYPT_CHAIN_MODE_GCM_), 0);
+       cbiv:=sizeof(initializationVector );
+     end;
+  if algo=BCRYPT_3DES_ALGORITHM then
+     begin
+        status:=BCryptSetProperty(hProvider, pwidechar(BCRYPT_CHAINING_MODE_), @BCRYPT_CHAIN_MODE_GCM_[1], sizeof(BCRYPT_CHAIN_MODE_GCM_), 0);
+       cbiv:=sizeof(initializationVector ) div 2;
+     end;
+  //writeln('cbiv:'+inttostr(cbiv));
+  if status<>0 then begin log('BCryptSetProperty NOT OK:'+inttohex(status,sizeof(status)));exit;end;
+  status:=BCryptGenerateSymmetricKey(hProvider, hkey, nil, 0, @gKey[0], sizeof(gKey), 0);
+  if status<>0 then begin log('BCryptGenerateSymmetricKey NOT OK:'+inttohex(status,sizeof(status)));exit;end;
+  //writeln('hkey:'+inttostr(hkey));
+  //fillchar(decrypted,sizeof(decrypted ),0);
+  fillchar(decrypted,length(decrypted ),0);
+  //
+  fillchar(info,sizeof(info),0);
+  info.cbSize :=sizeof(info); //Do not set this field directly. Use the BCRYPT_INIT_AUTH_MODE_INFO macro instead.
+  info.dwInfoVersion :=1;
+  info.pbNonce :=@initializationVector [0]; //iv
+  info.cbNonce :=sizeof(initializationVector);
+  info.pbTag :=@encryped[sizeof(encryped )-AES_BLOCK_SIZE]; //tag
+  info.cbTag :=AES_BLOCK_SIZE;
+  //log('pbTag:'+ByteToHexaString  (@encryped[sizeof(encryped )-AES_BLOCK_SIZE],AES_BLOCK_SIZE));
+  //
+  //status := BCryptDecrypt(hkey, @encryped[0], sizeof(encryped), 0, @initializationVector[0], cbiv, @decrypted[0], sizeof(decrypted), result, 0);
+  status := BCryptDecrypt(hkey, @encryped[0], sizeof(encryped)-AES_BLOCK_SIZE, @info, nil, 0, @decrypted[0], length(decrypted), result, 0);
+  log('resultlen:'+inttostr(result));
+  if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));exit;end;
+  //
+  log('decrypted:'+ByteToHexaString  (@decrypted[0],result));
   //log(strpas (pwidechar(@decrypted[0]) ));
   if output=nil then output:=allocmem(result);
   copymemory(output,@decrypted[0],result);
@@ -1213,15 +1310,15 @@ begin
         if CryptSetKeyParam(hDecryptKey, KP_MODE, @dwKeyCypherMode, 0)=false then log('CryptSetKeyParam NOT OK',0);
         if CryptSetKeyParam(hDecryptKey, KP_IV, @IV[0], 0)=false then log('CryptSetKeyParam NOT OK',0);
 
-        {
-        output:=value;
-        pbData := @output[0];
-        }
+
+        //output:=value;
+        //pbData := @output[0];
+
         ResultLen :=sizeof(output);
         CopyMemory(@output[0],@data[0],sizeof(output));
 
         // the calling application sets the DWORD value to the number of bytes to be decrypted. Upon return, the DWORD value contains the number of bytes of the decrypted plaintext.
-        if CryptDecrypt(hDecryptKey, 0, true, 0, @output[0]{pbData}, ResultLen) then
+        if CryptDecrypt(hDecryptKey, 0, true, 0, @output[0] {pbData}, ResultLen) then
         begin
           log('CryptDecrypt OK',0);
           //SetLength(Result, ResultLen);
@@ -1246,7 +1343,82 @@ begin
   end;
 end;
 
+{
+function DecryptAES256(const Key: tbytes;const IV:array of byte;const data: tbytes;var output:tbytes): boolean;
+var
+  pbData: PByte;
+  hCryptProvider: HCRYPTPROV;
+  KeyBlob: packed record
+    Header: BLOBHEADER;
+    Size: DWORD;
+    Data: array[0..31] of Byte;
+  end;
+  hKey, hDecryptKey: HCRYPTKEY;
+  dwKeyCypherMode: DWORD;
+  ResultLen: DWORD;
+//const
+const MS_ENH_RSA_AES_PROV:pchar='Microsoft Enhanced RSA and AES Cryptographic Provider'+#0;
+  //PROV_RSA_AES = 24;
+  //CALG_AES_128 = $0000660e;
+  //AESFinal = True;
+begin
+  Result := false;
+  // MS_ENH_RSA_AES_PROV
+  if CryptAcquireContext(hCryptProvider, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
+  begin
+    log('CryptAcquireContext OK',0);
+    KeyBlob.Header.bType := PLAINTEXTKEYBLOB;
+    keyBlob.Header.bVersion := CUR_BLOB_VERSION;
+    keyBlob.Header.reserved := 0;
+    keyBlob.Header.aiKeyAlg := CALG_AES_256 ;
+    keyBlob.Size := Length(Key);
+    CopyMemory(@keyBlob.Data[0], @Key[0], keyBlob.Size);
 
+    if CryptImportKey(hCryptProvider, @KeyBlob, SizeOf(KeyBlob), 0, 0, hKey) then
+    begin
+      log('CryptImportKey OK',0);
+      if CryptDuplicateKey(hKey, nil, 0, hDecryptKey) then
+      begin
+        log('CryptDuplicateKey OK',0);
+        dwKeyCypherMode := 5; //GCM ?
+        if CryptSetKeyParam(hDecryptKey, KP_MODE, @dwKeyCypherMode, 0)=false then log('CryptSetKeyParam1 NOT OK',0);
+        if CryptSetKeyParam(hDecryptKey, KP_IV, @IV[0], 0)=false then log('CryptSetKeyParam2 NOT OK',0);
+
+        //output:=value;
+        //pbData := @output[0];
+
+        ResultLen :=length(output);
+        //setlength(data,ResultLen);
+        CopyMemory(@output[0],@data[0],ResultLen);
+        log('ResultLen:'+inttostr(ResultLen),0);
+
+        // the calling application sets the DWORD value to the number of bytes to be decrypted. Upon return, the DWORD value contains the number of bytes of the decrypted plaintext.
+        if CryptDecrypt(hDecryptKey, 0, true, 0, @output[0] /*pbData*/, ResultLen) then
+        begin
+          log('CryptDecrypt OK',0);
+          //SetLength(Result, ResultLen);
+          result:=true;
+        end
+        else
+        begin
+          //NT_BAD_DATA (0x80090005)
+          log('ResultLen:'+inttostr(ResultLen),0);
+          if ResultLen >0 then result:=true else result:=false;
+          log('CryptDecrypt NOT OK '+ IntTohex(GetLastError,4),0);
+          log('DATA:'+BytetoAnsiString (output));
+          Result := true;
+        end;
+
+        CryptDestroyKey(hDecryptKey);
+      end;
+
+      CryptDestroyKey(hKey);
+    end;
+
+    CryptReleaseContext(hCryptProvider, 0);
+  end;
+end;
+}
 
 function crypto_hkey(hProv:HCRYPTPROV; calgid:ALG_ID; key:LPCVOID; keyLen:DWORD; flags:DWORD; var hKey:HCRYPTKEY; var hSessionProv:HCRYPTPROV):boolean;
 var

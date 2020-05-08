@@ -14,7 +14,8 @@ uses
   syndb,syndbsqlite3,
   shlobj,
   ucryptoapi,utils,
-  udpapi;
+  udpapi,
+  uLkJSON,variants,base64;
 
 function decrypt_chrome(db:string='';mk:pointer=nil):boolean;
 function decrypt_cookies(db:string=''):boolean;
@@ -38,6 +39,8 @@ begin
 end;
 
 function decrypt_chrome(db:string='';mk:pointer=nil):boolean;
+const
+  DPAPI_CHROME_UNKV10 : array[0..2] of char = ('v', '1', '0');
 var
 Props: TSQLDBSQLite3ConnectionProperties ;
   //
@@ -53,6 +56,11 @@ Props: TSQLDBSQLite3ConnectionProperties ;
   ptr_:pointer;
   dw:dword;
   pwd:string;
+  //
+  js:TlkJSONobject;
+  T: TextFile;
+  s:string;
+  bytes,key,iv,encrypted:tbytes;
 begin
   result:=false;
 //C:\Users\xxx\AppData\Local\Google\Chrome\User Data\Default
@@ -60,7 +68,6 @@ if db='' then
    begin
    path:=(GetSpecialFolder($1c));  //CSIDL_LOCAL_APPDATA
    path:=path+'\Google\Chrome\User Data\Default';
-   //
    if not FileExists(path+'\login data') then
    begin
      writeln('The database does not exist. Please create one.');
@@ -81,6 +88,36 @@ writeln('path:'+path);
 writeln('db:'+path+'\login data.db');
 
 if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');exit;end;
+
+//
+if FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state') then
+   begin
+   //writeln('FileExists');
+   {
+   AssignFile(t, GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state');
+   Reset(t);
+   Readln(t, s); //while not eof... ?
+   CloseFile(t);
+   }
+   //js := TlkJSON.ParseText(s) as TlkJSONobject;
+   js:=TlkJSONstreamed.loadfromfile(GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state') as TlkJsonObject;
+   if assigned(js) then
+      begin
+      //writeln('assigned(js)');
+      s:=vartostr(js.Field['os_crypt'].Field['encrypted_key'].Value);
+      //writeln(s);
+      bytes:=AnsiStringtoByte (base64.DecodeStringBase64 (s,true));
+      s:=ByteToHexaString(bytes);
+      delete(s,1,10); //remove 'DPAPI'
+      //writeln(s);
+      //writeln(length(s));
+      if CryptUnProtectData_(HexaStringToByte2(s),key)= true
+        then writeln('os_crypt:encrypted_key:'+ByteToHexaString(key))
+        else writeln('no os_crypt:encrypted_key');
+      js.Free;
+      end;
+   end;
+//
 
   try
     //if dynamic
@@ -119,21 +156,52 @@ if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');e
                copymemory(@pwd[1],ptr_,dw);
                writeln(rows['origin_url']+';'+rows['username_value']+';'+pwd+';'+guidMasterKey);
                end;
-            end else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLED'+';'+guidMasterKey);
+            end else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLED1'+';'+guidMasterKey);
       end   ////if mk<>nil then
       else  //if mk<>nil then
-      if CryptUnProtectData_(b,output)=true then
+      if {(CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) and} (CryptUnProtectData_(b,output)=true) then
          begin
          if length(output)<255 then
          begin
-         {
-         writeln(rows['origin_url']);
-         writeln((rows['username_value']));
-         writeln(BytetoAnsiString(output));
-         }
          writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString(output));
          end; //if length(output)<255 then
-         end else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLED');
+         end
+         else //CryptUnProtectData_ failed? maybe chrome80?
+         begin
+         if CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3) then
+              begin
+              {
+              writeln('signature:'+'v10');
+              writeln('iv:'+ByteToHexaString (@b[0+3],12));
+              writeln('encrypted key:'+ByteToHexaString (@b[0+3+12],length(b)-12-3)); // -16? id tag...
+              }
+              setlength(iv,12);
+              CopyMemory (@iv[0],@b[0+3],length(iv));
+              setlength(encrypted,length(b)-12-3); //contains also the TAG
+              CopyMemory (@encrypted[0],@b[0+3+12],length(encrypted));
+              setlength(output,length(encrypted)-16); //-16=TAG length
+              if bdecrypt_gcm('AES', encrypted, @output[0], key, iv)<>0
+                then writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString (output)+';*');
+              end
+              else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLED2');
+         //works with https://gchq.github.io/CyberChef
+         //master key + iv + tag (last 16 bytes of key) and encrypted key as input (minus last 16 bytes)
+         {
+         //step 1
+         New Chrome version (v80.0 & higher) uses Master Key based encryption to store your web login passwords.
+         Here is how it generates the Master Key. First 32-byte random data is generated.
+         Then it is encrypted using Windows DPAPI (“CryptProtectData”) function.
+         To this encrypted key, it inserts signature “DPAPI” (RFBBUEk) in the beginning for identification.
+         Finally this key is encoded using Base64 and stored in “Local State” file in above “User Data” folder.
+         C:\Users\[user_name]\AppData\Local\Google\Chrome\User Data\
+         "os_crypt":.."encrypted_key":"RFBBUEkBAAAA0Iyd3wEA0RGbegD...opsxEv3TKNqz0gyhAcq+nAq0"...
+         //step 2
+         struct WebPassword
+	 BYTE signature[3] = "v10";
+	 BYTE iv[12];
+	 BYTE encPassword[...]
+         }
+         end;
       end;
     finally
       //rows._Release ;
