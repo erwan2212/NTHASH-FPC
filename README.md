@@ -27,3 +27,4 @@ todo/news: <br/>
 -todo : work out credhist decryption </br>
 -use ms symbol server to retrieve offset on the fly: done in 1.8 </br>
 -introduce pipe - /input will always be fed by the pipe in : done o, 1.8 </br>
+-chrome 80 new encryption (aes-256-gcm) : done in 1.8 </br> 
