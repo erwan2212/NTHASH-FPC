@@ -90,9 +90,9 @@ writeln('db:'+path+'\login data.db');
 if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');exit;end;
 
 //
-if FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state') then
+if {(db='') and}  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state')) then
    begin
-   //writeln('FileExists');
+   //writeln('found '+GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state');
    {
    AssignFile(t, GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state');
    Reset(t);
@@ -138,8 +138,10 @@ if FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state') the
       b:=rows.ColumnBlobBytes('password_value');
       if mk<>nil then //mk mode...
          begin
-         guidMasterKey:=' ';
-         if decodeblob (b,@blob_) then guidMasterKey:=GUIDToString (blob_.guidMasterKey) ;
+         guidMasterKey:='{00000000-0000-0000-0000-000000000000}';
+         if decodeblob (b,@blob_)
+           then guidMasterKey:=GUIDToString (blob_.guidMasterKey)
+           else guidMasterKey:='{00000000-0000-0000-0000-000000000000}';
          //log('dwDataLen:'+inttostr(blob.dwDataLen));
          //log('dwFlags:'+inttostr(blob.dwFlags ),1);
          //log('guidMasterKey:'+guidMasterKey,1);
@@ -156,10 +158,10 @@ if FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state') the
                copymemory(@pwd[1],ptr_,dw);
                writeln(rows['origin_url']+';'+rows['username_value']+';'+pwd+';'+guidMasterKey);
                end;
-            end else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLED1'+';'+guidMasterKey);
+            end else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';'+guidMasterKey);
       end   ////if mk<>nil then
       else  //if mk<>nil then
-      if {(CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) and} (CryptUnProtectData_(b,output)=true) then
+      if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) and (CryptUnProtectData_(b,output)=true) then
          begin
          if length(output)<255 then
          begin
@@ -168,7 +170,7 @@ if FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state') the
          end
          else //CryptUnProtectData_ failed? maybe chrome80?
          begin
-         if CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3) then
+         if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)) and (length(key)>0) then
               begin
               {
               writeln('signature:'+'v10');
@@ -180,10 +182,11 @@ if FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state') the
               setlength(encrypted,length(b)-12-3); //contains also the TAG
               CopyMemory (@encrypted[0],@b[0+3+12],length(encrypted));
               setlength(output,length(encrypted)-16); //-16=TAG length
+              //writeln('length(key):'+inttostr(length(key)));
               if bdecrypt_gcm('AES', encrypted, @output[0], key, iv)<>0
                 then writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString (output)+';*');
               end
-              else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLED2');
+              else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDON');
          //works with https://gchq.github.io/CyberChef
          //master key + iv + tag (last 16 bytes of key) and encrypted key as input (minus last 16 bytes)
          {

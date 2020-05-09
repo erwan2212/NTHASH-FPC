@@ -1973,7 +1973,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
 
     setlength(output_,crypto_hash_len(dw));
     zeromemory(@output_[0],length(output_));
-
+    //log(inttostr(length(input_)),0);
   if crypto_hash_hmac (dw,@key_[0],length(key_),@input_[0],length(input_),@output_[0],crypto_hash_len(dw))
      then
       begin

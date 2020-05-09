@@ -592,21 +592,22 @@ log('**** dpapi_unprotect_masterkey_with_shaDerivedkey ****',0);
 										begin
                                                                                 log('crypto_hash_hmac #2 ok',0);
 											//if(status = RtlEqualMemory(hmac2, (PBYTE) CryptBuffer + 16, HMACLen))
-                                                                                        setlength(temp,HMACLen);
-                                                                                        CopyMemory(@temp[0],hmac2 ,HMACLen);
-                                                                                        log('hmac2:'+ByteToHexaString (temp),0);
+                                                                                        //setlength(temp,HMACLen);
+                                                                                        //CopyMemory(@temp[0],hmac2 ,HMACLen);
+                                                                                        //log('hmac2:'+ByteToHexaString (temp),0);
+                                                                                        log('hmac2:'+ByteToHexaString (hmac2,HMACLen),0);
                                                                                         status:=CompareMem (hmac2, CryptBuffer + 16, HMACLen);
                                                                                         if  status then
                                                                                         begin
                                                                                         log('CompareMem=true',0);
                                                                                         output := pointer(LocalAlloc(LPTR, outputLen));
-												if output<>nil then
-													//RtlCopyMemory(*output, (PBYTE) CryptBuffer + OutLen - *outputLen, *outputLen);
-                                                                                                        copymemory(output,CryptBuffer + OutLen - outputLen,outputLen);
-                                                                                                setlength(temp,outputLen);
-                                                                                                CopyMemory(@temp[0],output ,outputLen);
-                                                                                                log('output:'+ByteToHexaString (temp),0);
-                                                                                        end;
+											if output<>nil then
+											   //RtlCopyMemory(*output, (PBYTE) CryptBuffer + OutLen - *outputLen, *outputLen);
+                                                                                           copymemory(output,CryptBuffer + OutLen - outputLen,outputLen);
+                                                                                        setlength(temp,outputLen);
+                                                                                        CopyMemory(@temp[0],output ,outputLen);
+                                                                                        log('output:'+ByteToHexaString (temp),0);
+                                                                                        end else log('CompareMem=false',0);;
 										end;
 										LocalFree(thandle(hmac2));
 									end;
