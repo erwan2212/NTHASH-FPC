@@ -999,7 +999,7 @@ begin
   log('NTHASH /cryptunprotectdata /input:hexastring',1);
   log('NTHASH /cryptprotectdata /input:string [mode:MACHINE]',1);
   log('NTHASH /decodeblob /binary:filename [/input:hexastring]',1);
-  log('NTHASH /decodemk /binary:filename [/input:hexastring]',1);
+  log('NTHASH /decodemk /binary:filename [/input:hmachexastring] [/password:sha1pwdhexastring]',1);
   log('NTHASH /wlansvc /binary:filename',1);
   log('NTHASH /gethash /mode:hashid /input:hexastring',1);
   log('NTHASH /gethmac /mode:hashid /input:hexastring /key:hexastring',1);
@@ -1853,7 +1853,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
       if p>0 then
          begin
          if binary='' then exit;
-         if input='' then
+         if (input='') and (password='') then
             if decodemk (binary,nil)=false then
             begin
             log('not ok',1);
@@ -1861,14 +1861,37 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
             end;
 
          //
-         if input<>'' then
+         if (input<>'') or (password<>'') then
            begin
            if decodemk (binary,@mk)=false then
               begin
               log('not ok',1);
               goto fin;
               end;
-           input_:=HexaStringToByte2(input);
+           if input<>'' then input_:=HexaStringToByte2(input);
+           if password<>'' then
+             begin
+             if pos('S-1-5',binary)>0 then
+               begin
+               p:=pos('S-1-5',binary);
+               input:=(copy(binary,p,46));
+               input:=ByteToHexaString ( AnsiStringtoByte(input,true))+'0000';
+               //log(input);
+               input_:=HexaStringToByte2 (input);
+               key_:=HexaStringToByte2 (password);
+               setlength(output_,crypto_hash_len($00008004));
+               zeromemory(@output_[0],length(output_));
+               if crypto_hash_hmac ($00008004,@key_[0],length(key_),@input_[0],length(input_),@output_[0],crypto_hash_len($00008004))
+                  then
+                   begin
+                   log('**** gethmac ****',0);
+                   log(ByteToHexaString (output_ ),0);
+                   end;
+               //exit;
+               setlength(input_,crypto_hash_len($00008004));
+               input_:=output_ ;
+               end else log('cannot detect SID',1) //if pos('S-1-5',binary)>0 then
+             end; //if password<>'' then
            log('length(input_):'+inttostr(length(input_)));
            if console_output_type<>FILE_TYPE_PIPE then log('**** Unprotecting MasterKey ****',1);
              ptr_:=nil;

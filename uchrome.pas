@@ -68,21 +68,21 @@ if db='' then
    begin
    path:=(GetSpecialFolder($1c));  //CSIDL_LOCAL_APPDATA
    path:=path+'\Google\Chrome\User Data\Default';
-   if not FileExists(path+'\login data') then
-   begin
-     writeln('The database does not exist. Please create one.');
-     Exit;
-   end;
+     if not FileExists(path+'\login data') then
+     begin
+       writeln('The database does not exist. Please create one.');
+       Exit;
+     end;
    {$i-}DeleteFile(pchar(path+'\login data.db'));{$i+}
    copyfile(pchar(path+'\login data'),pchar(path+'\login data.db'),false);
-   end;
+   end; //if db='' then
 
 if db<>'' then
    begin
    path:= ExtractFileDir (db);
    {$i-}DeleteFile(pchar(path+'\login data.db'));{$i+}
    copyfile(pchar(db),pchar(path+'\login data.db'),false);
-   end;
+   end; //if db<>'' then
 
 writeln('path:'+path);
 writeln('db:'+path+'\login data.db');
@@ -90,8 +90,15 @@ writeln('db:'+path+'\login data.db');
 if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');exit;end;
 
 //
-if {(db='') and}  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state')) then
+if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state')) then
    begin
+   {
+   New Chrome version (v80.0 & higher) uses Master Key based encryption to store your web login passwords.
+   First 32-byte random data is generated.
+   Then it is encrypted using Windows DPAPI (“CryptProtectData”) function.
+   To this encrypted key, it inserts signature “DPAPI” (RFBBUEk) in the beginning for identification.
+   Finally this key is encoded using Base64 and stored in “Local State” file in above “User Data” folder.
+   }
    //writeln('found '+GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state');
    {
    AssignFile(t, GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state');
@@ -136,8 +143,11 @@ if {(db='') and}  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\l
       begin
       tmp:=''; //for i:=0 to length(b)-1 do b[i]:=0;
       b:=rows.ColumnBlobBytes('password_value');
-      if mk<>nil then //mk mode...
+
+      //if a decrypted MK is provided...
+      if mk<>nil then
          begin
+         //lets get our encrypted blob
          guidMasterKey:='{00000000-0000-0000-0000-000000000000}';
          if decodeblob (b,@blob_)
            then guidMasterKey:=GUIDToString (blob_.guidMasterKey)
@@ -145,8 +155,8 @@ if {(db='') and}  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\l
          //log('dwDataLen:'+inttostr(blob.dwDataLen));
          //log('dwFlags:'+inttostr(blob.dwFlags ),1);
          //log('guidMasterKey:'+guidMasterKey,1);
-         end;
-      if mk<>nil then //if a decrypted MK is provided...
+         //*****************************
+         if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
          begin
          if dpapi_unprotect_blob(@blob_,mk ,20,nil,0,nil,ptr_,dw) then
             begin
@@ -158,54 +168,55 @@ if {(db='') and}  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\l
                copymemory(@pwd[1],ptr_,dw);
                writeln(rows['origin_url']+';'+rows['username_value']+';'+pwd+';'+guidMasterKey);
                end;
-            end else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';'+guidMasterKey);
-      end   ////if mk<>nil then
-      else  //if mk<>nil then
-      if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) and (CryptUnProtectData_(b,output)=true) then
+            end //if dpapi_unprotect_blob(@blob_,mk ,20,nil,0,nil,ptr_,dw) then
+            else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';'+guidMasterKey);
+         end; //if (CompareMem...
+         //chrome 80...
+         if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)) and (length(key)=0) //TODO
+            then writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';*');
+      end;   //if mk<>nil then
+
+      if mk=nil then
+      begin
+         //
+         if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
          begin
-         if length(output)<255 then
+         if (CryptUnProtectData_(b,output)=true) then
          begin
-         writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString(output));
-         end; //if length(output)<255 then
+            if length(output)<255 then writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString(output));
          end
-         else //CryptUnProtectData_ failed? maybe chrome80?
-         begin
+         else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDON');
+         end; // if (CompareMem ...
+         //chrome 80...
+         if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)) and (length(key)=0)
+            then writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDON'+';*');
+         //chrome 80...
          if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)) and (length(key)>0) then
-              begin
-              {
-              writeln('signature:'+'v10');
-              writeln('iv:'+ByteToHexaString (@b[0+3],12));
-              writeln('encrypted key:'+ByteToHexaString (@b[0+3+12],length(b)-12-3)); // -16? id tag...
-              }
-              setlength(iv,12);
-              CopyMemory (@iv[0],@b[0+3],length(iv));
-              setlength(encrypted,length(b)-12-3); //contains also the TAG
-              CopyMemory (@encrypted[0],@b[0+3+12],length(encrypted));
-              setlength(output,length(encrypted)-16); //-16=TAG length
-              //writeln('length(key):'+inttostr(length(key)));
-              if bdecrypt_gcm('AES', encrypted, @output[0], key, iv)<>0
-                then writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString (output)+';*');
-              end
-              else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDON');
-         //works with https://gchq.github.io/CyberChef
-         //master key + iv + tag (last 16 bytes of key) and encrypted key as input (minus last 16 bytes)
-         {
-         //step 1
-         New Chrome version (v80.0 & higher) uses Master Key based encryption to store your web login passwords.
-         Here is how it generates the Master Key. First 32-byte random data is generated.
-         Then it is encrypted using Windows DPAPI (“CryptProtectData”) function.
-         To this encrypted key, it inserts signature “DPAPI” (RFBBUEk) in the beginning for identification.
-         Finally this key is encoded using Base64 and stored in “Local State” file in above “User Data” folder.
-         C:\Users\[user_name]\AppData\Local\Google\Chrome\User Data\
-         "os_crypt":.."encrypted_key":"RFBBUEkBAAAA0Iyd3wEA0RGbegD...opsxEv3TKNqz0gyhAcq+nAq0"...
-         //step 2
-         struct WebPassword
-	 BYTE signature[3] = "v10";
-	 BYTE iv[12];
-	 BYTE encPassword[...]
-         }
-         end;
-      end;
+            begin
+            {
+   	    BYTE signature[3] = "v10";
+   	    BYTE iv[12];
+   	    BYTE encPassword[...]
+            }
+            {
+            writeln('signature:'+'v10');
+            writeln('iv:'+ByteToHexaString (@b[0+3],12));
+            writeln('encrypted key:'+ByteToHexaString (@b[0+3+12],length(b)-12-3)); // -16? id tag...
+            }
+            setlength(iv,12);
+            CopyMemory (@iv[0],@b[0+3],length(iv));
+            setlength(encrypted,length(b)-12-3); //contains also the TAG
+            CopyMemory (@encrypted[0],@b[0+3+12],length(encrypted));
+            setlength(output,length(encrypted)-16); //-16=TAG length
+            //writeln('length(key):'+inttostr(length(key)));
+            if bdecrypt_gcm('AES', encrypted, @output[0], key, iv)<>0
+              then writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString (output)+';*')
+              else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDON'+';*');
+         end; //if (CompareMem ...
+      //
+      end; //if mk=nil then
+
+      end; //while rows.step do
     finally
       //rows._Release ;
     end;

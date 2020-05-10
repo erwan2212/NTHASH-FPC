@@ -9,8 +9,8 @@
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="1958"/>
-        <CursorPos X="7" Y="1976"/>
+        <TopLine Value="1871"/>
+        <CursorPos X="41" Y="1894"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -128,8 +128,8 @@
         <Filename Value="uchrome.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="139"/>
-        <CursorPos X="64" Y="141"/>
+        <TopLine Value="175"/>
+        <CursorPos X="24" Y="193"/>
         <UsageCount Value="206"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -219,114 +219,114 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="2046"/>
         <CursorPos X="7" Y="2053"/>
-        <UsageCount Value="3"/>
+        <UsageCount Value="0"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit22>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="109" Column="29" TopLine="99"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1944" Column="19" TopLine="1963"/>
       </Position1>
       <Position2>
         <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="110" Column="29" TopLine="99"/>
+        <Caret Line="127" Column="26" TopLine="115"/>
       </Position2>
       <Position3>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="63" Column="12" TopLine="94"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1976" Column="27" TopLine="1963"/>
       </Position3>
       <Position4>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="182" Column="45" TopLine="163"/>
+        <Caret Line="209" Column="12" TopLine="190"/>
       </Position4>
       <Position5>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="189" Column="20" TopLine="171"/>
+        <Caret Line="188" Column="11" TopLine="171"/>
       </Position5>
       <Position6>
         <Filename Value="uchrome.pas"/>
-        <Caret Line="184" Column="17" TopLine="173"/>
+        <Caret Line="166" Column="12" TopLine="147"/>
       </Position6>
       <Position7>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="103" Column="22" TopLine="92"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="9" Column="53"/>
       </Position7>
       <Position8>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="1172" TopLine="1160"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1002" Column="24" TopLine="982"/>
       </Position8>
       <Position9>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="104" Column="20" TopLine="92"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1864" TopLine="1853"/>
       </Position9>
       <Position10>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="60" Column="26" TopLine="49"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="264" Column="27" TopLine="250"/>
       </Position10>
       <Position11>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="100" Column="6" TopLine="88"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1002" Column="24" TopLine="982"/>
       </Position11>
       <Position12>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="103" Column="31" TopLine="91"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1877" Column="34" TopLine="1865"/>
       </Position12>
       <Position13>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="103" Column="31" TopLine="91"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="9" Column="54"/>
       </Position13>
       <Position14>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="143" Column="30" TopLine="106"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1336" Column="27" TopLine="1320"/>
       </Position14>
       <Position15>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="110" Column="29" TopLine="99"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1339" Column="71" TopLine="1320"/>
       </Position15>
       <Position16>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="927" Column="29" TopLine="967"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="106" Column="88" TopLine="100"/>
       </Position16>
       <Position17>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="116" Column="23" TopLine="168"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1002" Column="24" TopLine="982"/>
       </Position17>
       <Position18>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="103" Column="22" TopLine="91"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="6" Column="76"/>
       </Position18>
       <Position19>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="1224" Column="13" TopLine="1308"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1005" Column="23" TopLine="985"/>
       </Position19>
       <Position20>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="169" Column="12" TopLine="160"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1984" Column="20" TopLine="1971"/>
       </Position20>
       <Position21>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="204" Column="12" TopLine="192"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1002" Column="24" TopLine="990"/>
       </Position21>
       <Position22>
-        <Filename Value="uchrome.pas"/>
-        <Caret Line="183" Column="59" TopLine="170"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1885" Column="24"/>
       </Position22>
       <Position23>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1090" Column="23" TopLine="1078"/>
+        <Caret Line="1972" Column="36" TopLine="1953"/>
       </Position23>
       <Position24>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1876" Column="40" TopLine="1871"/>
+        <Caret Line="1002" Column="24" TopLine="990"/>
       </Position24>
       <Position25>
-        <Filename Value="udpapi.pas"/>
-        <Caret Line="11" Column="54"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1881" Column="50" TopLine="1862"/>
       </Position25>
       <Position26>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="5" Column="84"/>
+        <Caret Line="8" Column="44"/>
       </Position26>
       <Position27>
         <Filename Value="NTHASH.lpr"/>
@@ -334,15 +334,15 @@
       </Position27>
       <Position28>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1944" Column="19" TopLine="1963"/>
+        <Caret Line="1885" Column="32" TopLine="1865"/>
       </Position28>
       <Position29>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="127" Column="26" TopLine="115"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1981" Column="41" TopLine="1973"/>
       </Position29>
       <Position30>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1976" Column="27" TopLine="1963"/>
+        <Caret Line="1002" Column="24" TopLine="990"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>

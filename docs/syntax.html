@@ -6,7 +6,8 @@
 	<META NAME="GENERATOR" CONTENT="OpenOffice 4.1.1  (Win32)">
 	<META NAME="CREATED" CONTENT="0;0">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
-	<META NAME="CHANGED" CONTENT="20200128;21235061">
+	<META NAME="CHANGED" CONTENT="20200510;16353960">
+	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
 	<META NAME="CHANGEDBY" CONTENT="Erwan L">
@@ -55,7 +56,7 @@
 <A HREF="#hexatofile"><FONT COLOR="#000000">hexatofile</FONT></A>
 <A HREF="#base64encodew"><FONT COLOR="#000000">base64encodew</FONT></A>
 <A HREF="#base64encode"><FONT COLOR="#000000">base64encode</FONT></A>
-<FONT COLOR="#000000"><FONT FACE="Courier New, monospace"><FONT SIZE=2><A HREF="#base64encodehexa">base64encodehexa</A></FONT></FONT></FONT>
+<A HREF="#base64encodehexa"><FONT COLOR="#000000"><FONT FACE="Courier New, monospace"><FONT SIZE=2>base64encodehexa</FONT></FONT></FONT></A>
 <A HREF="#base64decode"><FONT COLOR="#000000">base64decode</FONT></A>
 <A HREF="#base64decodehexa"><FONT COLOR="#000000">base64decodehexa</FONT></A>
 <FONT COLOR="#000000"><A HREF="#getlsasecret">getlsasecret</A> </FONT>
@@ -89,8 +90,8 @@
 <A NAME="setntlm"></A>
 <FONT COLOR="#000000"><B>setntlm</B> on the other hand should always work (using SamSetInformationUser)  and allow one to bypass password policy.</FONT>
 <FONT COLOR="#000000">Credits goes to <A HREF="https://github.com/vletoux/NTLMInjector">https://github.com/vletoux/NTLMInjector</A></FONT>
-<I><FONT COLOR="#000000">NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx</FONT></I>
-<I><FONT COLOR="#000000">NTHASH /setntlm [/server:hostname] /user:username /newpwd:xxx</FONT></I>
+<FONT COLOR="#000000"><I>NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx</I></FONT>
+<FONT COLOR="#000000"><I>NTHASH /setntlm [/server:hostname] /user:username /newpwd:xxx</I></FONT>
 
 <A NAME="getntlmhash"></A><FONT COLOR="#000000"><B>getntlmhash</B> will generate a ntlm hash.</FONT>
 <FONT COLOR="#000000">Advapi32.dll undocumented function SystemFunction007 is used.</FONT>
@@ -152,7 +153,12 @@
 <A NAME="decodemk"></A><FONT COLOR="#000000"><B>decodemk</B> will decode an encrypted dpapi masterley.</FONT>
 <FONT COLOR="#000000">If a pre key is provided, it will also decrypt the masterkey and decode it.</FONT>
 <FONT COLOR="#000000">CryptDecrypt from cryptoapi is used.</FONT>
-<FONT COLOR="#000000"><I>NTHASH /decodemk /binary:filename [/input:hexabytes]</I></FONT>
+<FONT COLOR="#000000"><I>NTHASH /decodemk /binary:filename [/input:hmachexastring] [/password:sha1pwdhexastring]</I></FONT>
+<FONT COLOR="#000000"><I>example: nthash-win64 /decodemk /binary:C:\Users\erwan\AppData\Roaming\Microsoft\Protect\S-1-5-21-2427513</I></FONT>
+<FONT COLOR="#000000"><I>087-2265021005-1965656450-1001\75380869-42A8-42EC-9E9B-8518F42802EE /password:01A612FE247D7DFCE7DAB432D5831A6474FFFFFF | nthash-win64 /decodeblob</I></FONT>
+<FONT COLOR="#000000"><I>or</I></FONT>
+<FONT COLOR="#000000"><I>NTHASH-win64.exe /gethmac /mode:SHA1 /key:01A612FE247D7DFCE7DAB432D5831A6474FFFFFF </I></FONT>
+<FONT COLOR="#000000"><I>/input:53002D0031002D0035002D00320031002D0032003400320037003500310033003000380037002D0032003200360035003000320031003000300035002D0031003900360035003600350036003400350030002D0031003000300031000000 | nthash-win64 /decodeblob</I></FONT>
         
 <A NAME="wlansvc"></A><FONT COLOR="#000000"><B>wlansvc</B> will decrypt a blob (contained in xml files) used by the wlansvc service.</FONT>
 <FONT COLOR="#000000">Find these xml files with <I>dir %programdata% /s /a /b | findstr /i interfaces</I>.</FONT>
@@ -291,7 +297,7 @@ NTHASH /runwmi /binary: x:\folder\bin.exe [/server:hostname]
 <FONT COLOR="#000000"><I>data.blob is the default filename.</I></FONT>
 
 <A NAME="base64encodew"></A><FONT COLOR="#000000"><B>base64encodew</B></FONT><FONT COLOR="#000000"> will convert a string to unicode base64</FONT>
-<I><FONT COLOR="#000000">NTHASH /base64encodew /input:string</FONT></I>
+<FONT COLOR="#000000"><I>NTHASH /base64encodew /input:string</I></FONT>
 
 <A NAME="base64encode"></A><FONT COLOR="#000000"><B>base64encode</B> will convert a string to base64</FONT>
 <FONT COLOR="#000000"><I>NTHASH /base64encode /input:string</I></FONT>
@@ -307,7 +313,6 @@ NTHASH /runwmi /binary: x:\folder\bin.exe [/server:hostname]
 
 <A NAME="base64decodehexa"></A><FONT COLOR="#000000"><FONT FACE="Courier New, monospace"><FONT SIZE=2><B>base64decodehexa</B> will convert a base64 string to a hexa string</FONT></FONT></FONT>
 <FONT COLOR="#000000"><I>NTHASH /base64decodehexa /input:base64string</I></FONT>
-<FONT COLOR="#000000"><I>type output.base64 | nthash-win64 /base64decodehexa </I></FONT>
-</PRE>
+<FONT COLOR="#000000"><I>type output.base64 | nthash-win64 /base64decodehexa </I></FONT></PRE>
 </BODY>
 </HTML>
