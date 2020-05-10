@@ -172,8 +172,26 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
             else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';'+guidMasterKey);
          end; //if (CompareMem...
          //chrome 80...
-         if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)) and (length(key)=0) //TODO
-            then writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';*');
+         if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)) and (length(key)=0)
+            then //writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';*');
+            begin
+            setlength(key,32);
+            CopyMemory(@key[0],mk,32);
+            end;
+         if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)) and (length(key)<>0) //TODO
+            then
+            begin
+            //writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';*');
+            setlength(iv,12);
+            CopyMemory (@iv[0],@b[0+3],length(iv));
+            setlength(encrypted,length(b)-12-3); //contains also the TAG
+            CopyMemory (@encrypted[0],@b[0+3+12],length(encrypted));
+            setlength(output,length(encrypted)-16); //-16=TAG length
+            //writeln('length(key):'+inttostr(length(key)));
+            if bdecrypt_gcm('AES', encrypted, @output[0], key, iv)<>0
+              then writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString (output)+';*')
+              else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDON'+';*');
+            end;
       end;   //if mk<>nil then
 
       if mk=nil then
