@@ -995,8 +995,8 @@ begin
   log('NTHASH /base64decodehexa /input:base64string',1);
   //****************************************************
   log('NTHASH /dpapimk',1);  //will read mem
-  log('NTHASH /cryptunprotectdata /binary:filename',1);
-  log('NTHASH /cryptunprotectdata /input:hexastring',1);
+  log('NTHASH /cryptunprotectdata /binary:filename [/hexa]',1);
+  log('NTHASH /cryptunprotectdata /input:hexastring [/hexa]',1);
   log('NTHASH /cryptprotectdata /input:string [mode:MACHINE]',1);
   log('NTHASH /decodeblob /binary:filename [/input:hexastring]',1);
   log('NTHASH /decodemk /binary:filename [/input:hmachexastring] [/password:sha1pwdhexastring]',1);
@@ -1789,20 +1789,25 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/cryptunprotectdata',cmdline);
   if p>0 then
      begin
+     if (input='') and (binary='') and (FileExists ('data.blob')) then binary:='data.blob';
      if (input='') and (binary='') then exit;
      if binary <>'' then if CryptUnProtectData_(binary,output_)=false
          then log('CryptUnProtectData_ NOT OK',1)
          else
          begin
          if console_output_type<>FILE_TYPE_PIPE then log('CryptUnProtectData_',1);
-         log(BytetoAnsiString (output_),1);
+         if pos('/hexa',cmdline)>0
+            then log(BytetohexaString (@output_[0],length(output_)),1)
+            else log(BytetoAnsiString (output_),1);
          end;
      if input <>'' then if CryptUnProtectData_(HexaStringToByte2 (input) ,output_)=false
          then log('CryptUnProtectData_ NOT OK',1)
          else
          begin
          if console_output_type<>FILE_TYPE_PIPE then log('CryptUnProtectData_',1);
-         log(BytetoAnsiString (output_),1);
+         if pos('/hexa',cmdline)>0
+            then log(BytetohexaString (@output_[0],length(output_)),1)
+            else log(BytetoAnsiString (output_),1);
          end;
      end;
   p:=pos('/cryptprotectdata',cmdline);

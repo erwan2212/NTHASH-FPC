@@ -988,6 +988,7 @@ begin
      end;
 
   log('decryptedBlob.cbData:'+inttostr(decryptedBlob.cbData) );
+  //log(ByteToHexaString (decryptedBlob.pbData,decryptedBlob.cbData) );
   //log(strpas(pchar(decryptedBlob.pbData)));
   if result=true then
     begin
