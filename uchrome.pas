@@ -89,6 +89,11 @@ writeln('db:'+path+'\login data.db');
 
 if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');exit;end;
 
+if (db<>'') and (mk=nil) then
+   begin
+   getmem(mk,1);
+   end;
+
 //
 if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state')) then
    begin
