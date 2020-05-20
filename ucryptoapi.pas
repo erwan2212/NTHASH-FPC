@@ -692,7 +692,8 @@ begin
         begin
           if CompareMem (@buffer[i],@marker[0],16) then begin offset:=i;break;end;
         end;
-    if offset=0 then exit;
+    //if offset=0 then exit;
+    if offset=0 then begin log('dpapi guid not found? assuming offset=0');offset:=4;end;
     //
     CopyMemory( @dw,@buffer[offset-4],sizeof(dw));
     log('dwVersion:'+inttohex(dw,4),debug);
