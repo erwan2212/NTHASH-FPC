@@ -1305,7 +1305,7 @@ if p>0 then
     if p>0 then
        begin
        if input='' then exit;
-       if (binary='') and FileExists ('data.blob') then binary:='data.blob';
+       if (binary='') {and FileExists ('data.blob')} then binary:='data.blob';
        if binary='' then exit;
        if console_output_type<>FILE_TYPE_PIPE then log('hexatofile',1);
        if console_output_type<>FILE_TYPE_PIPE then log('filename:'+extractfilename(binary),1);
