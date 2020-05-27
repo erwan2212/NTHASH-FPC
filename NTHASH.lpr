@@ -273,6 +273,7 @@ var
   myblob:tdpapi_blob;
   credhist:tDPAPI_CREDHIST;
   pb:pbyte;
+  inhandle:thandle;
   label fin;
 
 
@@ -1054,16 +1055,21 @@ begin
         end;
      end;
   //any input?
-  if GetFileType(GetStdHandle(STD_INPUT_HANDLE)) <> FILE_TYPE_CHAR then
+  inhandle := GetStdHandle(STD_INPUT_HANDLE);
+  if GetFileType(inhandle) <> FILE_TYPE_CHAR then
      begin
      //writeln('echo in');
-     setlength(input_,256);
+     p:=512;
+     setlength(input_,p);
+     ZeroMemory(@input_[0],p);
      input:='';
-     while Readfile(GetStdHandle(STD_INPUT_HANDLE),input_[0],256,dw ,nil) =true do
+     dw:=0;
+     while Readfile(inhandle,input_[0],p,dw ,nil) =true do
         begin
         //log('dw:'+inttostr(dw));
-        input:=input+strpas(@input_[0]);
-        ZeroMemory(@input_[0],256);
+        if dw=0 then exit;
+        input:=input+strpas(pchar(@input_[0]));
+        ZeroMemory(@input_[0],p);
         end;
      //in some situations, the input ends with CRLF in which case we will remove it
      if (input[length(input)-1]=#13) and (input[length(input)]=#10) then delete(input,length(input)-1,2) ;
