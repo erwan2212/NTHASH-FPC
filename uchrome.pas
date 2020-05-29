@@ -144,6 +144,8 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
     rows:= props.Execute('SELECT origin_url,username_value,password_value,length(password_value) from logins',[]);
     result:=true;
 
+    guidMasterKey:='{00000000-0000-0000-0000-000000000000}';
+
     while rows.step do
       begin
       tmp:=''; //for i:=0 to length(b)-1 do b[i]:=0;
@@ -152,17 +154,15 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
       //if a decrypted MK is provided...
       if mk<>nil then
          begin
+         if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
+         begin
+         //
          //lets get our encrypted blob
          guidMasterKey:='{00000000-0000-0000-0000-000000000000}';
          if decodeblob (b,@blob_)
-           then guidMasterKey:=GUIDToString (blob_.guidMasterKey)
-           else guidMasterKey:='{00000000-0000-0000-0000-000000000000}';
-         //log('dwDataLen:'+inttostr(blob.dwDataLen));
-         //log('dwFlags:'+inttostr(blob.dwFlags ),1);
-         //log('guidMasterKey:'+guidMasterKey,1);
-         //*****************************
-         if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
-         begin
+           then guidMasterKey:=GUIDToString (blob_.guidMasterKey);
+           //else guidMasterKey:='{00000000-0000-0000-0000-000000000000}';
+         //
          if dpapi_unprotect_blob(@blob_,mk ,20,nil,0,nil,ptr_,dw) then
             begin
             //20=sha1_length
