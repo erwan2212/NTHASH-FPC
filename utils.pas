@@ -228,7 +228,7 @@ begin
 
 RegCloseKey(topkey);
 end //RegOpenKeyEx
-else log('RegOpenKeyEx NOT OK',0);
+else log('RegOpenKeyEx NOT OK:'+inttostr(ret),0);
 end;
 
 
@@ -274,7 +274,7 @@ begin
      end;
 RegCloseKey(topkey);
 end //RegOpenKeyEx
-else log('RegOpenKeyEx NOT OK',0);
+else log('RegOpenKeyEx NOT OK:'+inttostr(ret),0);
 end;
 
 function FiletoHexaString(filename:string):boolean;
