@@ -9,6 +9,7 @@ uses
 
 function init:boolean;
 function MyOrQueryValue(hive:string;subkey:string;value:string;var data:tbytes):boolean;
+function MyOrEnumKeys(hive:string;subkey:string):boolean;
 function getvaluePTR(key:thandle;svaluename:string;var data:pointer):longword;
 
 
@@ -196,6 +197,57 @@ try if hkresult>0 then ret:=ORcloseKey (hkresult);except end;
 try if hkey>0 then ret:=ORCloseHive (hkey);except end;
 
 //ugly try/except as it seems to crash randomly
+
+end;
+
+function MyOrEnumKeys(hive:string;subkey:string):boolean;
+var
+ret:dword;
+lpname:pwidechar;
+lpcname:pdword;
+idx:word;
+ws:widestring;
+hkey,hkresult:thandle;
+begin
+//
+log('**** MyOrEnumKeys ****');
+result:=false;
+
+uofflinereg.init ;
+
+log('hive:'+hive);
+ret:=OROpenHive(pwidechar(widestring(hive)),hkey);
+if ret<>0 then begin log('OROpenHive '+hive+' NOT OK',0);exit;end;
+
+log('subkey:'+subkey);
+ret:=OROpenKey (hkey,pwidechar(widestring(subkey)),hkresult);
+if ret<>0 then begin log('OROpenKey '+subkey+' NOT OK',0);exit;end;
+//
+try
+idx:=0;
+getmem(lpname,256);
+getmem(lpcname ,sizeof(dword));
+ret:=0;
+while ret=0 do
+  begin
+  lpcname^:=256;
+  ret:=OREnumKey(hkresult,idx,lpname,lpcname,nil,nil,nil);
+  if ret=0 then
+    begin
+    setlength(ws,lpcname^);
+    copymemory(@ws[1],lpname,lpcname^*2);
+    //list.Add (string(ws));
+    log(string(ws),1);
+    inc(idx);
+    end;//if ret=0 then
+  end;//while ret=0 do
+if idx>0 then result:=true else log('OREnumKey failed:'+inttostr(ret)+':'+SysErrorMessage(ret));
+except
+on e:exception do log('EnumKeys error:'+e.message);
+end;
+
+try if hkresult>0 then ret:=ORcloseKey (hkresult);except end;
+try if hkey>0 then ret:=ORCloseHive (hkey);except end;
 
 end;
 

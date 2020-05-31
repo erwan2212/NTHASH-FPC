@@ -57,6 +57,7 @@ function ByteSwap32(dw: cardinal): cardinal;
 function ByteSwap16(w: word): word;
 
 function MyRegQueryValue(hk:hkey;subkey:pchar;value:pchar;var data:tbytes;server:string=''):boolean;
+function MyRegEnumKeys(hk:hkey;subkey:pchar;server:string=''):boolean;
 
 function parsexml(binary,key:string;var output:string):boolean;
 
@@ -183,6 +184,51 @@ begin
     // finally, free the document
     Doc.Free;
   end;
+end;
+
+function MyRegEnumKeys(hk:hkey;subkey:pchar;server:string=''):boolean;
+var
+  ret:long;
+  topkey,rk:thandle;
+  cbdata,lptype,index:dword;
+  dwDisposition:dword=0;
+  lpname:pchar;
+begin
+log('**** MyRegEnumKeys ****');
+log('server:'+server);
+log('subkey:'+subkey);
+result:=false;
+topkey:=thandle(-1);
+if server<>''
+   then
+   begin
+   SetLastError(0) ;
+   ret:=RegConnectRegistry (pchar(server),hk,rk );
+   log('RegConnectRegistry:'+inttostr(ret),0);
+   //log('RegConnectRegistry:'+inttostr(getlasterror));
+   //KEY_QUERY_VALUE or KEY_READ? // KEY_WOW64_32KEY or
+   SetLastError(0) ;
+   if ret=0 then ret:=RegOpenKeyEx(rk, subkey,0, KEY_READ, topkey);
+   //log('RegOpenKeyEx:'+inttostr(getlasterror));
+   //if ret=0 then ret := RegCreateKeyEx(rk,subkey,0,nil,REG_OPTION_NON_VOLATILE,KEY_QUERY_VALUE,nil,topKey,@dwDisposition);
+   end
+   else ret:=RegOpenKeyEx(hk, subkey,0, KEY_READ, topkey);
+if ret=0 then
+begin
+  log('RegOpenKeyEx OK',0);
+  cbdata:=1024;
+  getmem(lpname,1024);
+  index:=0;ret:=0;
+  while ret=0 do
+      begin
+      ret:= RegEnumKey (topkey ,index,lpname,cbdata);
+      if ret=0 then log(lpname,1);
+      inc(index);
+      end;
+
+RegCloseKey(topkey);
+end //RegOpenKeyEx
+else log('RegOpenKeyEx NOT OK',0);
 end;
 
 
