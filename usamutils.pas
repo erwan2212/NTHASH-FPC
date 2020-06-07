@@ -865,7 +865,8 @@ begin
                 end; //if PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize)>0 then
                 end; //if lsadump_sec_aes256(data,cbdata,@system_key[0],nil) then
          end;//MyRegQueryValue
-      end;//if length(key)>0 then
+      end //if length(key)>0 then
+      else log('no system_key');
 
   end //MyRegQueryValue
   else log('MyRegQueryValue failed:'+inttostr(getlasterror));

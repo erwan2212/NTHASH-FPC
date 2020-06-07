@@ -171,15 +171,15 @@ begin
 log('**** MyOrQueryValue ****');
 result:=false;
 
-uofflinereg.init ;
+if uofflinereg.init then exit;
 
 log('hive:'+hive);
 ret:=OROpenHive(pwidechar(widestring(hive)),hkey);
-if ret<>0 then begin log('OROpenHive '+hive+' NOT OK',0);exit;end;
+if ret<>0 then begin log('OROpenHive '+hive+' NOT OK',1);exit;end;
 
 log('subkey:'+subkey);
 ret:=OROpenKey (hkey,pwidechar(widestring(subkey)),hkresult);
-if ret<>0 then begin log('OROpenKey '+subkey+' NOT OK',0);exit;end;
+if ret<>0 then begin log('OROpenKey '+subkey+' NOT OK',1);exit;end;
 
 log('value:'+value);
 cbdata:=getvaluePTR (hkresult,value,ptr);
@@ -213,7 +213,7 @@ begin
 log('**** MyOrEnumKeys ****');
 result:=false;
 
-uofflinereg.init ;
+if uofflinereg.init then exit;
 
 log('hive:'+hive);
 ret:=OROpenHive(pwidechar(widestring(hive)),hkey);

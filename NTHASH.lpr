@@ -1680,6 +1680,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
      begin
      if input='' then exit;
+     if (offline=false) and (pos('syst',lowercase(GetCurrUserName) )=0) then begin log('run as system, please',1);exit;end;
      if input='*' then
         begin
         if offline
@@ -1709,7 +1710,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
        log('secret:'+BytetoAnsiString (@output_ [0],length(output_)),1);
        end;
       end
-      else log('dumpsecret NOT OK, try adding /system' ,1);
+      else log('dumpsecret NOT OK for '+input+'\CurrVal' ,1);
       //
       if dumpsecret(syskey,input,output_,'oldval') then
        begin
@@ -1735,7 +1736,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
         log('secret:'+BytetoAnsiString (@output_ [0],length(output_)),1);
         end;
        end
-       else log('dumpsecret NOT OK, try adding /system' ,1);
+       else log('dumpsecret NOT OK for '+input+'\OldVal' ,1);
      end;
   p:=pos('/getlsasecret',cmdline);
   if p>0 then
