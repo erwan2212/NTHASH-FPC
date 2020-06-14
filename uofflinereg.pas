@@ -75,10 +75,11 @@ implementation
   function init:boolean;
   //var lib:hmodule;
   begin
+  log('**** uofflinereg.init ****');
   result:=false;
   try
   //lib:=0;
-  if lib<>0 then exit;
+  if lib>0 then begin {log('lib<>0');} result:=true; exit;end;
       {$IFDEF win64}lib:=loadlibrary('offreg64.dll');{$endif}
       {$IFDEF win32}lib:=loadlibrary('offreg.dll');{$endif}
   if lib<=0 then
@@ -105,6 +106,7 @@ implementation
   except
   on e:exception do writeln('init error:'+e.message);
   end;
+  //log('init:'+BoolToStr (result,'true','false'));
   end;
 
   function getvaluePTR(key:thandle;svaluename:string;var data:pointer):longword;
@@ -171,7 +173,7 @@ begin
 log('**** MyOrQueryValue ****');
 result:=false;
 
-if uofflinereg.init then exit;
+if not uofflinereg.init then exit;
 
 log('hive:'+hive);
 ret:=OROpenHive(pwidechar(widestring(hive)),hkey);
@@ -213,7 +215,7 @@ begin
 log('**** MyOrEnumKeys ****');
 result:=false;
 
-if uofflinereg.init then exit;
+if not uofflinereg.init then exit;
 
 log('hive:'+hive);
 ret:=OROpenHive(pwidechar(widestring(hive)),hkey);

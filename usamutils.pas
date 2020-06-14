@@ -862,7 +862,13 @@ begin
                 setlength(output,length(secret));
                 CopyMemory(@output[0],@secret[0],length(secret));
                 result:=true;
-                end; //if PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize)>0 then
+                end
+                else  //if PNT6_CLEAR_SECRET(@clearsecret[0])^.SecretSize)>0 then
+                begin
+                setlength(output,length(clearsecret));
+                CopyMemory(@output[0],@clearsecret[0],length(clearsecret));
+                result:=true;
+                end;
                 end; //if lsadump_sec_aes256(data,cbdata,@system_key[0],nil) then
          end;//MyRegQueryValue
       end //if length(key)>0 then
