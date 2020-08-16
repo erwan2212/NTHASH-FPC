@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="10"/>
+    <BuildModes Count="1" Active="Release">
+      <Item1 Name="Release">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <PathDelim Value="\"/>
+          <Target>
+            <Filename Value="nplogon"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="$(ProjOutDir)"/>
+            <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+            <RelocatableUnit Value="True"/>
+            <TargetCPU Value="x86_64"/>
+            <TargetOS Value="win64"/>
+            <Optimizations>
+              <OptimizationLevel Value="3"/>
+            </Optimizations>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="False"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <ExecutableType Value="Library"/>
+            </Options>
+          </Linking>
+        </CompilerOptions>
+      </Item1>
+    </BuildModes>
+    <Units Count="1">
+      <Unit0>
+        <Filename Value="nplogon.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="93"/>
+        <CursorPos X="51" Y="105"/>
+        <UsageCount Value="23"/>
+        <Loaded Value="True"/>
+      </Unit0>
+    </Units>
+    <JumpHistory Count="11" HistoryIndex="10">
+      <Position1>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="15" Column="22"/>
+      </Position1>
+      <Position2>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="16" Column="46" TopLine="2"/>
+      </Position2>
+      <Position3>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="12" Column="20"/>
+      </Position3>
+      <Position4>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="13" Column="23" TopLine="2"/>
+      </Position4>
+      <Position5>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="82" Column="28" TopLine="65"/>
+      </Position5>
+      <Position6>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="92" Column="5" TopLine="71"/>
+      </Position6>
+      <Position7>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="68" Column="59" TopLine="50"/>
+      </Position7>
+      <Position8>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="59" Column="5" TopLine="47"/>
+      </Position8>
+      <Position9>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="68" Column="41" TopLine="47"/>
+      </Position9>
+      <Position10>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="113" Column="91" TopLine="96"/>
+      </Position10>
+      <Position11>
+        <Filename Value="nplogon.lpr"/>
+        <Caret Line="69" Column="80" TopLine="53"/>
+      </Position11>
+    </JumpHistory>
+  </ProjectSession>
+</CONFIG>
