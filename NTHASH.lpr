@@ -10,7 +10,7 @@ program NTHASH;
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,
   uadvapi32, untdll, utils, umemory, ucryptoapi, usamutils, uofflinereg,
   uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport, wtsapi32, uwmi, base64,
-  udpapi,udebug;
+  udpapi,udebug,injection;
 
 
 //***************************************************************************
@@ -273,7 +273,7 @@ var
   myblob:tdpapi_blob;
   credhist:tDPAPI_CREDHIST;
   pb:pbyte;
-  inhandle:thandle;
+  inhandle,hmod,ProcessHandle:thandle;
   label fin;
 
 
@@ -1019,8 +1019,11 @@ begin
   log('NTHASH /enumpriv',1);
   log('NTHASH /enumproc',1);
   //log('NTHASH /killproc /pid:12345',1);
-  //log('NTHASH /enummod /pid:12345',1);
+  log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpproc /pid:12345',1);
+  //**************************************
+  log('NTHASH /inject /pid:12345 /binary:x:\folder\bin.dll',1);
+  log('NTHASH /eject /pid:12345 /binary:bin.dll',1);
   //**************************************
   //log('NTHASH /enumprocwmi [/server:hostname]',1);
   //log('NTHASH /killprocwmi /pid:12345 [/server:hostname]',1);
@@ -1557,6 +1560,42 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
      if upsapi._killproc(strtoint(pid)) then log('OK',1) else log('NOT OK',1);
+     goto fin;
+     end;
+  //********************************************
+  p:=pos('/inject',cmdline);  //
+  if p>0 then
+     begin
+     if TryStrToInt (input,_long ) then pid:=input;
+     if pid='' then exit;
+     if binary='' then exit;
+     if not FileExists (binary) then exit;
+     ProcessHandle:=thandle(-1);
+     ProcessHandle := OpenProcess(PROCESS_ALL_ACCESS, False, strtoint(pid));
+     if ProcessHandle<>thandle(-1) then
+        begin
+        if InjectNT_DLL (ProcessHandle,binary) then log('inject ok',1) else log('inject not ok',1) ;
+        CloseHandle(ProcessHandle);
+        end
+        else log('OpenProcess failed',1);
+     goto fin;
+     end;
+  p:=pos('/eject',cmdline);  //
+  if p>0 then
+     begin
+     if TryStrToInt (input,_long ) then pid:=input;
+     if pid='' then exit;
+     if binary='' then exit;
+     hmod:=_EnumMod(strtoint(pid),binary);
+     if hmod=0 then begin log('_EnumMod not ok',1);exit;end;
+     ProcessHandle:=thandle(-1);
+     ProcessHandle := OpenProcess(PROCESS_ALL_ACCESS, False, strtoint(pid));
+     if ProcessHandle<>thandle(-1) then
+        begin
+        if EjectRTL_DLL (ProcessHandle,hmod) then log('eject ok',1) else log('eject not ok',1) ;
+        CloseHandle(ProcessHandle);
+        end
+        else log('OpenProcess failed',1);
      goto fin;
      end;
   //********************************************

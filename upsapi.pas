@@ -230,7 +230,7 @@ nSize: DWORD): DWORD; stdcall;external 'psapi.dll';
   //
   function _EnumProc2(search:string='';buser:boolean=false):dword;
   function _EnumProc(search:string=''):dword;
-  function _EnumMod(pid:dword;search:string=''):dword;
+  function _EnumMod(pid:dword;search:string=''):thandle;
   function _killproc(pid:dword):boolean;
   function CreateProcessOnParentProcess(pid:dword;ExeName: string):boolean;
 
@@ -306,7 +306,7 @@ begin
            end;
 end;
 
-function _EnumMod(pid:dword;search:string=''):dword;
+function _EnumMod(pid:dword;search:string=''):thandle;
 var
   cbneeded:dword;
   count:dword;

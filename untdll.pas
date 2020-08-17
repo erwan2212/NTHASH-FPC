@@ -66,6 +66,9 @@ if osver.dwMajorVersion =10 then
         17763:result:=result+'-1809'; //ok
         18362:result:=result+'-1903';
         18823:result:=result+'-1909';
+        19041:result:=result+'-2004';
+        19042:result:=result+'-20H2';
+        20180:result:=result+'-21H1';
         end;
    end;
 
