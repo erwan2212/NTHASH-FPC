@@ -3,7 +3,7 @@ Indeed, at some point, windows will need to compare a (md4) hash of your provide
 Definition of rtlcomparememory is here : https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcomparememory .
 So lets hook rtlcomparememory, and if 'password' (or rather the md4 hash) is provided, then lets return "true".
 
-NTHASH will inject/eject the dll in lsass for you.
+Let's see how to achieve this.
 
 Lets retrieve the pid of lsass : nthash-win64 /enumproc | findstr lsass
 
