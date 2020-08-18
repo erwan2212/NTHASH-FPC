@@ -361,7 +361,7 @@ var
   i:word;
   dummy:string='';
 begin
-log('**** ByteToHexaString ****');
+log('**** BytetoAnsiString ****');
 log('sizeof:'+inttostr(sizeof(input)));
 if sizeof(input)=0 then exit;
 try
