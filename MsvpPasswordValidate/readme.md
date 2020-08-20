@@ -1,4 +1,4 @@
-Hook MsvpPasswordValidate, always return 1 and log on with any account (local or remote) and any password.
+Hook MsvpPasswordValidate, always return 1 and log on with an account (local or remote) and any password.
 
 How to proceed:</br></br>
 Lets retrieve the pid of lsass : nthash-win64 /enumproc | findstr lsass</br>
