@@ -4,10 +4,26 @@ library hook;
 uses windows,DDetours,sysutils  ;
 
 type _NETLOGON_LOGON_INFO_CLASS =(
-  NetlogonInteractiveInformation = 1,NetlogonNetworkInformation,
-  NetlogonServiceInformation,NetlogonGenericInformation,
-  NetlogonInteractiveTransitiveInformation,NetlogonNetworkTransitiveInformation,
+  NetlogonInteractiveInformation = 1,
+  NetlogonNetworkInformation,
+  NetlogonServiceInformation,
+  NetlogonGenericInformation,
+  NetlogonInteractiveTransitiveInformation,
+  NetlogonNetworkTransitiveInformation,
   NetlogonServiceTransitiveInformation);
+
+ type LOGON_FLAGS = (
+    LOGON_GUEST= 1,
+    LOGON_NOENCRYPTION= 2,
+    LOGON_CACHED_ACCOUNT= 4,
+    LOGON_USED_LM_PASSWORD= 8,
+    LOGON_EXTRA_SIDS= 32,
+    LOGON_SUBAUTH_SESSION_KEY= 64,
+    LOGON_SERVER_TRUST_ACCOUNT= 128,
+    LOGON_NTLMV2_ENABLED= 256,
+    LOGON_RESOURCE_GROUPS= 512,
+    LOGON_PROFILE_PATH_RETURNED= 1024,
+    LOGON_GRACE_LOGON= 16777216);
 
 
 type tbyte16=array[0..15] of byte;

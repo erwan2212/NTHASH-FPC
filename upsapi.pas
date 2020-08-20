@@ -315,12 +315,14 @@ var
   szModName:array[0..259] of char;
 begin
 result:=0;
+hProcess:=thandle(-1);
 //beware of 32bit process onto 64bits processes...
 hProcess := OpenProcess( PROCESS_QUERY_INFORMATION or
                          PROCESS_VM_READ,
                          FALSE, pid );
 
-
+ if hProcess<>thandle(-1) then
+ begin
    if EnumProcessModules (hProcess,@modules[0],SizeOf(hmodule)*1024,cbneeded) then
       begin
       //writeln(cbneeded div sizeof(dword)); //debug
@@ -339,8 +341,11 @@ hProcess := OpenProcess( PROCESS_QUERY_INFORMATION or
              end;// if GetModuleBaseNameA...
              //else writeln(getlasterror);
           end; //for count:=0...
-      end;//if EnumProcesses...
+      end//if EnumProcesses...
+      else log('EnumProcessModules failed',0);
    closehandle(hProcess);
+ end
+ else log('OpenProcess failed',0);
 end;
 
 //uses NtQuerySystemInformation which does not need to openprocess with PROCESS_QUERY_INFORMATION or PROCESS_VM_READ

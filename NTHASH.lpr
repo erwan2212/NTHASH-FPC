@@ -1587,7 +1587,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if pid='' then exit;
      if binary='' then exit;
      hmod:=_EnumMod(strtoint(pid),binary);
-     if hmod=0 then begin log('_EnumMod not ok',1);exit;end;
+     if hmod=0 then begin log('module not found',1);exit;end;
      ProcessHandle:=thandle(-1);
      ProcessHandle := OpenProcess(PROCESS_ALL_ACCESS, False, strtoint(pid));
      if ProcessHandle<>thandle(-1) then
