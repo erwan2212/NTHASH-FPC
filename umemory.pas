@@ -74,21 +74,30 @@ function SearchMem(hprocess:thandle;addr:pointer;sizeofimage:DWORD;pattern:array
 var
   i:nativeint;
   buffer:array of byte;
-  read:cardinal;
+  //read:cardinal;
+  read:PtrUInt;
 begin
 result:=0;
 setlength(buffer,length(pattern));
+zeromemory(@buffer[0],length(buffer));
+//log(ByteToHexaString (@buffer[0],length(buffer)));
 log('Searching...',0);
+//log('Pattern:'+ByteToHexaString (@pattern[0],length(pattern)));
 log('start:'+inttohex(nativeint(addr),sizeof(addr)));
 log('sizeofimage:'+inttostr(sizeofimage));
   for i:=nativeint(addr) to nativeint(addr)+sizeofimage-length(buffer) do
       begin
       //fillchar(buffer,4,0);
+      //read:=0;
+      //if readmem(hprocess,i,@buffer[0],length(buffer)) then
       if ReadProcessMemory( hprocess,pointer(i),@buffer[0],length(buffer),@read) then
         begin
         //log(inttohex(i,sizeof(pointer)));
+        //log('read:'+inttostr(read));
         if CompareMem (@pattern [0],@buffer[0],length(buffer)) then
            begin
+           //log(ByteToHexaString (@pattern[0],read));
+           //log('found:'+ByteToHexaString (@buffer[0],length(buffer)));
            result:=i;
            //log('found:'+inttohex(i,sizeof(i)));
            break;
