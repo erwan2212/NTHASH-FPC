@@ -10,4 +10,6 @@ You need to implement 2 functions in your dll, nicely documented by Microsoft (h
 Once done, you can do pretty much what you want from within that function.
 
 I am providing an example here (source code and binary) which will log to a text file the username/password.
-setup.cmd will register the dll for you : no reboot needed – at next logon, username/password will be written to c:\nplogon.txt
+setup.cmd will register the dll for you : no reboot needed – at next logon, username/password will be written to c:\nplogon.txt.
+
+This was greatly inspired by this post : https://twitter.com/0gtweet/status/1282962201943343105 .
