@@ -9,3 +9,5 @@ test runas /user:Admin cmd OR log on remotely (provide any password) : you win!<
 NTHASH-win64.exe /eject /pid:808 /binary:hook-win64.dll</br>
 optionally, check that our dll as been ejected : NTHASH-win64.exe /enummod /pid:808 | findstr hook</br>
 check c:\log.txt and obtain the (correct) hash of the user you targeted</br>
+</br></br>
+This was inspired by this post : https://twitter.com/FuzzySec/status/1292495775512113152 .
