@@ -128,7 +128,7 @@ VAULTGETITEM8:function (vault:phandle; SchemaId:pointer{pointer/GUID}; Resource:
 
 function VaultInit:boolean;
 function VaultEnum:boolean;
-function patch(pid:dword):boolean;
+function patch_CredpCloneCredential(pid:dword):boolean;
 function CredEnum:boolean;
 
 implementation
@@ -401,7 +401,7 @@ result:=pattern;
 end;
 
 
-function patch(pid:dword):boolean;
+function patch_CredpCloneCredential(pid:dword):boolean;
 const
   PATC_WALL_CredpCloneCredentialJmpShort:array[0..0] of byte=($eb);
   //for 2k3, 10.1507, 10.1809

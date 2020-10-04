@@ -1231,7 +1231,7 @@ p:=pos('/enumcred2',cmdline);
 if p>0 then
  begin
  //uvaults.VaultInit ;
- uvaults.patch (lsass_pid ); //calling enumvault seems to bring back an encrypted blob
+ uvaults.patch_CredpCloneCredential (lsass_pid ); //calling enumvault seems to bring back an encrypted blob
  goto fin;
  end;
   p:=pos('/enumvault',cmdline);

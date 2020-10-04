@@ -2,14 +2,14 @@
 <CONFIG>
   <ProjectSession>
     <PathDelim Value="\"/>
-    <Version Value="11"/>
+    <Version Value="10"/>
     <BuildModes Active="Default"/>
-    <Units Count="30">
+    <Units Count="27">
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="1278"/>
-        <CursorPos X="25" Y="1287"/>
+        <TopLine Value="329"/>
+        <CursorPos X="73" Y="309"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -105,9 +105,10 @@
       <Unit10>
         <Filename Value="uvaults.pas"/>
         <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="16"/>
-        <TopLine Value="488"/>
-        <CursorPos X="75" Y="488"/>
+        <TopLine Value="381"/>
+        <CursorPos X="93" Y="329"/>
         <UsageCount Value="249"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -116,10 +117,9 @@
         <Filename Value="ulsa.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="uLSA"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="14"/>
-        <TopLine Value="1202"/>
-        <CursorPos X="10" Y="1167"/>
+        <TopLine Value="1150"/>
+        <CursorPos X="9" Y="1157"/>
         <UsageCount Value="208"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -175,7 +175,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="14813"/>
         <CursorPos X="3" Y="14843"/>
-        <UsageCount Value="150"/>
+        <UsageCount Value="20"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit17>
       <Unit18>
@@ -183,7 +183,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="566"/>
         <CursorPos X="23" Y="580"/>
-        <UsageCount Value="392"/>
+        <UsageCount Value="262"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit18>
       <Unit19>
@@ -191,13 +191,13 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1101"/>
         <CursorPos X="6" Y="1113"/>
-        <UsageCount Value="364"/>
+        <UsageCount Value="234"/>
       </Unit19>
       <Unit20>
         <Filename Value="..\SymFromName\udebug.pas"/>
         <EditorIndex Value="17"/>
-        <TopLine Value="202"/>
-        <CursorPos X="10" Y="189"/>
+        <TopLine Value="199"/>
+        <CursorPos X="7" Y="214"/>
         <UsageCount Value="981"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -207,196 +207,172 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="2198"/>
         <CursorPos X="6" Y="2210"/>
-        <UsageCount Value="363"/>
+        <UsageCount Value="233"/>
       </Unit21>
       <Unit22>
         <Filename Value="C:\FPC\3.0.0\source\packages\fcl-base\src\base64.pp"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="417"/>
         <CursorPos X="38" Y="428"/>
-        <UsageCount Value="150"/>
+        <UsageCount Value="20"/>
       </Unit22>
       <Unit23>
         <Filename Value="usamlib.pas"/>
         <EditorIndex Value="1"/>
         <TopLine Value="19"/>
         <CursorPos X="70" Y="39"/>
-        <UsageCount Value="22"/>
+        <UsageCount Value="670"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit23>
       <Unit24>
-        <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\base.inc"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="6" Y="168"/>
-        <UsageCount Value="8"/>
-      </Unit24>
-      <Unit25>
         <Filename Value="..\injector-fpc\injection.pas"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="580"/>
-        <CursorPos Y="593"/>
-        <UsageCount Value="17"/>
+        <TopLine Value="324"/>
+        <CursorPos X="102" Y="331"/>
+        <UsageCount Value="665"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit24>
+      <Unit25>
+        <Filename Value="..\injector-fpc\ntdll.pas"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="109"/>
+        <UsageCount Value="665"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit25>
       <Unit26>
-        <Filename Value="..\injector-fpc\ntdll.pas"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="109"/>
-        <UsageCount Value="17"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit26>
-      <Unit27>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinNT.pas"/>
         <EditorIndex Value="9"/>
         <TopLine Value="9353"/>
         <CursorPos X="12" Y="9364"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="665"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit27>
-      <Unit28>
-        <Filename Value="C:\lazarus\fpc\3.2.0\source\rtl\win\wininc\redef.inc"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="763"/>
-        <CursorPos X="10" Y="773"/>
-        <UsageCount Value="9"/>
-      </Unit28>
-      <Unit29>
-        <Filename Value="C:\lazarus\fpc\3.2.0\source\rtl\inc\systemh.inc"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="332"/>
-        <CursorPos X="10" Y="339"/>
-        <UsageCount Value="9"/>
-      </Unit29>
+      </Unit26>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="umemory.pas"/>
-        <Caret Line="92" Column="27" TopLine="75"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="17" Column="10" TopLine="8"/>
       </Position1>
       <Position2>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="417" Column="32" TopLine="409"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="18" Column="34" TopLine="7"/>
       </Position2>
       <Position3>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="768" Column="32" TopLine="760"/>
+        <Caret Line="1287" Column="25" TopLine="1278"/>
       </Position3>
       <Position4>
-        <Filename Value="..\injector-fpc\injection.pas"/>
-        <Caret Line="593" TopLine="580"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="18" Column="10" TopLine="8"/>
       </Position4>
       <Position5>
-        <Filename Value="ulsa.pas"/>
-        <Caret Line="1342" Column="20" TopLine="1334"/>
+        <Filename Value="..\SymFromName\udebug.pas"/>
+        <Caret Line="105" Column="10" TopLine="95"/>
       </Position5>
       <Position6>
-        <Filename Value="umemory.pas"/>
-        <Caret Line="53" Column="9" TopLine="44"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="6" Column="61"/>
       </Position6>
       <Position7>
-        <Filename Value="umemory.pas"/>
-        <Caret Line="65" Column="9" TopLine="56"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="976" Column="26" TopLine="956"/>
       </Position7>
       <Position8>
-        <Filename Value="umemory.pas"/>
-        <Caret Line="92" Column="16" TopLine="87"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1258" Column="28" TopLine="1246"/>
       </Position8>
       <Position9>
-        <Filename Value="umemory.pas"/>
-        <Caret Line="59" Column="10" TopLine="50"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="14" Column="10" TopLine="2"/>
       </Position9>
       <Position10>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="5" Column="15"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="544" Column="71" TopLine="530"/>
       </Position10>
       <Position11>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1011" Column="28" TopLine="996"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="586" Column="10" TopLine="604"/>
       </Position11>
       <Position12>
-        <Filename Value="usamutils.pas"/>
-        <Caret Line="15" Column="10" TopLine="5"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="530" Column="10" TopLine="536"/>
       </Position12>
       <Position13>
-        <Filename Value="usamutils.pas"/>
-        <Caret Line="814" Column="17" TopLine="797"/>
+        <Filename Value="..\SymFromName\udebug.pas"/>
+        <Caret Line="105" Column="10" TopLine="93"/>
       </Position13>
       <Position14>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="130" Column="10" TopLine="122"/>
+        <Filename Value="..\SymFromName\udebug.pas"/>
+        <Caret Line="201" Column="4" TopLine="198"/>
       </Position14>
       <Position15>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="5" Column="24"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="530" Column="10" TopLine="536"/>
       </Position15>
       <Position16>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="978" Column="25" TopLine="963"/>
+        <Caret Line="1258" Column="28" TopLine="1246"/>
       </Position16>
       <Position17>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1283" Column="10" TopLine="1277"/>
+        <Caret Line="397" Column="39" TopLine="386"/>
       </Position17>
       <Position18>
-        <Filename Value="ulsa.pas"/>
-        <Caret Line="17" Column="10" TopLine="7"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="408" Column="44" TopLine="389"/>
       </Position18>
       <Position19>
-        <Filename Value="umemory.pas"/>
-        <Caret Line="92" Column="27" TopLine="92"/>
+        <Filename Value="..\injector-fpc\injection.pas"/>
+        <Caret Line="593" TopLine="580"/>
       </Position19>
       <Position20>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1284" Column="18" TopLine="1277"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="1157" Column="9" TopLine="1150"/>
       </Position20>
       <Position21>
-        <Filename Value="ulsa.pas"/>
-        <Caret Line="17" Column="10" TopLine="8"/>
+        <Filename Value="uvaults.pas"/>
+        <Caret Line="488" Column="75" TopLine="488"/>
       </Position21>
       <Position22>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1287" Column="15" TopLine="1286"/>
+        <Filename Value="uvaults.pas"/>
+        <Caret Line="131" Column="36" TopLine="126"/>
       </Position22>
       <Position23>
-        <Filename Value="ulsa.pas"/>
-        <Caret Line="17" Column="10" TopLine="7"/>
+        <Filename Value="uvaults.pas"/>
+        <Caret Line="487" Column="44" TopLine="480"/>
       </Position23>
       <Position24>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1298" Column="40" TopLine="1283"/>
+        <Filename Value="uvaults.pas"/>
+        <Caret Line="475" Column="39" TopLine="468"/>
       </Position24>
       <Position25>
         <Filename Value="ulsa.pas"/>
-        <Caret Line="17" Column="10" TopLine="8"/>
+        <Caret Line="1264" Column="9" TopLine="1257"/>
       </Position25>
       <Position26>
-        <Filename Value="ulsa.pas"/>
-        <Caret Line="18" Column="34" TopLine="7"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1234" Column="20" TopLine="1227"/>
       </Position26>
       <Position27>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1287" Column="25" TopLine="1278"/>
+        <Caret Line="739" Column="46" TopLine="732"/>
       </Position27>
       <Position28>
         <Filename Value="ulsa.pas"/>
-        <Caret Line="18" Column="10" TopLine="8"/>
+        <Caret Line="1157" Column="9" TopLine="1150"/>
       </Position28>
       <Position29>
-        <Filename Value="ulsa.pas"/>
-        <Caret Line="1167" Column="10" TopLine="1202"/>
+        <Filename Value="uvaults.pas"/>
+        <Caret Line="487" Column="44" TopLine="480"/>
       </Position29>
       <Position30>
-        <Filename Value="..\SymFromName\udebug.pas"/>
-        <Caret Line="105" Column="10" TopLine="95"/>
+        <Filename Value="uvaults.pas"/>
+        <Caret Line="411" Column="53" TopLine="443"/>
       </Position30>
     </JumpHistory>
-    <RunParams>
-      <FormatVersion Value="2"/>
-      <Modes Count="0" ActiveMode="default"/>
-    </RunParams>
   </ProjectSession>
 </CONFIG>
