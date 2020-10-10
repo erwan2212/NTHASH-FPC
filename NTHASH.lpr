@@ -1500,6 +1500,7 @@ if p>0 then
         if p>0 then
            begin
            if pid='' then exit;
+           if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
            uwmi._Killproc  (server,strtoint(pid));
            goto fin;
            end;
@@ -1557,6 +1558,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
        begin
        if TryStrToInt (input,_long ) then pid:=input;
        if pid='' then exit;
+       if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
        _EnumMod(strtoint(pid),'');
        goto fin;
        end;
@@ -1565,6 +1567,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      begin
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
+     if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
      if dumpprocess (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
@@ -1573,6 +1576,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      begin
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
+     if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
      if upsapi._killproc(strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
@@ -1686,6 +1690,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if copy(winver,1,3)='5.1' then exit;
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
+     if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
      if binary='' then binary:=sysdir+'\cmd.Exe';
      if createprocessaspid   (binary,pid)
         then log('OK',1) else log('NOT OK',1);
@@ -1710,6 +1715,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if copy(winver,1,3)='5.1' then exit;
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
+     if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
      if binary='' then binary:=sysdir+'\cmd.Exe';
      if CreateProcessOnParentProcess(strtoint(pid),binary)=true
         then log('OK',1) else log('NOT OK',1);
