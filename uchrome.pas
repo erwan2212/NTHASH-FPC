@@ -12,13 +12,16 @@ uses
   //or dynamic
   {$ifndef static}SynSQLite3,{$endif}
   syndb,syndbsqlite3,
-  shlobj,
+  //shlobj,
   ucryptoapi,utils,
   udpapi,
   uLkJSON,variants,base64;
 
 function decrypt_chrome(db:string='';mk:pointer=nil):boolean;
 function decrypt_cookies(db:string=''):boolean;
+
+var
+  SHGetSpecialFolderPath:function(HWND:hwnd;pszpath: LPSTR; csidl:Longint;fcreate:bool):bool;StdCall; //external 'shell32' name 'SHGetSpecialFolderPathA';
 
 implementation
 
@@ -328,6 +331,33 @@ if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');e
   end;
 {$i-}DeleteFile(pchar(path+'\login data.db'));{$i+}
 end;
+
+function initAPI:boolean;
+  var lib:hmodule=0;
+  begin
+  //writeln('initapi');
+  result:=false;
+  try
+  //lib:=0;
+  if lib>0 then begin {log('lib<>0');} result:=true; exit;end;
+      {$IFDEF win64}lib:=loadlibrary('shell32.dll');{$endif}
+      {$IFDEF win32}lib:=loadlibrary('shell32.dll');{$endif}
+  if lib<=0 then
+    begin
+    writeln('could not loadlibrary ntdll.dll');
+    exit;
+    end;
+       SHGetSpecialFolderPath:=getProcAddress(lib,'SHGetSpecialFolderPathA');
+  result:=true;
+  except
+  //on e:exception do writeln('init error:'+e.message);
+     writeln('init error');
+  end;
+  //log('init:'+BoolToStr (result,'true','false'));
+  end;
+
+initialization
+initAPI ;
 
 end.
 
