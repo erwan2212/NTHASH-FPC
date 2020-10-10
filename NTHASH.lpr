@@ -1600,6 +1600,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
      if binary='' then exit;
+     binary:= ExtractFileName(binary);
      hmod:=_EnumMod(strtoint(pid),binary);
      if hmod=0 then begin log('module not found',1);exit;end;
      ProcessHandle:=thandle(-1);
@@ -1981,7 +1982,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                //exit;
                setlength(input_,crypto_hash_len($00008004));
                input_:=output_ ;
-               end else log('cannot detect SID',1) //if pos('S-1-5',binary)>0 then
+               end else begin log('cannot detect SID in path',1);goto fin;end //if pos('S-1-5',binary)>0 then
              end; //if password<>'' then
            log('length(input_):'+inttostr(length(input_)));
            if console_output_type<>FILE_TYPE_PIPE then log('**** Unprotecting MasterKey ****',1);
