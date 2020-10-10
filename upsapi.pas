@@ -194,6 +194,7 @@ end;
                                         ): NTSTATUS; stdcall;external 'ntdll.dll';
       }
 
+      {
 function GetModuleInformation(hProcess: HANDLE; hModule: HMODULE;
   var lpmodinfo: MODULEINFO; cb: DWORD): BOOL; stdcall;external 'psapi.dll';
 
@@ -207,6 +208,7 @@ function GetModuleInformation(hProcess: HANDLE; hModule: HMODULE;
 
   function GetModuleBaseNameA(hProcess: HANDLE; hModule: HMODULE; lpBaseName: LPSTR;
 nSize: DWORD): DWORD; stdcall;external 'psapi.dll';
+  }
 
   { WinVista API }
   //let go for late binding so that we can still run on xp
@@ -234,6 +236,20 @@ nSize: DWORD): DWORD; stdcall;external 'psapi.dll';
   function _killproc(pid:dword):boolean;
   function CreateProcessOnParentProcess(pid:dword;ExeName: string):boolean;
 
+  var
+    GetModuleInformation:function(hProcess: HANDLE; hModule: HMODULE;
+  var lpmodinfo: MODULEINFO; cb: DWORD): BOOL; stdcall;
+
+   EnumProcessModules:function(hProcess: HANDLE; lphModule: PHMODULE; cb: DWORD;
+    var lpcbNeeded: DWORD): BOOL; stdcall;
+
+   GetModuleFileNameExA:function(hProcess: HANDLE; hModule: HMODULE; lpFilename: LPSTR;
+  nSize: DWORD): DWORD; stdcall;
+
+   EnumProcesses:function(lpidProcess: LPDWORD; cb: DWORD; var cbNeeded: DWORD): BOOL; stdcall;
+
+   GetModuleBaseNameA:function(hProcess: HANDLE; hModule: HMODULE; lpBaseName: LPSTR;
+nSize: DWORD): DWORD; stdcall;
 
 implementation
 
@@ -576,6 +592,37 @@ begin
   HeapFree(GetProcessHeap(), 0, pAList);
 end;
 
+function initAPI:boolean;
+  var lib:hmodule=0;
+  begin
+  //writeln('initapi');
+  result:=false;
+  try
+  //lib:=0;
+  if lib>0 then begin {log('lib<>0');} result:=true; exit;end;
+      {$IFDEF win64}lib:=loadlibrary('psapi.dll');{$endif}
+      {$IFDEF win32}lib:=loadlibrary('psapi.dll');{$endif}
+  if lib<=0 then
+    begin
+    writeln('could not loadlibrary ntdll.dll');
+    exit;
+    end;
+      GetModuleInformation:=getProcAddress(lib,'GetModuleInformation');
+      EnumProcessModules:=getProcAddress(lib,'EnumProcessModules');
+      GetModuleFileNameExA:=getProcAddress(lib,'GetModuleFileNameExA');
+      EnumProcesses:=getProcAddress(lib,'EnumProcesses');
+      GetModuleBaseNameA:=getProcAddress(lib,'GetModuleBaseNameA');
+
+  result:=true;
+  except
+  //on e:exception do writeln('init error:'+e.message);
+     writeln('init error');
+  end;
+  //log('init:'+BoolToStr (result,'true','false'));
+  end;
+
+initialization
+initAPI ;
 
 end.
 

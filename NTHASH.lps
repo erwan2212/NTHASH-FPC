@@ -17,9 +17,10 @@
       <Unit1>
         <Filename Value="upsapi.pas"/>
         <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="15"/>
-        <TopLine Value="53"/>
-        <CursorPos X="18" Y="309"/>
+        <TopLine Value="591"/>
+        <CursorPos X="44" Y="604"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -77,8 +78,8 @@
         <Filename Value="ucryptoapi.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="9"/>
-        <TopLine Value="356"/>
-        <CursorPos X="10" Y="343"/>
+        <TopLine Value="1088"/>
+        <CursorPos X="21" Y="1101"/>
         <UsageCount Value="236"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -127,10 +128,9 @@
       <Unit12>
         <Filename Value="uchrome.pas"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="5"/>
         <TopLine Value="335"/>
-        <CursorPos X="75" Y="350"/>
+        <CursorPos X="28" Y="349"/>
         <UsageCount Value="206"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -183,8 +183,8 @@
       <Unit18>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaBCrypt.pas"/>
         <EditorIndex Value="10"/>
-        <TopLine Value="1212"/>
-        <CursorPos Y="1236"/>
+        <TopLine Value="726"/>
+        <CursorPos X="10" Y="740"/>
         <UsageCount Value="259"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -194,7 +194,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1101"/>
         <CursorPos X="6" Y="1113"/>
-        <UsageCount Value="231"/>
+        <UsageCount Value="230"/>
       </Unit19>
       <Unit20>
         <Filename Value="..\SymFromName\udebug.pas"/>
@@ -210,14 +210,14 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="2198"/>
         <CursorPos X="6" Y="2210"/>
-        <UsageCount Value="230"/>
+        <UsageCount Value="229"/>
       </Unit21>
       <Unit22>
         <Filename Value="C:\FPC\3.0.0\source\packages\fcl-base\src\base64.pp"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="417"/>
         <CursorPos X="38" Y="428"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="16"/>
       </Unit22>
       <Unit23>
         <Filename Value="usamlib.pas"/>
@@ -241,7 +241,7 @@
         <Filename Value="..\injector-fpc\ntdll.pas"/>
         <EditorIndex Value="3"/>
         <TopLine Value="179"/>
-        <CursorPos X="36" Y="202"/>
+        <CursorPos Y="179"/>
         <UsageCount Value="665"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -251,7 +251,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="9353"/>
         <CursorPos X="12" Y="9364"/>
-        <UsageCount Value="665"/>
+        <UsageCount Value="664"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit26>
       <Unit27>
@@ -265,123 +265,123 @@
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="..\injector-fpc\ntdll.pas"/>
-        <Caret Line="163" Column="45" TopLine="147"/>
+        <Caret Line="5" Column="13"/>
       </Position1>
       <Position2>
-        <Filename Value="..\injector-fpc\ntdll.pas"/>
-        <Caret Line="148" Column="5" TopLine="131"/>
-      </Position2>
-      <Position3>
-        <Filename Value="..\injector-fpc\ntdll.pas"/>
-        <Caret Line="162" Column="5" TopLine="137"/>
-      </Position3>
-      <Position4>
-        <Filename Value="..\injector-fpc\ntdll.pas"/>
-        <Caret Line="5" Column="13"/>
-      </Position4>
-      <Position5>
         <Filename Value="ucryptoapi.pas"/>
         <Caret Line="1691" Column="55"/>
-      </Position5>
-      <Position6>
+      </Position2>
+      <Position3>
         <Filename Value="ucryptoapi.pas"/>
         <Caret Line="335" Column="20" TopLine="321"/>
-      </Position6>
-      <Position7>
+      </Position3>
+      <Position4>
         <Filename Value="ucryptoapi.pas"/>
         <Caret Line="10" Column="41"/>
-      </Position7>
-      <Position8>
+      </Position4>
+      <Position5>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaBCrypt.pas"/>
         <Caret Line="97" Column="26" TopLine="91"/>
+      </Position5>
+      <Position6>
+        <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
+        <Caret Line="14864" Column="10"/>
+      </Position6>
+      <Position7>
+        <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
+        <Caret Line="16122" TopLine="16100"/>
+      </Position7>
+      <Position8>
+        <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
+        <Caret Line="16226" TopLine="16222"/>
       </Position8>
       <Position9>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <Caret Line="14864" Column="10"/>
+        <Caret Line="8" Column="60"/>
       </Position9>
       <Position10>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <Caret Line="16122" TopLine="16100"/>
+        <Caret Line="62" Column="28" TopLine="50"/>
       </Position10>
       <Position11>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <Caret Line="16226" TopLine="16222"/>
+        <Caret Line="5" Column="74"/>
       </Position11>
       <Position12>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <Caret Line="8" Column="60"/>
+        <Caret Line="62" Column="28" TopLine="38"/>
       </Position12>
       <Position13>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <Caret Line="62" Column="28" TopLine="50"/>
+        <Caret Line="7973" Column="49" TopLine="7949"/>
       </Position13>
       <Position14>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <Caret Line="5" Column="74"/>
+        <Caret Line="10648" Column="39" TopLine="10624"/>
       </Position14>
       <Position15>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <Caret Line="62" Column="28" TopLine="38"/>
+        <Caret Line="13250" Column="28" TopLine="13226"/>
       </Position15>
       <Position16>
-        <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <Caret Line="7973" Column="49" TopLine="7949"/>
-      </Position16>
-      <Position17>
-        <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <Caret Line="10648" Column="39" TopLine="10624"/>
-      </Position17>
-      <Position18>
-        <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinCrypt.pas"/>
-        <Caret Line="13250" Column="28" TopLine="13226"/>
-      </Position18>
-      <Position19>
         <Filename Value="NTHASH.lpr"/>
         <Caret Line="5" Column="45"/>
-      </Position19>
-      <Position20>
+      </Position16>
+      <Position17>
         <Filename Value="NTHASH.lpr"/>
         <Caret Line="1092" Column="22" TopLine="1078"/>
-      </Position20>
-      <Position21>
+      </Position17>
+      <Position18>
         <Filename Value="NTHASH.lpr"/>
         <Caret Line="1908" Column="28" TopLine="1893"/>
-      </Position21>
-      <Position22>
+      </Position18>
+      <Position19>
         <Filename Value="ucryptoapi.pas"/>
         <Caret Line="107" Column="10" TopLine="93"/>
-      </Position22>
-      <Position23>
+      </Position19>
+      <Position20>
         <Filename Value="ucryptoapi.pas"/>
         <Caret Line="343" Column="10" TopLine="356"/>
+      </Position20>
+      <Position21>
+        <Filename Value="usamlib.pas"/>
+        <Caret Line="39" Column="70" TopLine="19"/>
+      </Position21>
+      <Position22>
+        <Filename Value="usamlib.pas"/>
+        <Caret Line="54" Column="3" TopLine="38"/>
+      </Position22>
+      <Position23>
+        <Filename Value="usamlib.pas"/>
+        <Caret Line="808" Column="72" TopLine="782"/>
       </Position23>
       <Position24>
         <Filename Value="usamlib.pas"/>
-        <Caret Line="39" Column="70" TopLine="19"/>
+        <Caret Line="797" Column="18" TopLine="788"/>
       </Position24>
       <Position25>
-        <Filename Value="usamlib.pas"/>
-        <Caret Line="54" Column="3" TopLine="38"/>
-      </Position25>
-      <Position26>
-        <Filename Value="usamlib.pas"/>
-        <Caret Line="808" Column="72" TopLine="782"/>
-      </Position26>
-      <Position27>
-        <Filename Value="usamlib.pas"/>
-        <Caret Line="797" Column="18" TopLine="788"/>
-      </Position27>
-      <Position28>
         <Filename Value="uchrome.pas"/>
         <Caret Line="33" Column="28" TopLine="14"/>
-      </Position28>
-      <Position29>
+      </Position25>
+      <Position26>
         <Filename Value="uchrome.pas"/>
         <Caret Line="15" Column="5" TopLine="8"/>
-      </Position29>
-      <Position30>
+      </Position26>
+      <Position27>
         <Filename Value="uchrome.pas"/>
         <Caret Line="32" Column="22" TopLine="10"/>
+      </Position27>
+      <Position28>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="343" Column="10" TopLine="356"/>
+      </Position28>
+      <Position29>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="1101" Column="21" TopLine="1088"/>
+      </Position29>
+      <Position30>
+        <Filename Value="upsapi.pas"/>
+        <Caret Line="309" Column="18" TopLine="53"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>
