@@ -48,7 +48,7 @@ type
 //https://github.com/rapid7/meterpreter/blob/master/source/extensions/kiwi/modules/kull_m_samlib.h
 //or
 //https://doxygen.reactos.org/d2/de6/samlib_8c.html
-
+{
 //NTSTATUS NTAPI 	SamConnect (IN OUT PUNICODE_STRING ServerName OPTIONAL, OUT PSAM_HANDLE ServerHandle, IN ACCESS_MASK DesiredAccess, IN POBJECT_ATTRIBUTES ObjectAttributes)
 function SamConnect(server:pointer; ServerHandle:phandle;DesiredAccess:dword;reserved:boolean):NTStatus;stdcall;external 'samlib.dll';
 function SamConnect2 (serverName:PLSA_UNICODE_STRING;out ServerHandle:handle;DesiredAccess:dword;reserved:boolean):NTStatus;stdcall;external 'samlib.dll' name 'SamConnect';
@@ -83,7 +83,7 @@ function SamQueryInformationUser (UserHandle:thandle; UserInformationClass:dword
 
 //NTSTATUS NTAPI 	SamSetInformationUser (IN SAM_HANDLE UserHandle, IN USER_INFORMATION_CLASS UserInformationClass, IN PVOID Buffer)
 function SamSetInformationUser (UserHandle:thandle; UserInformationClass:dword; Buffer:PSAMPR_USER_INTERNAL1_INFORMATION):NTStatus;stdcall;external 'samlib.dll';
-
+}
 //*************************************************************************
 
 procedure CreateFromStr (var value:_LSA_UNICODE_STRING; st : string);
@@ -96,6 +96,42 @@ function QueryUsers(server,_domain:pchar;func:pointer =nil):boolean;
 function SetInfoUser(server,user:string;hash:tbyte16):boolean; //aka setntlm
 
 function ChangeNTLM(server:string;user:string;previousntlm,newntlm:tbyte16):boolean;
+
+var
+  //NTSTATUS NTAPI 	SamConnect (IN OUT PUNICODE_STRING ServerName OPTIONAL, OUT PSAM_HANDLE ServerHandle, IN ACCESS_MASK DesiredAccess, IN POBJECT_ATTRIBUTES ObjectAttributes)
+ SamConnect:function(server:pointer; ServerHandle:phandle;DesiredAccess:dword;reserved:boolean):NTStatus;stdcall;
+ SamConnect2:function (serverName:PLSA_UNICODE_STRING;out ServerHandle:handle;DesiredAccess:dword;reserved:boolean):NTStatus;stdcall;
+//NTSTATUS NTAPI 	SamCloseHandle (IN SAM_HANDLE SamHandle)
+ SamCloseHandle:function(SamHandle:thandle):integer;stdcall;
+//NTSTATUS NTAPI 	SamOpenDomain (IN SAM_HANDLE ServerHandle, IN ACCESS_MASK DesiredAccess, IN PSID DomainId, OUT PSAM_HANDLE DomainHandle)
+ SamOpenDomain:function(ServerHandle:thandle;DesiredAccess:dword; DomainId:PSID;DomainHandle:phandle):NTStatus;stdcall;
+ SamOpenUser:function(DomainHandle:thandle;DesiredAccess:dword;UserId:ulong;UserHandle:phandle):NTStatus;stdcall;
+//NTSTATUS NTAPI 	SamEnumerateDomainsInSamServer (IN SAM_HANDLE ServerHandle, IN OUT PSAM_ENUMERATE_HANDLE EnumerationContext, OUT PVOID *Buffer, IN ULONG PreferedMaximumLength, OUT PULONG CountReturned)                                                                    isNewNTLM:boolean; oldNTLM:array of byte; newNTLM:array of byte):integer;stdcall;external 'samlib.dll';
+ SamEnumerateDomainsInSamServer:function (ServerHandle:thandle; var EnumerationContext:dword; out buffer:PSAMPR_RID_ENUMERATION ;PreferedMaximumLength:ulong;out CountReturned:ulong):NTStatus;stdcall;
+
+//NTSTATUS NTAPI 	SamLookupDomainInSamServer (IN SAM_HANDLE ServerHandle, IN PUNICODE_STRING Name, OUT PSID *DomainId)
+ SamLookupDomainInSamServer:function (ServerHandle:thandle;Name:PLSA_UNICODE_STRING; OUT DomainId:PSID):NTStatus;stdcall;
+
+//NTSTATUS NTAPI 	SamEnumerateUsersInDomain (IN SAM_HANDLE DomainHandle, IN OUT PSAM_ENUMERATE_HANDLE EnumerationContext, IN ULONG UserAccountControl, OUT PVOID *Buffer, IN ULONG PreferedMaximumLength, OUT PULONG CountReturned)
+ SamEnumerateUsersInDomain:function(DomainHandle:thandle;var EnumerationContext:dword;UserAccountControl:ulong; OUT Buffer:PSAMPR_RID_ENUMERATION;PreferedMaximumLength:ulong;OUT CountReturned:ulong):NTStatus;stdcall;
+
+//static extern int SamiChangePasswordUser(IntPtr UserHandle, bool isOldLM, byte[] oldLM, byte[] newLM,
+//bool isNewNTLM, byte[] oldNTLM, byte[] newNTLM);
+ SamiChangePasswordUser:function(UserHandle:thandle;
+isOldLM:boolean;oldLM:tbyte16; newLM:tbyte16;
+isNewNTLM:boolean;oldNTLM:tbyte16;newNTLM:tbyte16):NTStatus;stdcall;
+
+//NTSTATUS NTAPI 	SamRidToSid (IN SAM_HANDLE ObjectHandle, IN ULONG Rid, OUT PSID *Sid)
+ SamRidToSid:function(UserHandle:thandle;rid:ulong; out Sid:PSID):NTStatus;stdcall;
+//extern NTSTATUS WINAPI SamFreeMemory(IN PVOID Buffer);
+ SamFreeMemory:function(buffer:pointer):NTStatus;stdcall;
+
+//NTSTATUS NTAPI 	SamQueryInformationUser (IN SAM_HANDLE UserHandle, IN USER_INFORMATION_CLASS UserInformationClass, OUT PVOID *Buffer)
+ SamQueryInformationUser:function (UserHandle:thandle; UserInformationClass:dword; out Buffer:pointer):NTStatus;stdcall;
+
+//NTSTATUS NTAPI 	SamSetInformationUser (IN SAM_HANDLE UserHandle, IN USER_INFORMATION_CLASS UserInformationClass, IN PVOID Buffer)
+ SamSetInformationUser:function (UserHandle:thandle; UserInformationClass:dword; Buffer:PSAMPR_USER_INTERNAL1_INFORMATION):NTStatus;stdcall;
+
 
 implementation
 
@@ -743,7 +779,44 @@ if Status <> 0 then
      else log('SamCloseHandle ok');
 end;
 
+function initAPI:boolean;
+  var lib:hmodule=0;
+  begin
+  //writeln('initapi');
+  result:=false;
+  try
+  //lib:=0;
+  if lib>0 then begin {log('lib<>0');} result:=true; exit;end;
+      {$IFDEF win64}lib:=loadlibrary('samlib.dll');{$endif}
+      {$IFDEF win32}lib:=loadlibrary('samlib.dll');{$endif}
+  if lib<=0 then
+    begin
+    writeln('could not loadlibrary ntdll.dll');
+    exit;
+    end;
+       SamConnect:=getProcAddress(lib,'SamConnect');
+       SamConnect2:=getProcAddress(lib,'SamConnect');
+       SamCloseHandle:=getProcAddress(lib,'SamCloseHandle');
+       SamOpenDomain:=getProcAddress(lib,'SamOpenDomain');
+       SamOpenUser:=getProcAddress(lib,'SamOpenUser');
+       SamEnumerateDomainsInSamServer:=getProcAddress(lib,'SamEnumerateDomainsInSamServer');
+       SamLookupDomainInSamServer:=getProcAddress(lib,'SamLookupDomainInSamServer');
+       SamEnumerateUsersInDomain:=getProcAddress(lib,'SamEnumerateUsersInDomain');
+       SamiChangePasswordUser:=getProcAddress(lib,'SamiChangePasswordUser');
+       SamRidToSid:=getProcAddress(lib,'SamRidToSid');
+       SamFreeMemory:=getProcAddress(lib,'SamFreeMemory');
+       SamQueryInformationUser:=getProcAddress(lib,'SamQueryInformationUser');
+       SamSetInformationUser:=getProcAddress(lib,'SamSetInformationUser');
+  result:=true;
+  except
+  //on e:exception do writeln('init error:'+e.message);
+     writeln('init error');
+  end;
+  //log('init:'+BoolToStr (result,'true','false'));
+  end;
 
+initialization
+initAPI ;
 
 end.
 
