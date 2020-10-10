@@ -1582,6 +1582,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      begin
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
+     if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
      if binary='' then exit;
      if not FileExists (binary) then exit;
      ProcessHandle:=thandle(-1);
@@ -1599,6 +1600,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      begin
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
+     if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
      if binary='' then exit;
      binary:= ExtractFileName(binary);
      hmod:=_EnumMod(strtoint(pid),binary);
