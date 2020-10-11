@@ -5,7 +5,7 @@ unit umemory;
 interface
 
 uses
-  Classes, SysUtils,windows,utils,upsapi;
+   SysUtils,windows,utils,upsapi;
 
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:array of byte):boolean;overload;
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:pointer;len:PtrUInt):boolean;overload;
@@ -16,6 +16,9 @@ function ReadMem(hprocess:thandle;offset:nativeuint;bytes:pointer;len:PtrUInt):b
 function SearchMem(hprocess:thandle;addr:pointer;sizeofimage:DWORD;pattern:array of byte):nativeint;
 function search_module_mem(pid:dword;module:string;pattern:tbytes;var found:nativeuint):boolean;
 
+var
+  WriteProcessMemory_:function(hProcess: THandle; const lpBaseAddress: Pointer; lpBuffer: Pointer; nSize: PTRUINT; lpNumberOfBytesWritten: PPTRUINT): BOOL; //external 'kernel32' name 'WriteProcessMemory';
+  ReadProcessMemory_:function(hProcess: THandle; const lpBaseAddress: Pointer; lpBuffer: Pointer; nSize: PTRUINT;  lpNumberOfBytesRead: PPTRUINT): BOOL; //external 'kernel32' name 'ReadProcessMemory';
 
 implementation
 
@@ -23,10 +26,10 @@ implementation
 
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:pointer;len:PtrUInt):boolean;overload;
 var
-  written:cardinal;
+  written:PtrUInt; //cardinal;
 begin
 log('WriteMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(len));
-result:=WriteProcessMemory (hprocess,pointer(offset),bytes,len,@written);
+result:=WriteProcessMemory_ (hprocess,pointer(offset),bytes,len,@written);
 if written=0 then result:=false;
 if result=false then log('WriteMem: written:'+inttostr(written)+' error:'+inttostr(getlasterror));
 //ideally should check written against length(bytes) as well...
@@ -35,10 +38,10 @@ end;
 
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:array of byte):boolean;
 var
-  written:cardinal;
+  written:PtrUInt; //cardinal;
 begin
 log('WriteMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(length(bytes)));
-result:=WriteProcessMemory (hprocess,pointer(offset),@bytes[0],length(bytes),@written);
+result:=WriteProcessMemory_ (hprocess,pointer(offset),@bytes[0],length(bytes),@written);
 if written=0 then result:=false;
 if result=false then log('WriteMem: written:'+inttostr(written)+' error:'+inttostr(getlasterror));
 //ideally should check written against length(bytes) as well...
@@ -50,7 +53,7 @@ var
 begin
 fillchar(bytes,length(bytes),0);
 log('ReadMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(length(bytes)));
-result:=ReadProcessMemory (hprocess,pointer(offset),@bytes[0],length(bytes),@read);
+result:=ReadProcessMemory_ (hprocess,pointer(offset),@bytes[0],length(bytes),@read);
 if read=0 then result:=false;
 if result=false then log('readmem: read:'+inttostr(read)+' error:'+inttostr(getlasterror));
 //ideally should check read against length(bytes) as well...
@@ -62,7 +65,7 @@ var
 begin
 fillchar(bytes^,len,0);
 log('ReadMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(len));
-result:=ReadProcessMemory (hprocess,pointer(offset),bytes,len,@read);
+result:=ReadProcessMemory_ (hprocess,pointer(offset),bytes,len,@read);
 if read=0 then result:=false;
 if result=false then log('readmem: read:'+inttostr(read)+' error:'+inttostr(getlasterror));
 //ideally should check read against length(bytes) as well...
@@ -90,7 +93,7 @@ log('sizeofimage:'+inttostr(sizeofimage));
       //fillchar(buffer,4,0);
       //read:=0;
       //if readmem(hprocess,i,@buffer[0],length(buffer)) then
-      if ReadProcessMemory( hprocess,pointer(i),@buffer[0],length(buffer),@read) then
+      if ReadProcessMemory_( hprocess,pointer(i),@buffer[0],length(buffer),@read) then
         begin
         //log(inttohex(i,sizeof(pointer)));
         //log('read:'+inttostr(read));
@@ -175,6 +178,35 @@ result:=false;
        end;//if openprocess...
   log('**** search_module_mem: '+booltostr(result)+' ****');
 end;
+
+function initAPI:boolean;
+  var lib:hmodule=0;
+  begin
+  //writeln('initapi');
+  result:=false;
+  try
+  //lib:=0;
+  if lib>0 then begin {log('lib<>0');} result:=true; exit;end;
+      {$IFDEF win64}lib:=loadlibrary('kernel32.dll');{$endif}
+      {$IFDEF win32}lib:=loadlibrary('kernel32.dll');{$endif}
+  if lib<=0 then
+    begin
+    writeln('could not loadlibrary ntdll.dll');
+    exit;
+    end;
+  WriteProcessMemory_:=getProcAddress(lib,'WriteProcessMemory');
+  ReadProcessMemory_:=getProcAddress(lib,'ReadProcessMemory');
+
+  result:=true;
+  except
+  //on e:exception do writeln('init error:'+e.message);
+     writeln('init error');
+  end;
+  //log('init:'+BoolToStr (result,'true','false'));
+  end;
+
+initialization
+initAPI ;
 
 end.
 

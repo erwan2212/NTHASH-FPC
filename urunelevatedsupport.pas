@@ -8,9 +8,40 @@ interface
 uses
   Windows;
 
+  const
+  SEE_MASK_NOCLOSEPROCESS  = $00000040;
+
 type
   TElevatedProc        = function(const AParameters: String): Cardinal;
   TProcessMessagesMeth = procedure of object;
+
+type
+
+       _SHELLEXECUTEINFOA       = record
+                                   cbSize : DWORD;
+                                   fMask : ULONG;
+                                   wnd  : HWND;
+                                   lpVerb : LPCSTR;
+                                   lpFile : LPCSTR;
+                                   lpParameters : LPCSTR;
+                                   lpDirectory : LPCSTR;
+                                   nShow : longint;
+                                   hInstApp : HINST;
+                                   lpIDList : LPVOID;
+                                   lpClass : LPCSTR;
+                                   hkeyClass : HKEY;
+                                   dwHotKey : DWORD;
+                                   DUMMYUNIONNAME : record
+                                                      case longint of
+                                                       0 : ( hIcon : HANDLE );
+                                                       1 : ( hMonitor : HANDLE );
+                                                      end;
+                                   hProcess : HANDLE;
+                                  end;
+
+       SHELLEXECUTEINFOA        = _SHELLEXECUTEINFOA;
+       TSHELLEXECUTEINFOA       = _SHELLEXECUTEINFOA;
+       LPSHELLEXECUTEINFOA      = ^_SHELLEXECUTEINFOA;
 
 var
   // Warning: this function will be executed in external process.
@@ -32,11 +63,16 @@ function  IsUACEnabled: Boolean;
 function  IsElevated: Boolean;
 procedure SetButtonElevated(const AButtonHandle: THandle);
 
+var
+  ShellExecuteExA:function(lpExecInfo: LPSHELLEXECUTEINFOA):Bool;//external shell32 name 'ShellExecuteExA';
 
 implementation
 
 uses
-  SysUtils, Registry, ShellAPI, ComObj;
+  SysUtils,
+  Registry,
+  //ShellAPI,
+  ComObj;
 
 const
   RunElevatedTaskSwitch = '0CC5C50CB7D643B68CB900BF000FFFD5'; // some unique value, just a GUID with removed '[', ']', and '-'
@@ -349,6 +385,33 @@ begin
     ExitCode := ERROR_GEN_FAILURE;
   TerminateProcess(GetCurrentProcess, ExitCode);
 end;
+
+function initAPI:boolean;
+  var lib:hmodule=0;
+  begin
+  //writeln('initapi');
+  result:=false;
+  try
+  //lib:=0;
+  if lib>0 then begin {log('lib<>0');} result:=true; exit;end;
+      {$IFDEF win64}lib:=loadlibrary('shell32.dll');{$endif}
+      {$IFDEF win32}lib:=loadlibrary('shell32.dll');{$endif}
+  if lib<=0 then
+    begin
+    writeln('could not loadlibrary ntdll.dll');
+    exit;
+    end;
+    ShellExecuteExA:=getProcAddress(lib,'ShellExecuteExA');
+  result:=true;
+  except
+  //on e:exception do writeln('init error:'+e.message);
+     writeln('init error');
+  end;
+  //log('init:'+BoolToStr (result,'true','false'));
+  end;
+
+initialization
+initAPI ;
 
 end.
 

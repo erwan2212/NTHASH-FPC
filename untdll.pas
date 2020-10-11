@@ -5,7 +5,7 @@ unit untdll;
 interface
 
 uses
-  windows,Classes, SysUtils;
+  windows, SysUtils;
 
 type TOSVersionInfoExW = record
        dwOSVersionInfoSize: DWORD;

@@ -6,8 +6,9 @@ unit ufirefox;
 interface
 
 uses
-  windows,Classes, SysUtils,SHFolder,base64,
+  windows,Classes, SysUtils,base64,
   uLkJSON,
+  //shfolder,
   //static
   {$ifdef static}synsqlite3static,{$endif}
   //or dynamic
@@ -16,6 +17,9 @@ uses
 
 procedure decrypt_firefox(db:string='');
 procedure decrypt_cookies(db:string='');
+
+var
+   SHGetFolderPath:Function (Ahwnd: HWND; Csidl: longint; Token: THandle; Flags: DWord; Path: PChar): HRESULT; stdcall; //external LibName name 'SHGetFolderPathA';
 
 implementation
 
@@ -46,6 +50,15 @@ type
     siUnsignedInteger = 10;
     siUTCTime = 11;
     siGeneralizedTime = 12 ;
+
+    const
+     CSIDL_PROFILE = $28;
+     CSIDL_PROGRAM_FILES = $26;
+     CSIDL_PROGRAM_FILES_COMMON = $2B;
+     CSIDL_PROGRAM_FILES_COMMONX86 = $2C;
+     CSIDL_PROGRAM_FILESX86 = $2A;
+     CSIDL_PROGRAMS = $2;
+     CSIDL_APPDATA = $1A;
 
     var
       //the below is legacy but still works if NSSBase64_DecodeBuffer is not available
@@ -514,6 +527,33 @@ begin
 //*******************************************************************
 
   end;
+
+function initAPI:boolean;
+  var lib:hmodule=0;
+  begin
+  //writeln('initapi');
+  result:=false;
+  try
+  //lib:=0;
+  if lib>0 then begin {log('lib<>0');} result:=true; exit;end;
+      {$IFDEF win64}lib:=loadlibrary('shfolder.dll');{$endif}
+      {$IFDEF win32}lib:=loadlibrary('shfolder.dll');{$endif}
+  if lib<=0 then
+    begin
+    writeln('could not loadlibrary ntdll.dll');
+    exit;
+    end;
+       SHGetFolderPath:=getProcAddress(lib,'SHGetFolderPathA');
+  result:=true;
+  except
+  //on e:exception do writeln('init error:'+e.message);
+     writeln('init error');
+  end;
+  //log('init:'+BoolToStr (result,'true','false'));
+  end;
+
+initialization
+initAPI ;
 
 end.
 
