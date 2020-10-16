@@ -5,7 +5,7 @@ unit usid;
 interface
 
 uses
-  windows,Classes, SysUtils;
+  windows,Classes, SysUtils,utils,uofflinereg;
 
 //type tbytes=array of byte;
 
@@ -16,6 +16,7 @@ uses
 function GetCurrentUserTextSid: string;
 function GetCurrentUserSid: TSID;
 function GetAccountSid2(const Server, User: WideString; var Sid: PSID): DWORD;
+function getsids(hive:string):boolean;
 
 
 
@@ -396,6 +397,69 @@ typedef struct _SID {
   pa^ := char (authorityCount);
   if not IsValidSID (sid) then
     raise Exception.Create ('Bad SID');
+end;
+
+function getsids(hive:string):boolean;
+var
+ret:dword;
+lpname:pwidechar;
+lpcname:pdword;
+idx:word;
+ws:widestring;
+hkey,hkresult,hkresult2:thandle;
+subkey:string;
+data:pointer;
+pdwtype,pcbdata:dword;
+begin
+subkey:='Microsoft\Windows NT\CurrentVersion\ProfileList';
+pcbdata:=0;
+//
+log('**** MyOrEnumKeys ****');
+result:=false;
+
+if not uofflinereg.init then exit;
+
+log('hive:'+hive);
+ret:=OROpenHive(pwidechar(widestring(hive)),hkey);
+if ret<>0 then begin log('OROpenHive '+hive+' NOT OK',0);exit;end;
+
+log('subkey:'+subkey);
+ret:=OROpenKey (hkey,pwidechar(widestring(subkey)),hkresult);
+if ret<>0 then begin log('OROpenKey '+subkey+' NOT OK',0);exit;end;
+//
+try
+idx:=0;
+getmem(lpname,256);
+getmem(lpcname ,sizeof(dword));
+ret:=0;
+while ret=0 do
+  begin
+  lpcname^:=256;
+  ret:=OREnumKey(hkresult,idx,lpname,lpcname,nil,nil,nil);
+  if ret=0 then
+    begin
+    setlength(ws,lpcname^);
+    copymemory(@ws[1],lpname,lpcname^*2);
+    //log(string(ws),1);
+      if ORGetValue (hkresult,pwidechar(ws),pwidechar(widestring('ProfileImagePath')),@pdwtype,nil,@pcbData)=0 then
+        begin
+        getmem(data,pcbdata );
+        if ORGetValue (hkresult,pwidechar(ws),pwidechar(widestring('ProfileImagePath')),@pdwtype,data,@pcbData)=0 then
+          begin
+          log(ExtractFilename (stringreplace( BytetoAnsiString (data,pcbdata),chr(0),'',[rfReplaceAll]))+':'+string(ws),1);
+          end;
+        end;
+    inc(idx);
+    end;//if ret=0 then
+  end;//while ret=0 do
+if idx>0 then result:=true else log('OREnumKey failed:'+inttostr(ret)+':'+SysErrorMessage(ret));
+except
+on e:exception do log('EnumKeys error:'+e.message);
+end;
+
+try if hkresult>0 then ret:=ORcloseKey (hkresult);except end;
+try if hkey>0 then ret:=ORCloseHive (hkey);except end;
+
 end;
 
 end.

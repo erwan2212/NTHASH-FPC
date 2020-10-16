@@ -152,6 +152,7 @@ if ret<>0 then raise exception.Create('ORGetValue failed:'+inttostr(ret)+':'+Sys
     end;
 
   if (pdwtype=reg_binary) or (pdwtype=reg_none) then
+  //if 1=1 then
     begin
     result:=pcbdata;
     end

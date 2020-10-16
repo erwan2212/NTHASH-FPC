@@ -90,7 +90,8 @@ procedure CreateFromStr (var value:_LSA_UNICODE_STRING; st : string);
 
 function QueryDomains(server:pchar;func:pointer =nil):boolean;
 
-function callback_QueryUsers(param:pointer=nil):dword;stdcall;
+function callback_QueryUser(param:pointer=nil):dword;stdcall;
+function callback_QuerySID(param:pointer=nil):dword;stdcall;
 function QueryUsers(server,_domain:pchar;func:pointer =nil):boolean;
 
 function SetInfoUser(server,user:string;hash:tbyte16):boolean; //aka setntlm
@@ -309,7 +310,7 @@ if Status <> 0 then
      else log('SamCloseHandle ok');
 end;
 
-function callback_QueryUsers(param:pointer=nil):dword;stdcall;
+function callback_QueryUser(param:pointer=nil):dword;stdcall;
 var
   status:ntstatus;
   userhandle_:thandle=thandle(-1);
@@ -338,6 +339,21 @@ if param<>nil then
      result:=1;
      SamFreeMemory(userinfo);
      end;
+     //
+     end;
+end;
+
+function callback_QuerySID(param:pointer=nil):dword;stdcall;
+var
+  mypsid:psid;
+  mystringsid:pchar;
+begin
+result:=0;
+if param<>nil then
+     begin
+     GetAccountSid2(widestring(''),widestring(pdomainuser (param).username),mypsid);
+     ConvertSidToStringSidA (mypsid,mystringsid);
+     log(pdomainuser (param).username+':'+mystringsid,1);
      //
      end;
 end;

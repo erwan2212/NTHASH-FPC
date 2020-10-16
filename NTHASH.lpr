@@ -399,7 +399,7 @@ begin
                                         log('patch ok',0);
                                         try
                                         log('***************************************',0);
-                                        if QueryUsers ('','',@callback_QueryUsers )=true
+                                        if QueryUsers ('','',@callback_QueryUser )=true
                                         //if QueryInfoUser (user)=true
                                            then begin log('SamQueryInformationUser OK',0);result:=true;end
                                            else log('SamQueryInformationUser NOT OK',1);
@@ -963,6 +963,7 @@ begin
   log('NTHASH /getntlmhash /input:password',1);
   //*******************************************
   log('NTHASH /getsid /user:username [/server:hostname]',1);
+  log('NTHASH /getsids [/server:hostname]',1);
   log('NTHASH /getusers [/server:hostname]',1);
   log('NTHASH /getdomains [/server:hostname]',1);
   log('NTHASH /dumpsam',1);
@@ -1593,7 +1594,11 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      ProcessHandle := OpenProcess(PROCESS_ALL_ACCESS, False, strtoint(pid));
      if ProcessHandle<>thandle(-1) then
         begin
-        if InjectNT_DLL (ProcessHandle,binary) then log('inject ok',1) else log('inject not ok',1) ;
+             try
+             if InjectNT_DLL (ProcessHandle,binary) then log('inject ok',1) else log('inject not ok',1) ;
+             except
+             on e:exception do log(e.message,1);
+             end;
         CloseHandle(ProcessHandle);
         end
         else log('OpenProcess failed',1);
@@ -1637,7 +1642,15 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/getusers',cmdline);
   if p>0 then
        begin
-       QueryUsers (pchar(server),'',nil );
+       QueryUsers (pchar(server),pchar(domain),nil );
+       goto fin;
+       end;
+  p:=pos('/getsids',cmdline);
+  if p>0 then
+       begin
+       if offline
+          then getsids('software.sav')
+          else QueryUsers (pchar(server),pchar(domain) ,@callback_QuerySID );
        goto fin;
        end;
   p:=pos('/getdomains',cmdline);
