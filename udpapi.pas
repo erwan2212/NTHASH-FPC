@@ -529,7 +529,12 @@ var
          //
          temp:tbytes;
 begin
+result:=false;
+
 log('**** dpapi_unprotect_masterkey_with_shaDerivedkey ****',0);
+
+if shaDerivedkey=nil then exit;
+if shaDerivedkeyLen=0 then exit;
 
 	//HMACAlg = (masterkey->algHash == CALG_HMAC) ? CALG_SHA1 : masterkey->algHash;
         if masterkey.algHash =CALG_HMAC then HMACAlg:=CALG_SHA1 else HMACAlg:=masterkey.algHash ;

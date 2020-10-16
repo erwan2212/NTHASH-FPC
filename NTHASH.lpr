@@ -963,7 +963,7 @@ begin
   log('NTHASH /getntlmhash /input:password',1);
   //*******************************************
   log('NTHASH /getsid /user:username [/server:hostname]',1);
-  log('NTHASH /getsids [/server:hostname]',1);
+  log('NTHASH /getsids [/server:hostname] [/offline]',1);
   log('NTHASH /getusers [/server:hostname]',1);
   log('NTHASH /getdomains [/server:hostname]',1);
   log('NTHASH /dumpsam',1);
@@ -1999,11 +1999,12 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                    begin
                    log('**** gethmac ****',0);
                    log(ByteToHexaString (output_ ),0);
-                   end;
+                   end
+                   else begin log('crypto_hash_hmac failed',1);goto fin;end;
                //exit;
                setlength(input_,crypto_hash_len($00008004));
                input_:=output_ ;
-               end else begin log('cannot detect SID in path',1);goto fin;end //if pos('S-1-5',binary)>0 then
+               end else begin log('cannot detect SID in path',1);goto fin;end; //if pos('S-1-5',binary)>0 then
              end; //if password<>'' then
            log('length(input_):'+inttostr(length(input_)));
            if console_output_type<>FILE_TYPE_PIPE then log('**** Unprotecting MasterKey ****',1);
