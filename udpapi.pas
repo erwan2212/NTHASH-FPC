@@ -533,8 +533,11 @@ result:=false;
 
 log('**** dpapi_unprotect_masterkey_with_shaDerivedkey ****',0);
 
-if shaDerivedkey=nil then exit;
-if shaDerivedkeyLen=0 then exit;
+if (shaDerivedkey=nil) or (shaDerivedkeyLen=0) then
+   begin
+   log('shaDerivedkey is null',0);
+   exit;
+   end;
 
 	//HMACAlg = (masterkey->algHash == CALG_HMAC) ? CALG_SHA1 : masterkey->algHash;
         if masterkey.algHash =CALG_HMAC then HMACAlg:=CALG_SHA1 else HMACAlg:=masterkey.algHash ;
