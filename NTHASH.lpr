@@ -1131,14 +1131,14 @@ begin
            delete(user,pos(' ',user),255);
            //log(user);
            end;
-      p:=pos('/password:',cmdline);
-        if p>0 then
-             begin
-             password:=copy(cmdline,p,512);
-             password:=stringreplace(password,'/password:','',[rfReplaceAll, rfIgnoreCase]);
-             delete(password,pos(' ',password),512);
-             //log(user);
-             end;
+  p:=pos('/password:',cmdline);
+  if p>0 then
+       begin
+       password:=copy(cmdline,p,512);
+       password:=stringreplace(password,'/password:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(password,pos(' ',password),512);
+       //log(user);
+       end;
   p:=pos('/domain:',cmdline);
   if p>0 then
        begin
@@ -1987,17 +1987,20 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              if pos('S-1-5',binary)>0 then
                begin
                p:=pos('S-1-5',binary);
-               input:=(copy(binary,p,46));
+               delete(binary,1,p-1);
+               input:=copy(binary,1,pos('\',binary)-1);
                input:=ByteToHexaString ( AnsiStringtoByte(input,true))+'0000';
                //log(input);
                input_:=HexaStringToByte2 (input);
                key_:=HexaStringToByte2 (password);
                setlength(output_,crypto_hash_len($00008004));
                zeromemory(@output_[0],length(output_));
+               log('Key:'+BytetoHexaString(key_) );
+               log('Input:'+BytetoHexaString(Input_) );
                if crypto_hash_hmac ($00008004,@key_[0],length(key_),@input_[0],length(input_),@output_[0],crypto_hash_len($00008004))
                   then
                    begin
-                   log('**** gethmac ****',0);
+                   log('**** gethmac SID+sha1(password) ****',0);
                    log(ByteToHexaString (output_ ),0);
                    end
                    else begin log('crypto_hash_hmac failed',1);goto fin;end;
