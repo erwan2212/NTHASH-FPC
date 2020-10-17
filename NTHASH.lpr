@@ -1933,6 +1933,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
        begin
        if (binary='') and FileExists ('data.blob') then binary:='data.blob';
        if binary='' then exit;
+       if not FileExists (binary) then begin writeln('file does not exist');exit;end;
        log('filename:'+extractfilename(binary),1);
        if input='' then
           if decodeblob (binary,nil)=false then log('not ok',1);
@@ -1966,6 +1967,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
       if p>0 then
          begin
          if binary='' then exit;
+         if not FileExists (binary) then begin writeln('file does not exist');exit;end;
          if (input='') and (password='') then
             if decodemk (binary,nil)=false then
             begin
