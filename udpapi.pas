@@ -5,7 +5,7 @@ unit udpapi;
 interface
 
 uses
-  Classes, SysUtils,windows,JwaWinCrypt,ucryptoapi,utils;
+  Classes, SysUtils,windows,JwaWinCrypt,utils,ucryptoapi;
 
 function dpapi_unprotect_credhist_entry_with_shaDerivedkey( entry:tDPAPI_CREDHIST_ENTRY; shaDerivedkey:LPCVOID; shaDerivedkeyLen: DWORD; md4hash:PVOID; sha1hash:PVOID):boolean;
 function dpapi_unprotect_masterkey_with_shaDerivedkey(masterkey:tmasterkey;  shaDerivedkey:LPCVOID;shaDerivedkeyLen:DWORD; var output:PVOID;var outputLen:DWORD):boolean;
