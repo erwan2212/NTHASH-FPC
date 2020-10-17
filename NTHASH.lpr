@@ -2128,6 +2128,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
       else log('not ok',1);
   end;
   //********** CIPHER ****************************************
+  //see https://gchq.github.io/CyberChef
   p:=pos('/getcipher',cmdline);
   if p>0 then
   begin

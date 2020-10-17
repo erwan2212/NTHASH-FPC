@@ -38,7 +38,7 @@ set l=3
 set c=0
 rem keylen=8
 rem KP_BLOCKLEN OK,8
-echo DES - 0x6601
+echo DES - 0x6601 (default ECB)
  for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:1122334455667788 /mode:DES /input:%ret%') do (
    set /a c+=1 && if "!c!" equ "%l%" echo %%1%
    rem above no loger works, dirty hack below
@@ -76,7 +76,7 @@ set l=3
 set c=0
 rem keylen=16
 rem KP_BLOCKLEN OK,16
-echo AES128 - 0x660E
+echo AES128 - 0x660E (default ECB)
  for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:11223344556677881122334455667788 /mode:AES128 /input:%ret%') do (
    set /a c+=1 && if "!c!" equ "%l%" echo %%1%
    rem above no loger works, dirty hack below
@@ -86,7 +86,7 @@ set l=3
 set c=0 
 rem keylen=32
 rem KP_BLOCKLEN OK,16
-echo AES256 - 0x6610
+echo AES256 - 0x6610 (default ECB)
  for /f "delims=" %%1 in ('NTHASH-win64.exe /getcipher /key:1122334455667788112233445566778811223344556677881122334455667788 /mode:AES256 /input:%ret%') do (
    set /a c+=1 && if "!c!" equ "%l%" echo %%1%
    rem above no loger works, dirty hack below
