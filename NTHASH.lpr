@@ -1139,14 +1139,14 @@ begin
              delete(password,pos(' ',password),512);
              //log(user);
              end;
-        p:=pos('/domain:',cmdline);
-          if p>0 then
-               begin
-               domain:=copy(cmdline,p,255);
-               domain:=stringreplace(domain,'/domain:','',[rfReplaceAll, rfIgnoreCase]);
-               delete(domain,pos(' ',domain),255);
-               //log(domain);
-               end;
+  p:=pos('/domain:',cmdline);
+  if p>0 then
+       begin
+       domain:=copy(cmdline,p,255);
+       domain:=stringreplace(domain,'/domain:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(domain,pos(' ',domain),255);
+       //log(domain);
+       end;
   p:=pos('/pid:',cmdline);
   if p>0 then
        begin
@@ -1189,9 +1189,9 @@ begin
   p:=pos('/key:',cmdline);
   if p>0 then
        begin
-       key:=copy(cmdline,p,255);
+       key:=copy(cmdline,p,512);
        key:=stringreplace(key,'/key:','',[rfReplaceAll, rfIgnoreCase]);
-       delete(key,pos(' ',key),255);
+       delete(key,pos(' ',key),512);
        end;
   p:=pos('/oldhash:',cmdline);
   if p>0 then
