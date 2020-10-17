@@ -1134,9 +1134,9 @@ begin
       p:=pos('/password:',cmdline);
         if p>0 then
              begin
-             password:=copy(cmdline,p,255);
+             password:=copy(cmdline,p,512);
              password:=stringreplace(password,'/password:','',[rfReplaceAll, rfIgnoreCase]);
-             delete(user,pos(' ',password),255);
+             delete(password,pos(' ',password),512);
              //log(user);
              end;
         p:=pos('/domain:',cmdline);
