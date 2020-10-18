@@ -1172,6 +1172,8 @@ begin
        //delete(binary,pos(' ',binary),255);
        delete(binary,pos('/',binary),1024);
        binary:=trim(binary);
+       //
+
        end;
   p:=pos('/input:',cmdline);
   if p>0 then
@@ -1270,7 +1272,7 @@ if p>0 then
 p:=pos('/dpapimk',cmdline);
 if p>0 then
    begin
-   findlsakeys (lsass_pid,deskey,aeskey,iv );
+   if findlsakeys (lsass_pid,deskey,aeskey,iv )=false then begin log('findlsakeys failed',1);exit; end;
    dpapi (lsass_pid );
    goto fin;
    end;

@@ -311,15 +311,17 @@ type
 
 function _killproc(pid:dword):boolean;
 var
-  hProcess:thandle;
+  hProcess:thandle=thandle(-1);
 begin
   result:=false;
        HProcess := OpenProcess(PROCESS_TERMINATE, False, pid);
-           if HProcess <> 0 then
+           if HProcess <> thandle(-1) then
            begin
              Result := TerminateProcess(HProcess, 0);
+             if result=false then log('terminateprocess:'+inttostr(getlasterror));
              CloseHandle(HProcess);
-           end;
+           end
+           else log('invalid handle');
 end;
 
 function _EnumMod(pid:dword;search:string=''):thandle;
@@ -327,7 +329,7 @@ var
   cbneeded:dword;
   count:dword;
   modules:array[0..1023] of thandle;
-  hProcess:thandle;
+  hProcess:thandle=thandle(-1);
   szModName:array[0..259] of char;
 begin
 result:=0;
@@ -358,7 +360,7 @@ hProcess := OpenProcess( PROCESS_QUERY_INFORMATION or
              //else writeln(getlasterror);
           end; //for count:=0...
       end//if EnumProcesses...
-      else log('EnumProcessModules failed',0);
+      else log('EnumProcessModules failed:'+inttostr(getlasterror),0);
    closehandle(hProcess);
  end
  else log('OpenProcess failed',0);

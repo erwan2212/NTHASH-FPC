@@ -466,13 +466,14 @@ var
   extracted3DesKey, extractedAesKey:KIWI_BCRYPT_KEY;
   extracted3DesKey81, extractedAesKey81:KIWI_BCRYPT_KEY81;
 begin
+log('**** extractlsakeys ****');
 result:=false;
 //
 hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
                                       false,pid);
 //IV
 setlength(iv,16);
-ReadMem(hprocess, ivoffset, @iv[0], 16);
+if ReadMem(hprocess, ivoffset, @iv[0], 16)=false then begin log('cannot read memory');exit; end;
 log('IV:'+ByteToHexaString (IV));
 //
 // Retrieve pointer to h3DesKey which is actually a pointer to KIWI_BCRYPT_HANDLE_KEY struct
@@ -836,6 +837,7 @@ var
   st:SYSTEMTIME ;
   bret:boolean;
 begin
+result:=false;
 //
    if (lowercase(osarch)='x86') then
    begin
