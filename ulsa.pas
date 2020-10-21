@@ -644,7 +644,8 @@ if lowercase(osarch) ='amd64' then
       CopyMemory(@pattern[0],@PTRN_WN10_LsaInitializeProtectedMemory_KEY[0],sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
       IV_OFFSET:=61 ; DES_OFFSET:=-73 ; AES_OFFSET:=16 ; //tested on 1709
       end;
-   if (pos('-1809',winver)>0) or (pos('-1903',winver)>0)  then //win10 1809+
+   if (pos('-1809',winver)>0) or (pos('-1903',winver)>0)
+      or (pos('-2004',winver)>0) then //win10 1809+
       begin
       setlength(pattern,sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
       CopyMemory(@pattern[0],@PTRN_WN10_LsaInitializeProtectedMemory_KEY[0],sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
