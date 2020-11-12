@@ -1,13 +1,13 @@
 unit ucryptoapi;
 
-{$mode delphi}
+{$ifdef fpc}{$mode delphi}{$endif fpc}
 
 interface
 
 
 
 uses
-  windows,Classes, SysUtils,JwaWinCrypt,jwabcrypt,utils;
+  windows,Classes, SysUtils,JwaWinCrypt,jwabcrypt,utils{$ifndef fpc},math{$endif fpc};
 
 //light version...
 type tmasterkey=record
@@ -329,7 +329,7 @@ begin
   fillchar(plainBlob,sizeof(DATA_BLOB),0);
   fillchar(encryptedBlob,sizeof(DATA_BLOB),0);
 
-  plainBlob.pbData := dataBytes;
+  plainBlob.pbData :=@dataBytes[0]; //dataBytes;
   plainBlob.cbData := sizeof(dataBytes);
 
   result:=CryptProtectData(@plainBlob, nil, nil, nil, nil, flags, @encryptedBlob);
@@ -343,8 +343,8 @@ end;
 function CryptProtectData_(dataBytes:array of byte;filename:string;flags:dword=0):boolean;overload;
 var
   plainBlob,encryptedBlob:_MY_BLOB;
-  outfile:thandle=0;
-  byteswritten:dword=0;
+  outfile:thandle{$ifdef fpc}=0{$endif fpc};
+  byteswritten:dword{$ifdef fpc}=0{$endif fpc};
   //
   text:string;
 
@@ -472,7 +472,7 @@ end;
 function decodecredhist(filename:string; credhist:pDPAPI_CREDHIST):boolean;
 var
   buffer:array[0..4095] of byte;
-  outfile:thandle=0;
+  outfile:thandle{$ifdef fpc}=0{$endif fpc};
   bytesread:cardinal;
   offset:word;
   dw,sidlen,nextlen:dword;
@@ -570,7 +570,7 @@ end;
 function decodemk(filename:string; mk:pmasterkey):boolean;
 var
   buffer:array[0..4095] of byte;
-  outfile:thandle=0;
+  outfile:thandle{$ifdef fpc}=0{$endif fpc};
   bytesread:cardinal;
   MasterKeyLen,offset:word;
   dw:dword;
@@ -824,7 +824,7 @@ marker:array[0..15] of byte=($D0,$8C,$9D,$DF,$01,$15,$D1,$11,$8C,$7A,$00,$C0,$4F
 var
   //buffer:array[0..4095] of byte;
   buffer:tbytes;
-  outfile:thandle=0;
+  outfile:thandle{$ifdef fpc}=0{$endif fpc};
   bytesread:cardinal;
   i,offset:word;
   guid:tguid;
@@ -864,7 +864,7 @@ end;
 
 function crypto_hash(algid:alg_id;data:LPCVOID;dataLen:DWORD;  hash:lpvoid;hashWanted:DWORD):boolean;
 var
-        status:BOOL = FALSE;
+        status:BOOL {$ifdef fpc}=FALSE{$endif fpc};
   	hProv:HCRYPTPROV;
   	hHash:HCRYPTHASH;
   	hashLen:DWORD;
@@ -928,8 +928,8 @@ end;
 function CryptUnProtectData_(filename:string;var dataBytes:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 var
   plainBlob,decryptedBlob:_MY_BLOB;
-  outfile:thandle=0;
-  byteswritten:dword=0;
+  outfile:thandle{$ifdef fpc}=0{$endif fpc};
+  byteswritten:dword{$ifdef fpc}=0{$endif fpc};
   //
   text:string;
   buffer:array[0..4095] of byte;
@@ -1005,7 +1005,7 @@ end;
 function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEntropy: string=''):boolean;overload;
 var
   plainBlob,decryptedBlob:_MY_BLOB;
-  byteswritten:dword=0;
+  byteswritten:dword{$ifdef fpc}=0{$endif fpc};
   //
   text:string;
   //buffer:array[0..4095] of byte;
@@ -1060,16 +1060,16 @@ end;
 
 function bencrypt(algo:lpcwstr;decrypted:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
 var
-  hProvider:BCRYPT_ALG_HANDLE=0;
+  hProvider:BCRYPT_ALG_HANDLE{$ifdef fpc}=0{$endif fpc};
   encrypted:array[0..1023] of byte;
-  hkey:BCRYPT_KEY_HANDLE=0;
+  hkey:BCRYPT_KEY_HANDLE{$ifdef fpc}=0{$endif fpc};
   status:NTSTATUS;
   encryptedPassLen,cbiv:ULONG;
   //gInitializationVector:array[0..15] of uchar;
 begin
   result:=0;
   cbiv:=0;
-  log('algo:'+strpas(algo) );
+  {$ifdef fpc}log('algo:'+strpas(algo) ){$endif fpc};
   {
   log('encrypted size:'+inttostr(sizeof(encryped) ));
   log('decrypted size:'+inttostr(sizeof(decrypted) ));
@@ -1112,9 +1112,9 @@ end;
 
 function bdecrypt(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte;CHAINING_MODE:widestring=''):ULONG;
 var
-  hProvider:BCRYPT_ALG_HANDLE=0;
+  hProvider:BCRYPT_ALG_HANDLE{$ifdef fpc}=0{$endif fpc};
   decrypted:array[0..1023] of byte;
-  hkey:BCRYPT_KEY_HANDLE=0;
+  hkey:BCRYPT_KEY_HANDLE{$ifdef fpc}=0{$endif fpc};
   status:NTSTATUS;
   decryptedPassLen,cbiv:ULONG;
   //gInitializationVector:array[0..15] of uchar;
@@ -1122,7 +1122,7 @@ begin
   log('**** bdecrypt ****');
   result:=0;
   cbiv:=0;
-  log('algo:'+strpas(algo) );
+  {$ifdef fpc}log('algo:'+strpas(algo) ){$endif fpc};
   {
   log('encrypted size:'+inttostr(sizeof(encryped) ));
   log('decrypted size:'+inttostr(sizeof(decrypted) ));
@@ -1171,9 +1171,9 @@ end;
 function bdecrypt_gcm(algo:lpcwstr;encryped:array of byte;output:pointer;const gKey,initializationVector:array of byte):ULONG;
 const AES_BLOCK_SIZE=16 ;
 var
-  hProvider:BCRYPT_ALG_HANDLE=0;
+  hProvider:BCRYPT_ALG_HANDLE{$ifdef fpc}=0{$endif fpc};
   decrypted:array[0..1023] of byte;
-  hkey:BCRYPT_KEY_HANDLE=0;
+  hkey:BCRYPT_KEY_HANDLE{$ifdef fpc}=0{$endif fpc};
   status:NTSTATUS;
   decryptedPassLen,cbiv:ULONG;
   //gInitializationVector:array[0..15] of uchar;
@@ -1424,7 +1424,7 @@ end;
 
 function crypto_hkey(hProv:HCRYPTPROV; calgid:ALG_ID; key:LPCVOID; keyLen:DWORD; flags:DWORD; var hKey:HCRYPTKEY; var hSessionProv:HCRYPTPROV):boolean;
 var
-  status:BOOL = FALSE;
+  status:BOOL {$ifdef fpc}=FALSE{$endif fpc};
   keyBlob:PGENERICKEY_BLOB;
   szBlob:DWORD;
   //
@@ -1473,8 +1473,8 @@ end;
 
 function crypto_cipher_blocklen( hashId:ALG_ID):DWORD;
 var
-	len:DWORD = 0;
-        dwSize:dword = sizeof(DWORD);
+	len:DWORD {$ifdef fpc}=0{$endif fpc};
+        dwSize:dword {$ifdef fpc}= sizeof(DWORD){$endif fpc};
 	hProv:HCRYPTPROV;
 	hKey:HCRYPTKEY;
 begin
@@ -1493,8 +1493,8 @@ end;
 
 function crypto_cipher_keylen( hashId:ALG_ID):dword;
 var
-	len:dword = 0;
-        dwSize:dword = sizeof(DWORD);
+	len:dword {$ifdef fpc}= 0{$endif fpc};
+        dwSize:dword {$ifdef fpc}= sizeof(DWORD){$endif fpc};
 	hProv:HCRYPTPROV;
 	hKey:HCRYPTKEY;
 begin
@@ -1516,7 +1516,7 @@ end;
 
 function crypto_hash_len( hashId:ALG_ID):dword;
 var
-	 len:DWORD = 0;
+	 len:DWORD {$ifdef fpc}= 0{$endif fpc};
 	 hProv:HCRYPTPROV;
 	 hHash:HCRYPTHASH;
 begin
@@ -1550,7 +1550,7 @@ type
   end;
 
 var
-	 status:BOOL = FALSE;
+	 status:BOOL {$ifdef fpc}= FALSE{$endif fpc};
 	 hashLen:DWORD;
 	 hProv,hSessionProv:HCRYPTPROV;
 	 hKey:HCRYPTKEY;
@@ -1652,11 +1652,11 @@ var
  hContext:HCRYPTPROV;
  hHash:HCRYPTHASH;
  hKey:HCRYPTKEY;
- pKey:PBYTE = nil;
+ pKey:PBYTE {$ifdef fpc}= NIL{$endif fpc};
  i, szNeeded:DWORD;
  keyBuffer:array [0..AES_256_KEY_SIZE-1] of byte;
- status:BOOL = FALSE;
- hSessionProv:HCRYPTPROV=0;
+ status:BOOL {$ifdef fpc}= FALSE{$endif fpc};
+ hSessionProv:HCRYPTPROV{$ifdef fpc}= 0{$endif fpc};
 begin
   status:=false;
 log('**** lsadump_sec_aes256 ****');
@@ -1671,7 +1671,8 @@ if lsaKeysStream <>nil then
    begin
    log('KeyId:'+GUIDToString(PNT6_SYSTEM_KEY(lsaKeysStream)^.KeyId )) ;
    szNeeded:=PNT6_SYSTEM_KEY(lsaKeysStream)^.KeySize;
-   pkey:=lsaKeysStream + sizeof(dword)*2+sizeof(guid);
+   {$ifdef fpc}pkey:=lsaKeysStream + sizeof(dword)*2+sizeof(guid);{$endif fpc};
+   {$ifndef fpc}pkey:=pointer(nativeuint(lsaKeysStream) + sizeof(dword)*2+sizeof(guid));{$endif fpc};
    end;
 
 log('pkey:'+ByteToHexaString (pkey,szNeeded));
@@ -1683,7 +1684,7 @@ log('pkey:'+ByteToHexaString (pkey,szNeeded));
 			begin
                         log('CryptCreateHash OK');
 				CryptHashData(hHash, pKey, szNeeded, 0);
-				for i:= 0 to 1000-1 do	CryptHashData(hHash, PNT6_HARD_SECRET(@hardSecretBlob[0])^.lazyiv, LAZY_NT6_IV_SIZE, 0);
+				for i:= 0 to 1000-1 do	CryptHashData(hHash, @PNT6_HARD_SECRET(@hardSecretBlob[0])^.lazyiv[0], LAZY_NT6_IV_SIZE, 0);
 
 				szNeeded := sizeof(keyBuffer);
 				if(CryptGetHashParam(hHash, HP_HASHVAL, @keyBuffer[0], szNeeded, 0)) then
@@ -1866,14 +1867,14 @@ end;
    AES_KEY_SIZE =16; //also AES_BLOCK_SIZE  ? look at https://stackoverflow.com/questions/9091108/cryptencrypt-aes-256-fails-at-encrypting-last-block
  var
   hProv: HCRYPTPROV;
-  hash: HCRYPTHASH=0;
+  hash: HCRYPTHASH{$ifdef fpc}=0{$endif fpc};
   hkey: HCRYPTKEY;
 
-  ret:boolean=false;
+  ret:boolean{$ifdef fpc}=false{$endif fpc};
   datalen,buflen: dWord;
   dwKeyCypherMode,dwsize,dwBLOCKLEN,dwKEYLEN,hash_len: DWORD;
   hash_buffer,data:tbytes;
-  MS_ENH_RSA_AES_PROV:pchar='Microsoft Enhanced RSA and AES Cryptographic Provider'+#0;
+  MS_ENH_RSA_AES_PROV:pchar{$ifdef fpc}='Microsoft Enhanced RSA and AES Cryptographic Provider'+#0{$endif fpc};
   //
   KeyBlob:  packed record
       Header: BLOBHEADER;  //8
@@ -1882,6 +1883,9 @@ end;
     end;
   //
 begin
+{$ifndef fpc}
+MS_ENH_RSA_AES_PROV:='Microsoft Enhanced RSA and AES Cryptographic Provider'+#0;
+{$endif fpc};
   result:=false;
   {
   if decrypt=false

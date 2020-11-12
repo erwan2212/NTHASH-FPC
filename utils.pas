@@ -1,11 +1,28 @@
 unit utils;
 
-{$mode delphi}
+{$ifdef fpc}{$mode delphi}{$endif fpc}
 
 interface
 
 uses
-  Classes, SysUtils,windows,dom,XMLRead;
+  Classes, SysUtils,windows{$ifdef fpc},dom,XMLRead{$endif fpc}{$ifndef fpc},math{$endif fpc};
+
+  {$ifndef fpc}
+  type
+  TBytes = array of Byte;
+  qword=int64;
+  long=longint;
+  PSTR = PAnsiChar;
+  GUID = tguid;
+  ULONGLONG = Int64;
+  LPCVOID = Pointer;
+  LPVOID = Pointer;
+  lpbyte=PBYTE;
+  PVOID = Pointer;
+  ULONG_PTR = Longword;
+  SIZE_T = ULONG_PTR;
+  PtrUInt = NativeUInt;
+  {$endif fpc}
 
 type
   tbyte16=array[0..15] of byte;
@@ -59,7 +76,9 @@ function ByteSwap16(w: word): word;
 function MyRegQueryValue(hk:hkey;subkey:pchar;value:pchar;var data:tbytes;server:string=''):boolean;
 function MyRegEnumKeys(hk:hkey;subkey:pchar;server:string=''):boolean;
 
+{$ifdef fpc}
 function parsexml(binary,key:string;var output:string):boolean;
+{$endif fpc}
 
 
 var
@@ -98,14 +117,19 @@ end;
 
 function LeftPad(value: string; length:integer=8; pad:char='0'): string; overload;
 begin
+{$ifdef fpc} //no delphi for now
 result := RightStr(StringOfChar(pad,length) + value, length );
+{$endif fpc}
 end;
 
 function getoffset(var field;var rec):integer;
 begin
+{$ifdef fpc} //no delphi for now
   result:=ptrint(pointer(@field)-ptrint(@rec));
+{$endif fpc}
 end;
 
+{$ifdef fpc} //no delphi for now
 function findnodes(list:tdomnodelist;search:string):tdomnode;
 //*******************************************
 function recursexml(n:tdomnode;search:string):tdomnode;
@@ -147,7 +171,9 @@ begin
       end;
 
 end;
+{$endif fpc}
 
+{$ifdef fpc} //no delphi for now
 function parsexml(binary,key:string;var output:string):boolean;
 
   var
@@ -185,13 +211,14 @@ begin
     Doc.Free;
   end;
 end;
+{$endif fpc}
 
 function MyRegEnumKeys(hk:hkey;subkey:pchar;server:string=''):boolean;
 var
   ret:long;
-  topkey,rk:thandle;
+  topkey,rk:hkey;
   cbdata,lptype,index:dword;
-  dwDisposition:dword=0;
+  dwDisposition:dword{$ifdef fpc}=0{$endif fpc};
   lpname:pchar;
 begin
 log('**** MyRegEnumKeys ****');
@@ -235,9 +262,9 @@ end;
 function MyRegQueryValue(hk:hkey;subkey:pchar;value:pchar;var data:tbytes;server:string=''):boolean;
 var
   ret:long;
-  topkey,rk:thandle;
+  topkey,rk:hkey;
   cbdata,lptype:dword;
-  dwDisposition:dword=0;
+  dwDisposition:dword{$ifdef fpc}=0{$endif fpc};
 begin
 log('**** MyRegQueryValue ****');
 log('server:'+server);
@@ -279,7 +306,7 @@ end;
 
 function FiletoHexaString(filename:string):boolean;
 var
-  outfile:thandle=0;
+  outfile:thandle{$ifdef fpc}=0{$endif fpc};
   buffer:array[0..1023] of byte;
   bytesread:cardinal;
 begin
@@ -301,7 +328,7 @@ end;
 
 function HexaStringToFile(filename:string;buffer:tbytes):boolean;
 var
-  outfile:thandle=0;
+  outfile:thandle{$ifdef fpc}=0{$endif fpc};
   byteswritten:cardinal;
 begin
 log('**** HexaStringToFile ****');
@@ -359,7 +386,7 @@ end;
 function BytetoAnsiString(input:array of byte):string;
 var
   i:word;
-  dummy:string='';
+  dummy:string{$ifdef fpc}=''{$endif fpc};
 begin
 log('**** BytetoAnsiString ****');
 log('sizeof:'+inttostr(sizeof(input)));
@@ -387,7 +414,7 @@ end;
 function ByteToHexaString(hash:array of byte):string;
 var
   i:word;
-  dummy:string='';
+  dummy:string{$ifdef fpc}=''{$endif fpc};
 begin
 log('**** ByteToHexaString ****');
 log('sizeof:'+inttostr(sizeof(hash)));
@@ -452,7 +479,8 @@ var
   i:byte;
 begin
 elements := TStringList.Create;
-   ExtractStrings(['-'],[],user,elements,false);
+{$ifdef fpc}ExtractStrings(['-'],[],user,elements,false);{$endif fpc}
+{$ifndef fpc}ExtractStrings(['-'],[],user,elements);{$endif fpc}
    for i:=0 to elements.Count-2 do domain:=domain+'-'+elements[i];
    delete(domain,1,1);
    log('domain:'+domain);

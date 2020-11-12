@@ -1,6 +1,6 @@
 unit uchrome;
 
-{$mode delphi}
+{$ifdef fpc}{$mode delphi}{$endif fpc}
 {.$define static}
 
 interface
