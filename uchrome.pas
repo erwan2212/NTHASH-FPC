@@ -2,6 +2,7 @@ unit uchrome;
 
 {$ifdef fpc}{$mode delphi}{$endif fpc}
 {.$define static}
+{$ifndef fpc}{$define nodpapi}{$endif fpc}
 
 interface
 
@@ -14,8 +15,11 @@ uses
   syndb,syndbsqlite3,
   //shlobj,
   ucryptoapi,utils,
-  udpapi,
-  uLkJSON,variants,base64;
+  {$ifndef nodpapi}udpapi,{$endif nodpapi}
+  uLkJSON,variants,
+  {$ifdef fpc}base64;{$endif fpc}
+  {$ifndef fpc}base64_delphi;{$endif fpc}
+
 
 function decrypt_chrome(db:string='';mk:pointer=nil):boolean;
 function decrypt_cookies(db:string=''):boolean;
@@ -55,7 +59,7 @@ Props: TSQLDBSQLite3ConnectionProperties ;
   Rows: ISQLDBRows;
   //
   blob_:tdpapi_blob;
-  guidMasterKey:string='';
+  guidMasterKey:string{$ifdef fpc}=''{$endif fpc};
   ptr_:pointer;
   dw:dword;
   pwd:string;
@@ -65,6 +69,7 @@ Props: TSQLDBSQLite3ConnectionProperties ;
   s:string;
   bytes,key,iv,encrypted:tbytes;
 begin
+
   result:=false;
 //C:\Users\xxx\AppData\Local\Google\Chrome\User Data\Default
 if db='' then
@@ -121,7 +126,8 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
       //writeln('assigned(js)');
       s:=vartostr(js.Field['os_crypt'].Field['encrypted_key'].Value);
       //writeln(s);
-      bytes:=AnsiStringtoByte (base64.DecodeStringBase64 (s,true));
+      {$ifdef fpc}bytes:=AnsiStringtoByte (base64.DecodeStringBase64 (s,true));{$endif fpc}
+      {$ifndef fpc}bytes:=AnsiStringtoByte (base64_delphi.DecodeStringBase64 (s));{$endif fpc}
       s:=ByteToHexaString(bytes);
       delete(s,1,10); //remove 'DPAPI'
       //writeln(s);
@@ -152,9 +158,10 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
     while rows.step do
       begin
       tmp:=''; //for i:=0 to length(b)-1 do b[i]:=0;
-      b:=rows.ColumnBlobBytes('password_value');
+      b:=tbytes(rows.ColumnBlobBytes('password_value'));
 
       //if a decrypted MK is provided...
+      {$ifndef nodpapi}
       if mk<>nil then
          begin
          if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
@@ -201,6 +208,7 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
               else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';*');
             end;
       end;   //if mk<>nil then
+      {$endif nodpapi}
 
       if mk=nil then
       begin
@@ -308,7 +316,7 @@ if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');e
     while rows.step do
       begin
       tmp:=''; //for i:=0 to length(b)-1 do b[i]:=0;
-      b:=rows.ColumnBlobBytes('encrypted_value');
+      b:=tbytes(rows.ColumnBlobBytes('encrypted_value'));
       //CryptUnprotect(b,tmp);
       if CryptUnProtectData_(b,output)=true then
          begin
@@ -333,8 +341,9 @@ if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');e
 end;
 
 function initAPI:boolean;
-  var lib:hmodule=0;
+  var lib:hmodule{$IFDEF fpc}=0{$endif};
   begin
+  {$IFnDEF fpc}lib:=0{$endif};
   //writeln('initapi');
   result:=false;
   try

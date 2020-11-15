@@ -1,8 +1,12 @@
 program chrome;
 
-uses uchrome;
+{$APPTYPE CONSOLE}
+
+uses
+  FastMM4,uchrome;
 
 begin
+
   decrypt_chrome ;
 end.
 

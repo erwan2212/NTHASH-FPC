@@ -1,12 +1,11 @@
 unit udpapi;
 
-{$ifdef fpc}{$mode delphi}{$endif fpc}
+{$mode delphi}
 
 interface
 
 uses
-  Classes, SysUtils,windows,JwaWinCrypt,utils,ucryptoapi{$ifndef fpc},math{$endif fpc};
-
+  Classes, SysUtils,windows,JwaWinCrypt,utils,ucryptoapi;
 
 function dpapi_unprotect_credhist_entry_with_shaDerivedkey( entry:tDPAPI_CREDHIST_ENTRY; shaDerivedkey:LPCVOID; shaDerivedkeyLen: DWORD; md4hash:PVOID; sha1hash:PVOID):boolean;
 function dpapi_unprotect_masterkey_with_shaDerivedkey(masterkey:tmasterkey;  shaDerivedkey:LPCVOID;shaDerivedkeyLen:DWORD; var output:PVOID;var outputLen:DWORD):boolean;
@@ -25,9 +24,9 @@ end;
 function crypto_close_hprov_delete_container( hProv:HCRYPTPROV):boolean;
 var
 
-	 status:BOOL {$ifdef fpc}=false{$endif fpc};
-	 provtype:DWORD{$ifdef fpc}=0{$endif fpc};
-         szLen:dword {$ifdef fpc}=0{$endif fpc};
+	 status:BOOL = FALSE;
+	 provtype:DWORD=0;
+         szLen:dword = 0;
 	 container, provider:PSTR;
 begin
 	if CryptGetProvParam(hProv, PP_CONTAINER, nil, szLen, 0) then
@@ -67,7 +66,7 @@ end;
 
 function crypto_hkey_session( calgid:ALG_ID;  key:LPCVOID;  keyLen:DWORD;  flags:DWORD; var hSessionKey:HCRYPTKEY; var hSessionProv:HCRYPTPROV):boolean;
 var
-	 status:BOOL {$ifdef fpc}=false{$endif fpc};
+	 status:BOOL = FALSE;
 	 keyblob, pbSessionBlob, ptr:PBYTE;
 	 dwkeyblob, dwLen, i:DWORD;
 	 container:pointer; //PWSTR;
@@ -172,7 +171,7 @@ end;
 
 function dpapi_hmac_sha1_incorrect(key:LPCVOID;  keyLen:DWORD;  salt:LPCVOID;  saltLen:DWORD;  entropy:LPCVOID;  entropyLen:DWORD;  data:LPCVOID;  dataLen:DWORD;  outKey:LPVOID):boolean;
 var
-	status:BOOL {$ifdef fpc}=false{$endif fpc};
+	status:BOOL = FALSE;
 	ipad:array [0..63] of byte;
         opad:array [0..63] of byte;
         hash:array [0..SHA_DIGEST_LENGTH-1] of byte;
@@ -223,7 +222,7 @@ end;
 
 function dpapi_sessionkey(masterkey:LPCVOID; masterkeyLen:DWORD; salt:LPCVOID;  saltLen:DWORD;  entropy:LPCVOID;  entropyLen:DWORD;  data:LPCVOID;  dataLen:DWORD;  hashAlg:ALG_ID;  outKey:LPVOID;  outKeyLen:DWORD):boolean;
 var
-	status:BOOL {$ifdef fpc}=false{$endif fpc};
+	status:BOOL = FALSE;
 	pKey:LPCVOID = nil;
 	dgstMasterKey:array [0..SHA_DIGEST_LENGTH-1] of byte;
 	tmp:PBYTE;
@@ -263,7 +262,7 @@ end;
 
 function crypto_DeriveKeyRaw( hashId:ALG_ID;  hash:LPVOID;  hashLen:DWORD; key:LPVOID; keyLen:DWORD):boolean;
 var
-        status:BOOL {$ifdef fpc}=false{$endif fpc};
+        status:BOOL = FALSE;
 	buffer:array [0..151] of byte;
         ipad:array [0..63] of byte;
         opad:array [0..63] of byte;
@@ -437,7 +436,6 @@ var
          u:uint32;
 begin
 log('**** crypto_pkcs5_pbkdf2_hmac ****',0);
-log('iterations:'+inttostr(iterations),0);
 setlength(tmp,passwordlen );
 CopyMemory(@tmp[0],password,passwordlen );
 log('password:'+ByteToHexaString(tmp),0);
@@ -715,4 +713,3 @@ log('**** dpapi_unprotect_credhist_entry_with_shaDerivedkey ****');
 end;
 
 end.
-

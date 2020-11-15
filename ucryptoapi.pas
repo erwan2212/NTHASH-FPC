@@ -1478,6 +1478,7 @@ var
 	hProv:HCRYPTPROV;
 	hKey:HCRYPTKEY;
 begin
+{$ifndef fpc}dwsize:=sizeof(DWORD);{$endif fpc}
 	if CryptAcquireContext(hProv, nil, nil, PROV_RSA_AES, CRYPT_VERIFYCONTEXT) then
 	begin
 		if CryptGenKey(hProv, hashId, 0, hKey) then

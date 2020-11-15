@@ -10,6 +10,7 @@ uses
   {$ifndef fpc}
   type
   TBytes = array of Byte;
+  //PBytes = ^tbytes;
   qword=int64;
   long=longint;
   PSTR = PAnsiChar;

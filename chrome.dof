@@ -94,7 +94,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\databases\mORMot-1.18;..\FastMM4-master;..\jwa\branches\2.3\Win32API
+SearchPath=..\..\databases\mORMot-1.18;..\jwa\branches\2.3\Win32API;..\..\system\ikjson;..\FastMM4-master
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;dbexpress;dbxcds;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls;IntrawebDB_50_70;Intraweb_50_70;Rave50CLX;Rave50VCL;dclOfficeXP;Jcl;JclVcl;JvCoreD7R;JvSystemD7R;JvStdCtrlsD7R;JvAppFrmD7R;JvBandsD7R;JvDBD7R;JvDlgsD7R;JvBDED7R;JvCmpD7R;JvCryptD7R;JvCtrlsD7R;JvCustomD7R;JvDockingD7R;JvDotNetCtrlsD7R;JvEDID7R;JvGlobusD7R;JvHMID7R;JvInterpreterD7R;JvJansD7R;JvManagedThreadsD7R;JvMMD7R;JvNetD7R;JvPageCompsD7R;JvPluginD7R;JvPrintPreviewD7R;JvRuntimeDesignD7R;JvTimeFrameworkD7R;JvValidatorsD7R;JvWizardD7R;JvXPCtrlsD7R;madBasic_;madDisAsm_;madExcept_;Hstcbo_;hexeditor1
 Conditionals=
 DebugSourceDirs=
@@ -129,7 +129,10 @@ c:\program files (x86)\borland\delphi7\Projects\Bpl\VirtualTreesD.bpl=Virtual Tr
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=3
-Item0=..\..\databases\mORMot-1.18;..\FastMM4-master;..\jwa\branches\2.3\Win32API
-Item1=..\..\databases\mORMot-1.18;..\FastMM4-master
-Item2=..\..\databases\mORMot-1.18
+Count=6
+Item0=..\..\databases\mORMot-1.18;..\jwa\branches\2.3\Win32API;..\..\system\ikjson;..\FastMM4-master
+Item1=..\..\databases\mORMot-1.18;..\jwa\branches\2.3\Win32API;..\..\system\ikjson
+Item2=..\..\databases\mORMot-1.18;..\FastMM4-master;..\jwa\branches\2.3\Win32API;..\..\system\ikjson
+Item3=..\..\databases\mORMot-1.18;..\FastMM4-master;..\jwa\branches\2.3\Win32API
+Item4=..\..\databases\mORMot-1.18;..\FastMM4-master
+Item5=..\..\databases\mORMot-1.18

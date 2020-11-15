@@ -70,8 +70,8 @@
       <Unit7>
         <Filename Value="ucryptoapi.pas"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="11"/>
+        <CursorPos Y="3"/>
         <UsageCount Value="236"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -119,9 +119,10 @@
       <Unit12>
         <Filename Value="uchrome.pas"/>
         <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="8"/>
-        <TopLine Value="216"/>
-        <CursorPos X="39" Y="233"/>
+        <TopLine Value="119"/>
+        <CursorPos X="40" Y="131"/>
         <UsageCount Value="206"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -158,8 +159,8 @@
         <Filename Value="udpapi.pas"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="7"/>
-        <TopLine Value="421"/>
-        <CursorPos X="38" Y="439"/>
+        <TopLine Value="29"/>
+        <CursorPos X="55" Y="17"/>
         <UsageCount Value="207"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -277,7 +278,7 @@
         <EditorIndex Value="20"/>
         <TopLine Value="53"/>
         <CursorPos X="5" Y="68"/>
-        <UsageCount Value="49"/>
+        <UsageCount Value="50"/>
         <Loaded Value="True"/>
       </Unit31>
       <Unit32>
@@ -291,15 +292,14 @@
         <Filename Value="C:\FPC\3.0.0\source\packages\winunits-base\src\shellapi.pp"/>
         <UnitName Value="ShellApi"/>
         <EditorIndex Value="24"/>
-        <UsageCount Value="48"/>
+        <UsageCount Value="49"/>
         <Loaded Value="True"/>
       </Unit33>
       <Unit34>
         <Filename Value="usid.pas"/>
         <EditorIndex Value="3"/>
-        <TopLine Value="425"/>
-        <CursorPos X="10" Y="452"/>
-        <UsageCount Value="47"/>
+        <CursorPos Y="5"/>
+        <UsageCount Value="48"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit34>
@@ -307,7 +307,7 @@
         <Filename Value="wtsapi32.pas"/>
         <EditorIndex Value="1"/>
         <TopLine Value="809"/>
-        <UsageCount Value="27"/>
+        <UsageCount Value="28"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit35>
@@ -316,11 +316,11 @@
         <EditorIndex Value="14"/>
         <TopLine Value="90"/>
         <CursorPos X="27" Y="104"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit36>
     </Units>
-    <JumpHistory Count="18" HistoryIndex="17">
+    <JumpHistory Count="20" HistoryIndex="19">
       <Position1>
         <Filename Value="NTHASH.lpr"/>
         <Caret Line="2030" Column="36" TopLine="2027"/>
@@ -392,6 +392,14 @@
       <Position18>
         <Filename Value="ucryptoapi.pas"/>
       </Position18>
+      <Position19>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="233" Column="39"/>
+      </Position19>
+      <Position20>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="222" Column="52" TopLine="206"/>
+      </Position20>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

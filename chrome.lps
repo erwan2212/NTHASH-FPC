@@ -38,12 +38,12 @@
         </CompilerOptions>
       </Item1>
     </BuildModes>
-    <Units Count="5">
+    <Units Count="7">
       <Unit0>
         <Filename Value="chrome.lpr"/>
         <IsPartOfProject Value="True"/>
         <CursorPos X="46" Y="8"/>
-        <UsageCount Value="21"/>
+        <UsageCount Value="29"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
@@ -51,37 +51,53 @@
         <Filename Value="..\jwa2.3\jwa\branches\2.3\Win32API\JwaBCrypt.pas"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="44" Y="1247"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
         <Filename Value="uchrome.pas"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <CursorPos X="52" Y="17"/>
-        <UsageCount Value="10"/>
+        <CursorPos X="5" Y="17"/>
+        <UsageCount Value="14"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit2>
       <Unit3>
         <Filename Value="ucryptoapi.pas"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="12"/>
         <CursorPos X="63" Y="12"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="14"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
       <Unit4>
         <Filename Value="udpapi.pas"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
-        <CursorPos X="54" Y="13"/>
-        <UsageCount Value="10"/>
+        <TopLine Value="56"/>
+        <CursorPos X="65" Y="77"/>
+        <UsageCount Value="14"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit4>
+      <Unit5>
+        <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\base.inc"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="194"/>
+        <CursorPos X="6" Y="208"/>
+        <UsageCount Value="14"/>
+        <Loaded Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="C:\FPC\3.0.0\source\rtl\inc\systemh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="450"/>
+        <CursorPos X="3" Y="464"/>
+        <UsageCount Value="9"/>
+      </Unit6>
     </Units>
-    <JumpHistory Count="4" HistoryIndex="3">
+    <JumpHistory Count="7" HistoryIndex="6">
       <Position1>
         <Filename Value="chrome.lpr"/>
         <Caret Line="3" Column="14"/>
@@ -97,6 +113,18 @@
       <Position4>
         <Filename Value="uchrome.pas"/>
       </Position4>
+      <Position5>
+        <Filename Value="udpapi.pas"/>
+        <Caret Line="115" Column="57" TopLine="102"/>
+      </Position5>
+      <Position6>
+        <Filename Value="udpapi.pas"/>
+        <Caret Line="71" Column="27" TopLine="56"/>
+      </Position6>
+      <Position7>
+        <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\base.inc"/>
+        <Caret Line="208" Column="6" TopLine="194"/>
+      </Position7>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>
