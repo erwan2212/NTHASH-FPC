@@ -850,8 +850,9 @@ begin
   si.cb := sizeof(si);
   si.dwFlags := STARTF_USESHOWWINDOW;
   si.wShowWindow := 1;
-  bret:=CreateProcessWithLogonW(pwidechar(widestring(user)),pwidechar(widestring(domain)),pwidechar(widestring('')),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar(sysdir+'\cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
-  if bret=false then writeln('failed: '+inttostr(getlasterror));
+  //Si.lpDesktop := 'winsta0\default';
+  bret:=CreateProcessWithLogonW(pwidechar(widestring(user)),pwidechar(widestring(domain)),pwidechar(widestring('')),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar({sysdir+'\'+}'cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
+  if bret=false then writeln('CreateProcessWithLogonW failed: '+inttostr(getlasterror));
 
   if bret=true then
      begin
