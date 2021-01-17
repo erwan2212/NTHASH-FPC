@@ -934,6 +934,12 @@ result:=false;
       copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
       patch_pos:=11;
       end;
+   if (pos('-2004',winver)>0) {or (pos('-1909',winver)>0)} then //win10
+      begin
+      setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      patch_pos:=11;
+      end;
    end;
 //
   if symmode=true then

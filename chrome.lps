@@ -42,7 +42,8 @@
       <Unit0>
         <Filename Value="chrome.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="46" Y="8"/>
+        <IsVisibleTab Value="True"/>
+        <CursorPos X="10" Y="2"/>
         <UsageCount Value="29"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -56,9 +57,9 @@
       </Unit1>
       <Unit2>
         <Filename Value="uchrome.pas"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <CursorPos X="5" Y="17"/>
+        <TopLine Value="90"/>
+        <CursorPos X="44" Y="113"/>
         <UsageCount Value="14"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -97,7 +98,7 @@
         <UsageCount Value="9"/>
       </Unit6>
     </Units>
-    <JumpHistory Count="7" HistoryIndex="6">
+    <JumpHistory Count="10" HistoryIndex="9">
       <Position1>
         <Filename Value="chrome.lpr"/>
         <Caret Line="3" Column="14"/>
@@ -125,6 +126,18 @@
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\base.inc"/>
         <Caret Line="208" Column="6" TopLine="194"/>
       </Position7>
+      <Position8>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="17" Column="5"/>
+      </Position8>
+      <Position9>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="20" Column="21"/>
+      </Position9>
+      <Position10>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="21" Column="22"/>
+      </Position10>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

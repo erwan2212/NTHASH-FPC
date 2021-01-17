@@ -170,7 +170,7 @@ begin
       for i:= 0 to dwCount - 1  do
         begin
           log('*************************************',1);
-          decodecred (Credentials[i]);
+          try decodecred (Credentials[i]);except end;
 
           //inc(ptr,sizeof(pointer));
             {
@@ -183,7 +183,7 @@ begin
             end; // if CredReadW
             }
         end; //for i:= 0 to dwCount - 1  do
-    credfree(Credentials);
+    try credfree(Credentials);except end;
     end //if CredEnumerateW
     else log('CredEnumerateW failed, '+inttostr(getlasterror));
 end;

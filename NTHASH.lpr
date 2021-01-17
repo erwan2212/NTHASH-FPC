@@ -322,6 +322,7 @@ WIN_BUILD_10_1709:ShortInt=	-21;
 WIN_BUILD_10_1803:ShortInt=	-21; //verified
 WIN_BUILD_10_1809:ShortInt=	-24;
 WIN_BUILD_10_1903:ShortInt=	-24;
+WIN_BUILD_10_2004:ShortInt=	-24;
 //offset x86
 WIN_BUILD_XP_86:ShortInt=-8;
 WIN_BUILD_7_86:ShortInt=-8; //verified
@@ -356,6 +357,7 @@ begin
      if (pos('-1803',winver)>0) then patch_pos :=WIN_BUILD_10_1803;
      if (pos('-1809',winver)>0) then patch_pos :=WIN_BUILD_10_1809;
      if (pos('-1903',winver)>0) then patch_pos :=WIN_BUILD_10_1903; //verified
+     if (pos('-2004',winver)>0) then patch_pos :=WIN_BUILD_10_2004; //verified
      end;
   if (lowercase(osarch)='x86') then
      begin
@@ -922,7 +924,35 @@ begin
 end;
 
 
+function DecodeFileBase64(const filename:string;strict:boolean=false):boolean;
 
+var
+  Instream:TFileStream;
+  Outstream : TFileStream;
+  Decoder   : TBase64DecodingStream;
+begin
+  Result:=false;
+  Instream:=TFileStream.Create(filename,fmOpenRead);
+  try
+    Outstream:=TFileStream.Create(filename+'.base64',fmCreate or fmOpenWrite);
+    try
+      if strict then
+        Decoder:=TBase64DecodingStream.Create(Instream,bdmStrict)
+      else
+        Decoder:=TBase64DecodingStream.Create(Instream,bdmMIME);
+      try
+         Outstream.CopyFrom(Decoder,Decoder.Size);
+         Result:=true;
+      finally
+        Decoder.Free;
+        end;
+    finally
+     Outstream.Free;
+     end;
+  finally
+    Instream.Free;
+    end;
+end;
 
 
 
@@ -990,6 +1020,7 @@ begin
   log('NTHASH /wdigeston [/symbol]',1);  //will read mem
   log('NTHASH /logonpasswords [/symbol]',1); //will read mem
   log('NTHASH /pth /user:username /password:myhash /domain:mydomain',1); //will patch lsass
+  log('NTHASH /showkeymgr',1);
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1); //will patch lsass
   log('NTHASH /enumvault',1);
@@ -1009,6 +1040,7 @@ begin
   log('NTHASH /base64encodehexa /input:hexastring',1);
   log('NTHASH /base64decode /input:base64string',1);
   log('NTHASH /base64decodehexa /input:base64string',1);
+  log('NTHASH /base64decodefile /input:filename',1);
   //****************************************************
   log('NTHASH /dpapimk [/symbol]',1);  //will read mem
   log('NTHASH /cryptunprotectdata /binary:filename [/hexa]',1);
@@ -1265,6 +1297,12 @@ if p>0 then
      end;
      goto fin;
    end;
+p:=pos('/showkeymgr',cmdline);
+if p>0 then
+   begin
+   runas({sysdir + '\'+} 'rundll32.exe','keymgr.dll, KRShowKeyMgr');
+   goto fin;
+   end;
 p:=pos('/getlsakeys',cmdline);
 if p>0 then
    begin
@@ -1424,6 +1462,16 @@ if p>0 then
      //log(inttostr(length(input)));
      if console_output_type<>FILE_TYPE_PIPE then log('base64decodehexa',1);
      log(ByteToHexaString (AnsiStringtoByte (base64.DecodeStringBase64 (input))) ,1);
+     goto fin;
+     end;
+  p:=pos('/base64decodefile',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     if console_output_type<>FILE_TYPE_PIPE then log('base64decodefile',1);
+     //SetConsoleOutputCP(437  );
+     log(booltostr(DecodeFileBase64 (input)) ,1);
+     //SetConsoleOutputCP(consolecp);
      goto fin;
      end;
   p:=pos('/base64decode',cmdline);
