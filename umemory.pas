@@ -126,7 +126,7 @@ result:=false;
   if pid=0 then exit;
   //
   hprocess:=thandle(-1);
-  hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+  hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERATION} or PROCESS_QUERY_INFORMATION,
                                         false,pid);
   if hprocess<>thandle(-1) then
        begin

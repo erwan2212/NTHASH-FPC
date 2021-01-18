@@ -559,8 +559,9 @@ begin
   log('found:'+inttohex(offset,sizeof(pointer)),0);
   //
   hprocess:=thandle(-1);
-  hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
-                                        false,pid);
+  if hash<>''
+     then hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION {or PROCESS_QUERY_INFORMATION},false,pid)
+     else hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION},false,pid);
   if hprocess<>thandle(-1) then
        begin
        log('openprocess ok',0);
@@ -1053,8 +1054,9 @@ begin
   log('NTHASH /gethash /mode:hashid /input:hexastring',1);
   log('NTHASH /gethmac /mode:hashid /input:hexastring /key:hexastring',1);
   log('NTHASH /getcipher /mode:cipherid /input:hexastring /key:hexastring',1);
-  log('NTHASH /getlsasecret /input:secret [/server:hostname]',1);
+  log('NTHASH /getlsasecret /input:keyname [/server:hostname]',1);
   log('NTHASH /getlsasecret /input:dpapi_system [/server:hostname]',1);
+  log('NTHASH /setlsasecret /input:keyname /password:secret [/server:hostname]',1);
   //log('NTHASH /dpapi_system',1);
   //****************************************************
   log('NTHASH /runasuser /user:username /password:password [/binary:x:\folder\bin.exe]',1);
@@ -1816,7 +1818,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/dumpsecret',cmdline);
   if p>0 then
      begin
-     if input='' then exit;
+     if input='' then input:='*';
      if (offline=false) and (pos('syst',lowercase(GetCurrUserName) )=0) then begin log('run as system, please',1);exit;end;
      if input='*' then
         begin
@@ -1892,8 +1894,8 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   if p>0 then
      begin
      if input='' then exit;
-     if lsasecret(server,input,output_)=false
-        then log('lsasecrets failed',1)
+     if lsa_get_secret(server,input,output_)=false
+        then log('lsa_get_secret failed',1)
         else
         begin
         if lowercase(input)='dpapi_system' then
@@ -1914,6 +1916,16 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
          //log('secret:'+ByteToHexaString (@output_ [4],length(output_)-4),1);
          end;
         end;
+     goto fin;
+     end;
+  p:=pos('/setlsasecret',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     if password='' then exit;
+     if lsa_set_secret(server,input,password)=false
+        then log('lsa_set_secret failed',1)
+        else log('OK',1);
      goto fin;
      end;
   {

