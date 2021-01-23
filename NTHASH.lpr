@@ -1306,7 +1306,7 @@ if p>0 then
   p:=pos('/enumvault',cmdline);
 if p>0 then
    begin
-   uvaults.VaultInit ;
+   if uvaults.VaultInit=false then begin log('VaultInit failed',1);exit; end;
    uvaults.Vaultenum ;
    goto fin;
    end;
@@ -1316,6 +1316,7 @@ if p>0 then
    if credwrite (widestring(input),widestring(user),widestring(password))=false
          then log('credwrite failed',1)
          else log('credwrite ok',1);
+   goto fin;
    end;
 p:=pos('/enumcred',cmdline);
 if p>0 then

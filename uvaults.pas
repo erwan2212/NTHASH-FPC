@@ -135,6 +135,7 @@ function credwrite(target,username,password:widestring):boolean;
 implementation
 
 
+
 //
 const
   CRED_TYPE_GENERIC                 = 1;
@@ -173,7 +174,7 @@ begin
         if result=false then log('credwrite:'+inttostr(getlasterror));
 end;
 
-  function CredEnum:boolean;
+function CredEnum:boolean;
 var
   Credentials: array of pointer; //PCredentialArray;
   ptr:pointer;

@@ -381,10 +381,30 @@ begin
 end;
 
 function decodecred(cred:pointer):boolean;
+const
+  strSalt:string='abe2869f-9b47-4cd9-a358-c22904dba7f7';
+  //82BD0E67-9FEA-4748-8672-D5EFE5B779B0 - domain entropy
 var
   bytes:array[0..1023] of byte;
+  //
+  OptionalEntropy, datain,dataout:_MY_BLOB; //data_blob does not work? -> error 1783...
+  tmpSalt:array [0..36] of word; //37 -> 74 -> 148
+  i:integer;
 begin
   result:=true;
+  //
+  //writeln(sizeof(tmpsalt));
+  fillchar(tmpSalt ,sizeof(tmpsalt),0);
+  for i:=0 to 35 do
+      begin
+      tmpSalt[i] :=  ord(strSalt[i+1]) * 4;
+      //write('\x'+inttohex(tmpSalt[i],2));
+      end;
+  //writeln;
+  fillchar(OptionalEntropy,sizeof(OptionalEntropy),0);
+  OptionalEntropy.pbData := @tmpSalt[0];
+  OptionalEntropy.cbData := 74;
+  //
   log('Flags:'+inttostr(PCREDENTIALW(cred)^.Flags)  ,1);
   log('Type_:'+inttostr(PCREDENTIALW(cred)^.Type_   ),1);
   if PCREDENTIALW(cred)^.TargetName<>nil then log('TargetName:'+widestring(PCREDENTIALW(cred)^.TargetName ),1);
@@ -396,7 +416,19 @@ begin
              begin
                //we could use entropy/salt + CryptUnprotectData
                CopyMemory (@bytes[0],PCREDENTIALW(cred)^.CredentialBlob,PCREDENTIALW(cred)^.CredentialBlobSize);
-               log('CredentialBlob:'+copy(BytetoAnsiString (bytes),1,PCREDENTIALW(cred)^.CredentialBlobSize),1);
+
+               if pos('Microsoft_WinInet',strpas(PCREDENTIALW(cred)^.TargetName))>0 then
+                  begin
+                  fillchar(DataIn,sizeof(DataIn),0);
+                  fillchar(DataOut,sizeof(DataOut),0);
+                  DataIn.pbData := @bytes[0]; //PCREDENTIALW(cred)^.CredentialBlob;
+                  DataIn.cbData := PCREDENTIALW(cred)^.CredentialBlobSize;
+                  if CryptUnprotectData(@DataIn, nil, @OptionalEntropy, nil,nil,0,@DataOut)=true
+                     then log('CredentialBlob:'+BytetoAnsiString (DataOut.pbData ,dataout.cbData ),1)
+                     else log('CryptUnprotectData failed:'+inttostr(getlasterror),1);
+                  //writeln(dataout.cbData );
+                  end //if pos('Microsoft_WinInet',strpas(PCREDENTIALW(cred)^.TargetName))>0 then
+                  else log('CredentialBlob:'+copy(BytetoAnsiString (bytes),1,PCREDENTIALW(cred)^.CredentialBlobSize),1);
              end;
 end;
 
