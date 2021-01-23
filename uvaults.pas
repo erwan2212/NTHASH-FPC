@@ -130,6 +130,7 @@ function VaultInit:boolean;
 function VaultEnum:boolean;
 function patch_CredpCloneCredential(pid:dword):boolean;
 function CredEnum:boolean;
+function credwrite(target,username,password:widestring):boolean;
 
 implementation
 
@@ -143,12 +144,34 @@ const
   CRED_TYPE_MAXIMUM                 = 5;  // Maximum supported cred type
   CRED_TYPE_MAXIMUM_EX              = CRED_TYPE_MAXIMUM + 1000;  // Allow new applications to run on old OSes
 
+  function CredWriteW( Credential:PCREDENTIALW;Flags:DWORD): BOOL; stdcall; external 'advapi32.dll';
   function CredReadW(TargetName: LPCWSTR; Type_: DWORD; Flags: DWORD; var Credential: PCREDENTIALW): BOOL; stdcall; external 'advapi32.dll';
   function CredEnumerateW(Filter: LPCWSTR; Flags: DWORD; out Count: DWORD; out Credential: pointer {PCredentialArray}): BOOL; stdcall; external 'advapi32.dll';
   Procedure CredFree(Buffer:pointer); stdcall; external 'advapi32.dll';
 //
 
+function credwrite(target,username,password:widestring):boolean;
+const
+  CRED_PERSIST_NONE: DWORD = 0;
+  CRED_PERSIST_SESSION: DWORD = 1;
+  CRED_PERSIST_LOCAL_MACHINE: DWORD = 2;
+  CRED_PERSIST_ENTERPRISE: DWORD = 3;
 
+var
+  credsToAdd: _CREDENTIALW;
+begin
+  result:=false;
+  ZeroMemory(@credsToAdd, SizeOf(_CREDENTIALW));
+        credsToAdd.Flags := 0;
+  	credsToAdd.Type_ := CRED_TYPE_GENERIC;
+  	credsToAdd.TargetName := pwidechar(target);
+        credsToAdd.UserName  := pwidechar(username);
+  	credsToAdd.CredentialBlob := PByte(password);
+  	credsToAdd.CredentialBlobSize := 2*(Length(Password)); //By convention no trailing null. Cannot be longer than CRED_MAX_CREDENTIAL_BLOB_SIZE (512) bytes
+  	credsToAdd.Persist := CRED_PERSIST_LOCAL_MACHINE;
+        result:= CredWritew(@credsToAdd, 0);
+        if result=false then log('credwrite:'+inttostr(getlasterror));
+end;
 
   function CredEnum:boolean;
 var

