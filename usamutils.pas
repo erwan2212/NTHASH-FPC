@@ -743,12 +743,12 @@ const
   MAX_VALUE_NAME =16383;
 var
   ret:word;
-  hkey,hkresult:thandle;
+  hkey,hkresult,hkresult2:thandle;
   i:byte;
   retcode,cbname:dword;
   achKey:array[0..MAX_KEY_LENGTH-1] of widechar;
   ftLastWriteTime:filetime;
-  param:tsamuser;
+  ptr:pointer;
 begin
 result:=false;
 
@@ -773,7 +773,27 @@ for i:=0 to 254 do
 
             if (ret <>ERROR_SUCCESS) then break;
             if (lowercase(strpas(achKey)))='names' then break;
-            if func=nil then log( strpas(achKey)+' '+inttostr(strtoint('$'+strpas(achKey))),1);
+            if func=nil then
+               begin
+               log( strpas(achKey)+' '+inttostr(strtoint('$'+strpas(achKey))),0);
+               ret:=OROpenKey (hkey,pwidechar(widestring('sam\Domains\account\users\'+achKey)),hkresult2);
+               if ret=0 then
+                  begin
+                  try
+                  ret:= getvaluePTR(hkresult2,'resetdata',ptr);
+                  if ret>0 then
+                  begin
+                  log('user:'+strpas(achKey)+':'+inttostr(strtoint('$'+strpas(achKey))),1);
+                  log(BytetoAnsiString (ptr,ret),1);
+                  log('getvaluePTR ok');
+                  end  //if getvaluePTR(hkresult2,'resetdata',ptr)>0 then
+                  else  log('getvaluePTR failed');
+                  ORCloseKey (hkresult2 );
+                  except
+                  end;
+                  end //if ret<>0 then
+                  else log('OROpenKey failed:'+inttostr(ret));
+               end; //if func=nil then
             if func<>nil then
                begin
                {
