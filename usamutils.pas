@@ -737,6 +737,55 @@ begin
   end;
 end;
 
+function resetdata_offline(func:pointer =nil):boolean;
+const
+  MAX_KEY_LENGTH =255;
+  MAX_VALUE_NAME =16383;
+var
+  ret:word;
+  hkey,hkresult:thandle;
+  i:byte;
+  retcode,cbname:dword;
+  achKey:array[0..MAX_KEY_LENGTH-1] of widechar;
+  ftLastWriteTime:filetime;
+  param:tsamuser;
+begin
+result:=false;
+
+uofflinereg.init ;
+ret:=OROpenHive(pwidechar(widestring('sam.sav')),hkey);
+if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
+ret:=OROpenKey (hkey,pwidechar(widestring('sam\Domains\account\users')),hkresult);
+if ret<>0 then begin log('OROpenKey NOT OK',0);exit;end;
+
+
+result:=true;
+for i:=0 to 254 do
+  begin
+            cbName := MAX_KEY_LENGTH;
+            ret:=OREnumKey(hkresult,
+                                i,
+                                @achKey[0],
+                                @cbName,
+                                nil,
+                                nil,
+                                @ftLastWriteTime);
+
+            if (ret <>ERROR_SUCCESS) then break;
+            if (lowercase(strpas(achKey)))='names' then break;
+            if func=nil then log( strpas(achKey)+' '+inttostr(strtoint('$'+strpas(achKey))),1);
+            if func<>nil then
+               begin
+               {
+               param.samkey :=samkey;
+               param.rid :=strtoint('$'+strpas(achKey));
+               fn(func)(@param );
+               }
+               end;
+end;
+
+end;
+
 function resetdata(func:pointer =nil):boolean;
 const
   MAX_KEY_LENGTH =255;
@@ -754,7 +803,7 @@ begin
 result:=false;
 if offline=true then
                 begin
-                //result:=resetdata_offline(func);
+                result:=resetdata_offline(func);
                 exit;
                 end;
 
@@ -777,8 +826,7 @@ for i:=0 to 254 do
                begin
                log( strpas(achKey)+' '+inttostr(strtoint('$'+strpas(achKey))),0);
                ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account\users\'+achKey),0, KEY_READ, mykey);
-               //if ret=0 then
-               if 1=1 then
+               if ret=0 then
                begin
                  //LOG('SAM\sam\Domains\account\users\'+achKey);
                  log('RegOpenKeyEx OK',0);
