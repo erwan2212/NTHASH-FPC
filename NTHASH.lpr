@@ -1032,6 +1032,7 @@ begin
   log('NTHASH /dumphash /rid:500 [/offline]',1); //will patch lsasss
   log('NTHASH /getsyskey [/offline]',1);
   log('NTHASH /getsamkey [/offline]',1);
+  log('NTHASH /dumpresetdata [/offline]',1);
   log('NTHASH /dumpsecret /input:* [/offline]',1);
   log('NTHASH /dumpsecret /input:a_secret [/offline]',1);
   log('NTHASH /dumpsecret /input:dpapi_system [/offline]',1);
@@ -1579,6 +1580,12 @@ if p>0 then
            else log('getsamkey NOT OK' ,1);
         end //if getsyskey(syskey) then
         else log('getsyskey NOT OK' ,1);
+     goto fin;
+     end;
+  p:=pos('/dumpresetdata',cmdline);
+  if p>0 then
+     begin
+     resetdata;
      goto fin;
      end;
 //******************* WMI **********************

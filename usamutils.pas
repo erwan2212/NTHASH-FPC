@@ -17,6 +17,8 @@ function dumpsecret(const syskey:tbyte16;regkey:string;var output:tbytes;val:str
 function callback_SamUsers(param:pointer=nil):dword;stdcall;
 function query_samusers(samkey:tbyte16;func:pointer =nil):boolean;
 
+function resetdata(func:pointer =nil):boolean;
+
 type tsamuser=record
      //could be a good idea to pass the handle to the reg key, offline/online
      samkey:tbyte16;
@@ -733,6 +735,82 @@ begin
       log(e.Message ,0); //SHAME!!!!!!!!!!!!!!
     end;
   end;
+end;
+
+function resetdata(func:pointer =nil):boolean;
+const
+  MAX_KEY_LENGTH =255;
+  MAX_VALUE_NAME =16383;
+  REG_BINARY = 3;
+var i:byte;
+  retcode,cbname,cbdata,lptype:dword;
+  achKey:array[0..MAX_KEY_LENGTH-1] of char;
+  ftLastWriteTime:filetime;
+  hKey,mykey:thandle;
+  param:tsamuser;
+  ret:long;
+  data:tbytes;
+begin
+result:=false;
+if offline=true then
+                begin
+                //result:=resetdata_offline(func);
+                exit;
+                end;
+
+retcode:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account\users'),0, KEY_READ, hKey);
+if retcode<>0 then begin log('RegOpenKeyEx NOT OK',0);exit;end;
+result:=true;
+for i:=0 to 254 do
+  begin
+            cbName := MAX_KEY_LENGTH;
+            retCode := RegEnumKeyEx(hKey, i,
+                     @achKey[0],
+                     cbName,
+                     nil,
+                     nil,
+                     nil,
+                     @ftLastWriteTime);
+            if (retCode <>ERROR_SUCCESS) then break;
+            if (lowercase(strpas(achKey)))='names' then break;
+            if func=nil then
+               begin
+               log( strpas(achKey)+' '+inttostr(strtoint('$'+strpas(achKey))),0);
+               ret:=RegOpenKeyEx(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account\users\'+achKey),0, KEY_READ, mykey);
+               //if ret=0 then
+               if 1=1 then
+               begin
+                 //LOG('SAM\sam\Domains\account\users\'+achKey);
+                 log('RegOpenKeyEx OK',0);
+                 cbdata:=1024;
+                 lptype:=0;
+                 ret := RegQueryValueex (mykey,'ResetData',nil,@lptype,nil,@cbdata);
+                 if (ret=0) and (cbdata>0) then
+                    begin
+                    log('RegQueryValueex OK',0);
+                    log('cbdata:'+inttostr(cbdata));
+                    setlength(data,cbdata);
+                    ret:=RegQueryValueex (mykey,'ResetData',nil,@lptype,@data[0],@cbdata);
+                    if (ret=0) and (cbdata>0) then
+                       begin
+                       log('user:'+strpas(achKey)+':'+inttostr(strtoint('$'+strpas(achKey))),1);
+                       log(BytetoAnsiString (@data[0],cbdata),1);
+                       end;
+                    end //if (ret=0) and (cbdata>0) then
+                    else log('RegQueryValueex failed:'+inttostr(ret));
+               RegCloseKey(mykey);
+               end; //if ret=0 then
+               end; //if func=nil then
+            if func<>nil then
+               begin
+               {
+               param.samkey :=samkey;
+               param.rid :=strtoint('$'+strpas(achKey));
+               fn(func)(@param );
+               }
+               end;
+end;
+
 end;
 
 function query_samusers(samkey:tbyte16;func:pointer =nil):boolean;
