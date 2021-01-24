@@ -1068,7 +1068,8 @@ begin
   log('NTHASH /cryptunprotectdata /binary:filename [/hexa]',1);
   log('NTHASH /cryptunprotectdata /input:hexastring [/hexa]',1);
   log('NTHASH /cryptprotectdata /input:string [mode:MACHINE]',1);
-  log('NTHASH /decodeblob /binary:filename [/input:hexastring]',1);
+  log('NTHASH /decodecredhist [/binary:filename] [/input:hmachexastring]',1);
+  log('NTHASH /decodeblob /binary:filename [/input:mkkeyhexastring]',1);
   log('NTHASH /decodemk /binary:filename [/input:hmachexastring] [/password:sha1pwdhexastring]',1);
   log('NTHASH /wlansvc /binary:filename',1);
   log('NTHASH /gethash /mode:hashid /input:hexastring',1);
@@ -2105,8 +2106,8 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                key_:=HexaStringToByte2 (password);
                setlength(output_,crypto_hash_len($00008004));
                zeromemory(@output_[0],length(output_));
-               log('Key:'+BytetoHexaString(key_) );
-               log('Input:'+BytetoHexaString(Input_) );
+               log('Key:'+BytetoHexaString(key_) );   //->password
+               log('Input:'+BytetoHexaString(Input_) ); //->SID UTF-16
                if crypto_hash_hmac ($00008004,@key_[0],length(key_),@input_[0],length(input_),@output_[0],crypto_hash_len($00008004))
                   then
                    begin
@@ -2116,7 +2117,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                    else begin log('crypto_hash_hmac failed',1);goto fin;end;
                //exit;
                setlength(input_,crypto_hash_len($00008004));
-               input_:=output_ ;
+               input_:=output_ ; //->HMAC KEY (utf-16(sid)+sha1)
                end else begin log('cannot detect SID in path',1);goto fin;end; //if pos('S-1-5',binary)>0 then
              end; //if password<>'' then
            log('length(input_):'+inttostr(length(input_)));
@@ -2150,19 +2151,32 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
       p:=pos('/decodecredhist',cmdline);
           if p>0 then
              begin
+             if binary='' then
+               begin
+               binary:=getenv('userprofile')+'\AppData\Roaming\Microsoft\Protect\CREDHIST';
+               if not FileExists (binary) then exit;
+               end;
              if binary='' then exit;
-             if input='' then decodecredhist (binary,nil);
+             if input='' then
+               begin
+               log('binary:'+binary,1);
+               decodecredhist (binary,@credhist);
+               end;
              if input<>'' then
                begin
-               input_:=HexaStringToByte2(input);
+               input_:=HexaStringToByte2(input); //->HMAC KEY (utf-16(sid)+sha1)
+               log('binary:'+binary,1);
+               if key='' then exit;
                decodecredhist (binary,@credhist);
-               //log(ByteToHexaString (credhist.entries [0].salt ));
-               //log(ByteToHexaString (credhist.entries [0].psecret ));
-               setlength(output_,SHA_DIGEST_LENGTH );
-               if dpapi_unprotect_credhist_entry_with_shaDerivedkey(credhist.entries [0],@input_[0],length(input_),nil,@output_[0]) then
+               //log(ByteToHexaString (credhist.entries [0].salt ),1);
+               //log(ByteToHexaString (credhist.entries [0].psecret ),1);
+               setlength(output_,SHA_DIGEST_LENGTH+LM_NTLM_HASH_LENGTH );
+               if dpapi_unprotect_credhist_entry_with_shaDerivedkey(credhist.entries [strtoint(key)],@input_[0],length(input_),@output_[SHA_DIGEST_LENGTH],@output_[0]) then
                  begin
+                 log('****************',1);
                  log('dpapi_unprotect_credhist_entry_with_shaDerivedkey OK',1);
-                 log(ByteToHexaString (output_),1);
+                 log('SHA1:'+ByteToHexaString (@output_[0],SHA_DIGEST_LENGTH),1);
+                 log('NTLM:'+ByteToHexaString (@output_[SHA_DIGEST_LENGTH],LM_NTLM_HASH_LENGTH),1);
                  end;
                end;
              end;

@@ -637,6 +637,13 @@ if (shaDerivedkey=nil) or (shaDerivedkeyLen=0) then
 	result:= status;
 end;
 
+{
+B. CREDHIST
+1. pwdhash = MD4(password) or SHA1(password)
+2. pwdhash_key = HMACSHA1(pwdhash, user_sid)
+3. PBKDF2(…, pwdhash_key,…), another elements from the file. Windows 10 no domain: SHA512, AES-256, 8000 rounds.
+4. Control – HMACSHA512
+}
 function dpapi_unprotect_credhist_entry_with_shaDerivedkey( entry:tDPAPI_CREDHIST_ENTRY; shaDerivedkey:LPCVOID; shaDerivedkeyLen: DWORD; md4hash:PVOID; sha1hash:PVOID):boolean;
 var
 	 status:BOOL = FALSE;
@@ -684,7 +691,7 @@ log('**** dpapi_unprotect_credhist_entry_with_shaDerivedkey ****');
 							//RtlCopyMemory(sha1hash, CryptBuffer, min(entry->sha1Len, SHA_DIGEST_LENGTH));
                                                         CopyMemory(sha1hash, CryptBuffer, min(entry.sha1Len, SHA_DIGEST_LENGTH));
 							//RtlCopyMemory(md4hash, (PBYTE) CryptBuffer + entry->sha1Len, min(entry->md4Len, LM_NTLM_HASH_LENGTH));
-                                                        //CopyMemory(md4hash, PBYTE(CryptBuffer + entry.sha1Len), min(entry.md4Len, LM_NTLM_HASH_LENGTH));
+                                                        CopyMemory(md4hash, CryptBuffer + entry.sha1Len, min(entry.md4Len, LM_NTLM_HASH_LENGTH));
                                                         //log('CryptBuffer:'+ByteToHexaString (CryptBuffer,min(entry.sha1Len, SHA_DIGEST_LENGTH)));
 							status := TRUE;
 

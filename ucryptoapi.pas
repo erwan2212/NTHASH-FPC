@@ -7,7 +7,7 @@ interface
 
 
 uses
-  windows,Classes, SysUtils,JwaWinCrypt,jwabcrypt,utils{$ifndef fpc},math{$endif fpc};
+  windows,Classes, SysUtils,JwaWinCrypt,jwabcrypt,uadvapi32,utils{$ifndef fpc},math{$endif fpc};
 
 //light version...
 type tmasterkey=record
@@ -511,12 +511,17 @@ var
   guid_:tguid;
   debug:byte;
   bytes:tbytes;
+  stringsid:pchar;
+  fsize:int64;
+  label debut;
 begin
   log('**** decodecredhist ****');
-  if credhist=nil then debug:=1 else debug:=0;
+  //if credhist=nil then debug:=1 else debug:=0;
+  debug:=1;
   //if credhist<>nil then ZeroMemory(credhist,4096);
   //
   outFile := CreateFile(pchar(filename), GENERIC_READ, 0, nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL , 0);
+  Int64Rec(fsize).Lo := GetFileSize(outFile, @Int64Rec(fsize).Hi);
   if outfile=thandle(-1) then log('CreateFile:'+inttostr(getlasterror));
   if outfile=thandle(-1) then exit;
   bytesread:=0;
@@ -524,6 +529,14 @@ begin
   closehandle(outfile);
   //
   offset:=0;
+  //
+  debut:
+  //if nextlen>0 we should increase array of cred entries by 1 or we just loop thru the file...
+  if credhist <>nil then
+     begin
+     setlength(credhist.entries,length(credhist.entries)+1);
+     log('******** entry #'+inttostr(length(credhist.entries)-1)+' ********',1);
+     end;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   log('dwVersion:'+inttohex(dw,4),debug);
@@ -536,11 +549,6 @@ begin
   CopyMemory( @nextlen,@buffer[offset],sizeof(nextlen));
   log('dwNextLen:'+inttohex(nextlen,4),debug);
   inc(offset,4);
-  //if nextlen>0 we should increase array of cred entries by 1
-  if credhist <>nil then
-     begin
-     setlength(credhist.entries,1);
-     end;
   //
   CopyMemory( @dw,@buffer[offset],sizeof(dw));
   log('dwType:'+inttohex(dw,4),debug);
@@ -584,6 +592,16 @@ begin
   setlength(bytes,sidlen);
   CopyMemory( @bytes[0],@buffer[offset],sidlen);
   log('sid:'+ByteToHexaString (bytes),debug);
+  if ConvertSidToStringSidA(@bytes[0] ,stringsid) then
+    begin
+    log('---:'+strpas(stringsid),1);
+    localfree(cardinal(stringsid));
+    end; // else log('ConvertSidToStringSidA failed',0);
+  if credhist <>nil then
+     begin
+     credhist.entries [high(credhist.entries)].psid:=allocmem(sidlen);
+     CopyMemory( credhist.entries [high(credhist.entries)].psid,@bytes[0],sidlen);
+     end;
   inc(offset,sidlen);
   //
   setlength(bytes,$30); //hardcoded - we need to read the last 4 bytes and compute size from here
@@ -597,6 +615,9 @@ begin
      end;
   inc(offset,$30);
   //
+  dec(fsize,offset);
+  if fsize>offset then goto debut; //more entries to come
+
 end;
 
 function decodemk(filename:string; mk:pmasterkey):boolean;
