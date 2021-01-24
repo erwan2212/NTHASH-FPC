@@ -2181,6 +2181,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                if dpapi_unprotect_credhist_entry_with_shaDerivedkey(credhist.entries [strtoint(key)],@input_[0],length(input_),@output_[SHA_DIGEST_LENGTH],@output_[0]) then
                  begin
                  log('****************',1);
+                 log('Entry #'+key,1);
                  log('dpapi_unprotect_credhist_entry_with_shaDerivedkey OK',1);
                  log('SHA1:'+ByteToHexaString (@output_[0],SHA_DIGEST_LENGTH),1);
                  log('NTLM:'+ByteToHexaString (@output_[SHA_DIGEST_LENGTH],LM_NTLM_HASH_LENGTH),1);
