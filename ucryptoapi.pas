@@ -38,6 +38,7 @@ type tmasterkey=record
 	md4Len:DWORD;
 	salt:array[0..15] of byte;
 	pSid:PSID;
+        stringsid:string;
 	pSecret:array of byte; //PBYTE;
 	__dwSecretLen:DWORD;
   end;
@@ -506,7 +507,7 @@ var
   buffer:array[0..4095] of byte;
   outfile:thandle{$ifdef fpc}=0{$endif fpc};
   bytesread:cardinal;
-  offset:word;
+  offset,size:word;
   dw,sidlen,nextlen:dword;
   guid_:tguid;
   debug:byte;
@@ -529,6 +530,7 @@ begin
   closehandle(outfile);
   //
   offset:=0;
+  size:=0;
   //
   debut:
   //if nextlen>0 we should increase array of cred entries by 1 or we just loop thru the file...
@@ -595,6 +597,7 @@ begin
   if ConvertSidToStringSidA(@bytes[0] ,stringsid) then
     begin
     log('---:'+strpas(stringsid),1);
+    credhist.entries [high(credhist.entries)].stringsid :=strpas(stringsid);
     localfree(cardinal(stringsid));
     end; // else log('ConvertSidToStringSidA failed',0);
   if credhist <>nil then
@@ -615,8 +618,11 @@ begin
      end;
   inc(offset,$30);
   //
-  dec(fsize,offset);
-  if fsize>offset then goto debut; //more entries to come
+  if size=0 then size:=offset;
+  //writeln(size);
+  //writeln(fsize);
+  //writeln(offset);
+  if offset+size>fsize then exit else goto debut; //more entries to come
 
 end;
 

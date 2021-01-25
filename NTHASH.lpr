@@ -2164,19 +2164,38 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                if not FileExists (binary) then exit;
                end;
              if binary='' then exit;
-             if input='' then
+             log('binary:'+binary,1);
+             if (input='') and (password='') then
                begin
-               log('binary:'+binary,1);
                decodecredhist (binary,@credhist);
+               goto fin;
                end;
-             if input<>'' then
+             if (input<>'') or (password<>'') then
+             begin
+             decodecredhist (binary,@credhist);
+             if input<>'' then input_:=HexaStringToByte2(input); //->HMAC KEY (utf-16(sid)+sha1)
+             if password<>'' then
                begin
-               input_:=HexaStringToByte2(input); //->HMAC KEY (utf-16(sid)+sha1)
-               log('binary:'+binary,1);
+               input:=ByteToHexaString (AnsiStringtoByte(credhist.entries [0].stringsid,true ))+'0000';
+               //log(input);
+               input_:=HexaStringToByte2 (input);
+               key_:=HexaStringToByte2 (password);
+               setlength(output_,crypto_hash_len($00008004));
+               zeromemory(@output_[0],length(output_));
+               log('Key:'+BytetoHexaString(key_) );   //->password
+               log('Input:'+BytetoHexaString(Input_) ); //->SID UTF-16
+               if crypto_hash_hmac ($00008004,@key_[0],length(key_),@input_[0],length(input_),@output_[0],crypto_hash_len($00008004))
+                  then
+                   begin
+                   log('**** gethmac SID+sha1(password) ****',0);
+                   log(ByteToHexaString (output_ ),0);
+                   end
+                   else begin log('crypto_hash_hmac failed',1);goto fin;end;
+               //exit;
+               setlength(input_,crypto_hash_len($00008004));
+               input_:=output_ ; //->HMAC KEY (utf-16(sid)+sha1)
+               end;//if password<>'' then
                if key='' then exit;
-               decodecredhist (binary,@credhist);
-               //log(ByteToHexaString (credhist.entries [0].salt ),1);
-               //log(ByteToHexaString (credhist.entries [0].psecret ),1);
                setlength(output_,SHA_DIGEST_LENGTH+LM_NTLM_HASH_LENGTH );
                if dpapi_unprotect_credhist_entry_with_shaDerivedkey(credhist.entries [strtoint(key)],@input_[0],length(input_),@output_[SHA_DIGEST_LENGTH],@output_[0]) then
                  begin
@@ -2185,9 +2204,9 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                  log('dpapi_unprotect_credhist_entry_with_shaDerivedkey OK',1);
                  log('SHA1:'+ByteToHexaString (@output_[0],SHA_DIGEST_LENGTH),1);
                  log('NTLM:'+ByteToHexaString (@output_[SHA_DIGEST_LENGTH],LM_NTLM_HASH_LENGTH),1);
-                 end;
-               end;
-             end;
+                 end; //if dpapi_unprotect_credhist_entry_with_shaDerivedkey
+               end; //if (input<>'') or (password<>'') then
+             end; //if p>0 then
   //************************* HASH ************************************
   p:=pos('/gethash',cmdline);
           if p>0 then
