@@ -261,6 +261,8 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
 end;
 
 function decrypt_cookies(db:string=''):boolean;
+const
+  DPAPI_CHROME_UNKV10 : array[0..2] of char = ('v', '1', '0');
 var
 Props: TSQLDBSQLite3ConnectionProperties ;
   //
@@ -270,6 +272,10 @@ Props: TSQLDBSQLite3ConnectionProperties ;
   path,tmp:string;
   //li:TListItem ;
   Rows: ISQLDBRows;
+  //
+  js:TlkJSONobject;
+  s:string;
+  bytes,key,iv,encrypted:tbytes;
 begin
   result:=false;
 //C:\Users\xxx\AppData\Local\Google\Chrome\User Data\Default
@@ -299,6 +305,27 @@ writeln('db:'+path+'\cookies.db');
 
 if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');exit;end;
 
+if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state')) then
+   begin
+   js:=TlkJSONstreamed.loadfromfile(GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state') as TlkJsonObject;
+   if assigned(js) then
+      begin
+      //writeln('assigned(js)');
+      s:=vartostr(js.Field['os_crypt'].Field['encrypted_key'].Value);
+      //writeln(s);
+      {$ifdef fpc}bytes:=AnsiStringtoByte (base64.DecodeStringBase64 (s,true));{$endif fpc}
+      {$ifndef fpc}bytes:=AnsiStringtoByte (base64_delphi.DecodeStringBase64 (s));{$endif fpc}
+      s:=ByteToHexaString(bytes);
+      delete(s,1,10); //remove 'DPAPI'
+      //writeln(s); //writeln(length(s));
+      if CryptUnProtectData_(HexaStringToByte2(s),key)= true
+        then writeln('os_crypt:encrypted_key:'+ByteToHexaString(key))
+        else writeln('no os_crypt:encrypted_key');
+      js.Free;
+      end;
+   end;
+//
+
   try
     //if dynamic
     {$ifndef static}
@@ -318,6 +345,8 @@ if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');e
       tmp:=''; //for i:=0 to length(b)-1 do b[i]:=0;
       b:=tbytes(rows.ColumnBlobBytes('encrypted_value'));
       //CryptUnprotect(b,tmp);
+      if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
+      begin
       if CryptUnProtectData_(b,output)=true then
          begin
          if length(output)<255 then
@@ -329,8 +358,24 @@ if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');e
          }
          writeln(rows['creation_utc']+';'+rows['host_key']+';'+rows['name']+';'+BytetoAnsiString(output)+';'+rows['is_secure']+';'+rows['is_httponly']);
          end; //if length(output)<255 then
-         end else writeln(rows['creation_utc']+';'+rows['host_key']+';'+rows['name']+';'+'SCRAMBLED'+';'+rows['is_secure']+';'+rows['is_httponly']);
+
+      end; //if CryptUnProtectData_(b,output)=true then
+
+      end
+      else  //if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
+      begin
+            setlength(iv,12);
+            CopyMemory (@iv[0],@b[0+3],length(iv));
+            setlength(encrypted,length(b)-12-3); //contains also the TAG
+            CopyMemory (@encrypted[0],@b[0+3+12],length(encrypted));
+            setlength(output,length(encrypted)-16); //-16=TAG length
+            //writeln('length(key):'+inttostr(length(key)));
+            if bdecrypt_gcm('AES', encrypted, @output[0], key, iv)<>0
+              then writeln(rows['creation_utc']+';'+rows['host_key']+';'+rows['name']+';'+BytetoAnsiString(output)+';'+rows['is_secure']+';'+rows['is_httponly'])
+              else writeln(rows['creation_utc']+';'+rows['host_key']+';'+rows['name']+';'+'SCRAMBLED'+';'+rows['is_secure']+';'+rows['is_httponly']);
       end;
+
+      end; //while
     finally
       //rows._Release ;
     end;
