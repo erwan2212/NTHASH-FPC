@@ -347,29 +347,24 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
       //CryptUnprotect(b,tmp);
       if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
       begin
-      if CryptUnProtectData_(b,output)=true then
+
+         if CryptUnProtectData_(b,output)=true then
          begin
          if length(output)<255 then
          begin
-         {
-         writeln(rows['origin_url']);
-         writeln((rows['username_value']));
-         writeln(BytetoAnsiString(output));
-         }
          writeln(rows['creation_utc']+';'+rows['host_key']+';'+rows['name']+';'+BytetoAnsiString(output)+';'+rows['is_secure']+';'+rows['is_httponly']);
          end; //if length(output)<255 then
-
-      end; //if CryptUnProtectData_(b,output)=true then
+         end; //if CryptUnProtectData_(b,output)=true then
 
       end
       else  //if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
       begin
+
             setlength(iv,12);
             CopyMemory (@iv[0],@b[0+3],length(iv));
             setlength(encrypted,length(b)-12-3); //contains also the TAG
             CopyMemory (@encrypted[0],@b[0+3+12],length(encrypted));
             setlength(output,length(encrypted)-16); //-16=TAG length
-            //writeln('length(key):'+inttostr(length(key)));
             if bdecrypt_gcm('AES', encrypted, @output[0], key, iv)<>0
               then writeln(rows['creation_utc']+';'+rows['host_key']+';'+rows['name']+';'+BytetoAnsiString(output)+';'+rows['is_secure']+';'+rows['is_httponly'])
               else writeln(rows['creation_utc']+';'+rows['host_key']+';'+rows['name']+';'+'SCRAMBLED'+';'+rows['is_secure']+';'+rows['is_httponly']);

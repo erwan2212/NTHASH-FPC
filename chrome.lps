@@ -42,9 +42,8 @@
       <Unit0>
         <Filename Value="chrome.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <CursorPos X="10" Y="2"/>
-        <UsageCount Value="29"/>
+        <UsageCount Value="33"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
@@ -57,19 +56,19 @@
       </Unit1>
       <Unit2>
         <Filename Value="uchrome.pas"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="90"/>
-        <CursorPos X="44" Y="113"/>
-        <UsageCount Value="14"/>
+        <CursorPos X="15" Y="9"/>
+        <UsageCount Value="16"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit2>
       <Unit3>
         <Filename Value="ucryptoapi.pas"/>
         <EditorIndex Value="4"/>
-        <TopLine Value="12"/>
-        <CursorPos X="63" Y="12"/>
-        <UsageCount Value="14"/>
+        <TopLine Value="5"/>
+        <CursorPos X="50" Y="10"/>
+        <UsageCount Value="16"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
@@ -78,7 +77,7 @@
         <EditorIndex Value="2"/>
         <TopLine Value="56"/>
         <CursorPos X="65" Y="77"/>
-        <UsageCount Value="14"/>
+        <UsageCount Value="16"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit4>
@@ -87,7 +86,7 @@
         <EditorIndex Value="3"/>
         <TopLine Value="194"/>
         <CursorPos X="6" Y="208"/>
-        <UsageCount Value="14"/>
+        <UsageCount Value="16"/>
         <Loaded Value="True"/>
       </Unit5>
       <Unit6>
@@ -98,7 +97,7 @@
         <UsageCount Value="9"/>
       </Unit6>
     </Units>
-    <JumpHistory Count="10" HistoryIndex="9">
+    <JumpHistory Count="14" HistoryIndex="13">
       <Position1>
         <Filename Value="chrome.lpr"/>
         <Caret Line="3" Column="14"/>
@@ -138,6 +137,22 @@
         <Filename Value="uchrome.pas"/>
         <Caret Line="21" Column="22"/>
       </Position10>
+      <Position11>
+        <Filename Value="chrome.lpr"/>
+        <Caret Line="2" Column="10"/>
+      </Position11>
+      <Position12>
+        <Filename Value="uchrome.pas"/>
+        <Caret Line="204" Column="27" TopLine="188"/>
+      </Position12>
+      <Position13>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="12" Column="63" TopLine="12"/>
+      </Position13>
+      <Position14>
+        <Filename Value="ucryptoapi.pas"/>
+        <Caret Line="1239" Column="45" TopLine="1219"/>
+      </Position14>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

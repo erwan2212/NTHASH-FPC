@@ -151,6 +151,7 @@ const
   Procedure CredFree(Buffer:pointer); stdcall; external 'advapi32.dll';
 //
 
+
 function credwrite(target,username,password:widestring):boolean;
 const
   CRED_PERSIST_NONE: DWORD = 0;
