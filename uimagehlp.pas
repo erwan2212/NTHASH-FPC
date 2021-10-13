@@ -73,9 +73,11 @@ if processHandle<>thandle(-1) then
    begin
    hFile := CreateFile(pchar(inttostr(pid)+'.dmp'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
    result := MiniDumpWriteDump(processHandle, pid, hfile, MiniDumpWithFullMemory, nil, nil, nil);
+   if result=false then log('MiniDumpWriteDump failed,'+inttostr(getlasterror));
    closehandle(hfile);
    closehandle(processHandle );
-   end;
+   end
+   else log('OpenProcess failed');
  end;
 
 //initialization

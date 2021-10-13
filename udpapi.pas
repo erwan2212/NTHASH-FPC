@@ -11,7 +11,20 @@ function dpapi_unprotect_credhist_entry_with_shaDerivedkey( entry:tDPAPI_CREDHIS
 function dpapi_unprotect_masterkey_with_shaDerivedkey(masterkey:tmasterkey;  shaDerivedkey:LPCVOID;shaDerivedkeyLen:DWORD; var output:PVOID;var outputLen:DWORD):boolean;
 function dpapi_unprotect_blob(blob:PDPAPI_BLOB;  masterkey:LPCVOID; masterkeyLen:DWORD; entropy:LPCVOID;  entropyLen:DWORD; password:LPCWSTR; var dataOut:LPVOID; var dataOutLen:DWORD):boolean;
 
+//var
+ //https://docs.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectmemory/
+ //CryptUnprotectMemory:function(pDataIn:LPVOID;cbDataIn:DWORD;dwFlags:DWORD): BOOL; stdcall;
+ //CryptProtectMemory:function(pDataIn:LPVOID;cbDataIn:DWORD;dwFlags:DWORD): BOOL; stdcall;
+
 implementation
+
+
+
+const
+  apilib = 'dpapi.dll';
+
+var
+ HApi: THandle = 0;
 
 function string_getRandomGUID:pwidechar;
 var
@@ -718,5 +731,29 @@ log('**** dpapi_unprotect_credhist_entry_with_shaDerivedkey ****');
 	end;
 	result:= status;
 end;
+
+{
+function InitAPI: Boolean;
+begin
+ Result := False;
+ if Win32Platform <> VER_PLATFORM_WIN32_NT then Exit;
+ if HApi = 0 then HApi := LoadLibrary(apilib);
+ if HApi > HINSTANCE_ERROR then
+ begin
+   @CryptProtectMemory  := GetProcAddress(HApi, 'CryptProtectMemory');
+   @CryptUnProtectMemory := GetProcAddress(HApi, 'CryptUnProtectMemory');
+    Result := True;
+ end;
+end;
+
+procedure FreeAPI;
+begin
+ if HApi <> 0 then FreeLibrary(HApi);
+ HApi := 0;
+end;
+}
+
+//initialization InitAPI;
+//finalization FreeAPI;
 
 end.

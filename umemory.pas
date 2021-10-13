@@ -5,7 +5,7 @@ unit umemory;
 interface
 
 uses
-   SysUtils,windows,utils,upsapi;
+   SysUtils,windows,utils,upsapi,ntdll;
 
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:array of byte):boolean;overload;
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:pointer;len:PtrUInt):boolean;overload;
@@ -14,6 +14,7 @@ function ReadMem(hprocess:thandle;offset:nativeuint;var bytes:array of byte):boo
 function ReadMem(hprocess:thandle;offset:nativeuint;bytes:pointer;len:PtrUInt):boolean;overload;
 
 function SearchMem(hprocess:thandle;addr:pointer;sizeofimage:DWORD;pattern:array of byte):nativeint;
+function SearchMem2(hprocess:thandle;addr:pointer;sizeofimage:DWORD;pattern:array of byte):nativeint;
 function search_module_mem(pid:dword;module:string;pattern:tbytes;var found:nativeuint):boolean;
 
 var
@@ -27,9 +28,23 @@ implementation
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:pointer;len:PtrUInt):boolean;overload;
 var
   written:PtrUInt; //cardinal;
+  status:ntstatus=0;
+  oldprotect:ulong=0;
 begin
 log('WriteMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(len));
 result:=WriteProcessMemory_ (hprocess,pointer(offset),bytes,len,@written);
+//if NtProtectVirtualMemory(hprocess,ppvoid(offset),@len,PAGE_READWRITE,@oldprotect)=STATUS_SUCCESS then
+   begin
+   //status:=NtWriteVirtualMemory(hprocess,pointer(offset),bytes,len,@written);  //works
+   //NtProtectVirtualMemory(hprocess,ppvoid(offset),@len,oldprotect,nil);
+   end;
+if status<>0 then
+  begin
+  result:=false;
+  //log('status:'+inttohex(status,sizeof(status)));
+  SetLastError (status);
+  end
+  else result:=true;
 if written=0 then result:=false;
 if result=false then log('WriteMem: written:'+inttostr(written)+' error:'+inttostr(getlasterror));
 //ideally should check written against length(bytes) as well...
@@ -38,10 +53,28 @@ end;
 
 function WriteMem(hprocess:thandle;offset:nativeint;bytes:array of byte):boolean;
 var
-  written:PtrUInt; //cardinal;
+  written:PtrUInt=0; //cardinal;
+  status:ntstatus=0;
+  oldprotect:ulong=0;
+  len:ptruint=0;
 begin
-log('WriteMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(length(bytes)));
-result:=WriteProcessMemory_ (hprocess,pointer(offset),@bytes[0],length(bytes),@written);
+len:=length(bytes);
+log('WriteMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(len));
+result:=WriteProcessMemory_ (hprocess,pointer(offset),@bytes[0],len,@written);
+//if NtProtectVirtualMemory(hprocess,ppvoid(offset),@len,PAGE_READWRITE,@oldprotect)=STATUS_SUCCESS  then
+begin
+  //status:=NtWriteVirtualMemory(hprocess,pointer(offset),@bytes[0],length(bytes),@written ); //works
+  //NtProtectVirtualMemory(hprocess,ppvoid(offset),@len,oldprotect,nil);
+  end;
+//and finally?
+//NtFlushInstructionCache
+if status<>0 then
+  begin
+  result:=false;
+  //log('status:'+inttohex(status,sizeof(status)));
+  SetLastError (status);
+  end
+  else result:=true;
 if written=0 then result:=false;
 if result=false then log('WriteMem: written:'+inttostr(written)+' error:'+inttostr(getlasterror));
 //ideally should check written against length(bytes) as well...
@@ -50,10 +83,20 @@ end;
 function ReadMem(hprocess:thandle;offset:nativeuint;var bytes:array of byte):boolean;
 var
   read:PtrUInt;
+  status:ntstatus=0;
 begin
+result:=false;
 fillchar(bytes,length(bytes),0);
 log('ReadMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(length(bytes)));
-result:=ReadProcessMemory_ (hprocess,pointer(offset),@bytes[0],length(bytes),@read);
+//result:=ReadProcessMemory_ (hprocess,pointer(offset),@bytes[0],length(bytes),@read);
+status:=NtReadVirtualMemory(hprocess,pointer(offset),@bytes[0],length(bytes),@read); //works
+if status<>0 then
+  begin
+  result:=false;
+  //log('status:'+inttohex(status,sizeof(status)));
+  SetLastError (status);
+  end
+  else result:=true;
 if read=0 then result:=false;
 if result=false then log('readmem: read:'+inttostr(read)+' error:'+inttostr(getlasterror));
 //ideally should check read against length(bytes) as well...
@@ -62,10 +105,21 @@ end;
 function ReadMem(hprocess:thandle;offset:nativeuint;bytes:pointer;len:PtrUInt):boolean;overload;
 var
   read:PtrUInt;
+  status:ntstatus=0;
+  //STATUS_ACCESS_DENIED = cardinal($C0000022);
 begin
+result:=false;
 fillchar(bytes^,len,0);
 log('ReadMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(len));
-result:=ReadProcessMemory_ (hprocess,pointer(offset),bytes,len,@read);
+//result:=ReadProcessMemory_ (hprocess,pointer(offset),bytes,len,@read);
+status:=NtReadVirtualMemory(hprocess,pointer(offset),bytes,len,@read);  //works
+if status<>0 then
+  begin
+  result:=false;
+  //log('status:'+inttohex(status,sizeof(status)));
+  SetLastError (status);
+  end
+  else result:=true;
 if read=0 then result:=false;
 if result=false then log('readmem: read:'+inttostr(read)+' error:'+inttostr(getlasterror));
 //ideally should check read against length(bytes) as well...
@@ -108,6 +162,47 @@ log('sizeofimage:'+inttostr(sizeofimage));
         end;//if readprocessmemory...
       end;//for
 //log('Done!',0);
+end;
+
+function SearchMem2(hprocess:thandle;addr:pointer;sizeofimage:DWORD;pattern:array of byte):nativeint;
+var
+  i:nativeint;
+  buffer:array of byte;
+  //read:cardinal;
+  read:PtrUInt;
+  mem:pointer=nil;
+begin
+result:=0;
+setlength(buffer,length(pattern));
+zeromemory(@buffer[0],length(buffer));
+//log(ByteToHexaString (@buffer[0],length(buffer)));
+log('Searching...',0);
+//log('Pattern:'+ByteToHexaString (@pattern[0],length(pattern)));
+log('start:'+inttohex(nativeint(addr),sizeof(addr)));
+log('sizeofimage:'+inttostr(sizeofimage));
+mem:=AllocMem (sizeofimage);
+if not ReadProcessMemory_( hprocess,addr,mem,sizeofimage ,@read) then
+  begin
+  log('ReadProcessMemory_ failed,'+inttostr(getlasterror));
+  freemem(mem);
+  exit;
+  end;
+
+for i:=0 to (sizeofimage-1) -length(buffer) do
+      begin
+        //log(inttohex(i,sizeof(pointer)));
+        //log('read:'+inttostr(read));
+        if CompareMem (@pattern [0],pointer(nativeint(mem)+i),length(buffer)) then
+           begin
+           //log(ByteToHexaString (@pattern[0],read));
+           //log('found:'+ByteToHexaString (@buffer[0],length(buffer)));
+           result:=nativeint(addr)+i;
+           //log('found:'+inttohex(i,sizeof(i)));
+           break;
+           end; //if CompareMem...
+      end;//for
+//log('Done!',0);
+freemem(mem);
 end;
 
 function search_module_mem(pid:dword;module:string;pattern:tbytes;var found:nativeuint):boolean;

@@ -5,7 +5,7 @@ unit usecur32;
 interface
 
 uses
-  Classes, SysUtils,windows,utils;
+  Classes, SysUtils,windows,utils,lsaapi;
 
   procedure GetActiveUserNames();
 
@@ -66,17 +66,12 @@ type
   end;
   SECURITY_LOGON_SESSION_DATA = _SECURITY_LOGON_SESSION_DATA;
 
-  function LsaGetLogonSessionData(LogonId: PLUID;
-     var ppLogonSessionData: PSECURITY_LOGON_SESSION_DATA): LongInt; stdcall;
-     external 'Secur32.dll';
 
-  function LsaNtStatusToWinError(Status: cardinal): ULONG; stdcall;
-     external 'Advapi32.dll';
 
-  function LsaEnumerateLogonSessions(Count: PULONG; List: PLUID): LongInt;
-     stdcall; external 'Secur32.dll';
+  //function LsaGetLogonSessionData(LogonId: PLUID;var ppLogonSessionData: PSECURITY_LOGON_SESSION_DATA): LongInt; stdcall;external 'Secur32.dll';
+  //function LsaEnumerateLogonSessions(Count: PULONG; List: PLUID): LongInt; stdcall; external 'Secur32.dll';
+  //function LsaFreeReturnBuffer(Buffer: pointer): Integer; stdcall;external 'secur32.dll';
 
-  function LsaFreeReturnBuffer(Buffer: pointer): Integer; stdcall;external 'secur32.dll';
 
   function FileTimeToDateTime(const FileTime: Int64): TDateTime; // Change the Filetime type to Int64 as FileTime is passed to me Int64 already
 
@@ -86,6 +81,37 @@ type
 begin
   Result := (FileTime) / FileTimeStep; // Remove the Int64 conversion as FileTime arrives as Int64 already
   Result := Result + FileTimeBase;
+end;
+
+  const
+  apilib = 'secur32.dll';
+
+
+var
+ HApi: THandle = 0;
+  //
+  LsaFreeReturnBuffer:function(Buffer: pointer): Integer; stdcall;
+  LsaEnumerateLogonSessions:function(Count: PULONG; List: PLUID): LongInt; stdcall;
+  LsaGetLogonSessionData:function(LogonId: PLUID;var ppLogonSessionData: PSECURITY_LOGON_SESSION_DATA): LongInt; stdcall;
+
+  function InitAPI: Boolean;
+begin
+  Result := False;
+  if Win32Platform <> VER_PLATFORM_WIN32_NT then Exit;
+  if HApi = 0 then HApi := LoadLibrary(apilib);
+  if HApi > HINSTANCE_ERROR then
+  begin
+    @LsaFreeReturnBuffer := GetProcAddress(HApi, 'LsaFreeReturnBuffer');
+    @LsaEnumerateLogonSessions := GetProcAddress(HApi, 'LsaEnumerateLogonSessions');
+    @LsaGetLogonSessionData := GetProcAddress(HApi, 'LsaGetLogonSessionData');
+    Result := True;
+  end;
+end;
+
+procedure FreeAPI;
+begin
+  if HApi <> 0 then FreeLibrary(HApi);
+  HApi := 0;
 end;
 
 procedure GetActiveUserNames();
@@ -165,6 +191,9 @@ begin
       LSAFreeReturnBuffer(List);
    end;
 end;
+
+initialization InitAPI;
+finalization FreeAPI;
 
 end.
 

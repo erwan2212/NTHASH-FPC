@@ -30,7 +30,7 @@
         <CommandLineParams Value="/getsyskey"/>
       </local>
     </RunParams>
-    <Units Count="18">
+    <Units Count="19">
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -104,6 +104,10 @@
         <Filename Value="usecur32.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit17>
+      <Unit18>
+        <Filename Value="uhandles.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit18>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -114,7 +118,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);..\jwa\branches\2.3\Includes"/>
-      <OtherUnitFiles Value="..\jwa\branches\2.3\Win32API;..\..\databases\mORMot-1.18;..\..\system\ikjson;..\SymFromName;..\injector-fpc"/>
+      <OtherUnitFiles Value="..\jwa\branches\2.3\Win32API;..\..\databases\mORMot-1.18;..\..\system\ikjson;..\SymFromName;..\injector-fpc;..\pe"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>

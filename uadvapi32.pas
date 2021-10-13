@@ -84,6 +84,8 @@ function CredBackupCredentials(Token:handle;
                                    PasswordSize:DWORD;
                                    Flags:DWORD):BOOL; stdcall; external 'advapi32.dll';
 
+//function LsaNtStatusToWinError(Status: cardinal): ULONG; stdcall;external 'Advapi32.dll';
+
 
 type
    MD4_CTX  = packed record

