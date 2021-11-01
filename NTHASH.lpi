@@ -30,7 +30,7 @@
         <CommandLineParams Value="/getsyskey"/>
       </local>
     </RunParams>
-    <Units Count="19">
+    <Units Count="20">
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -52,7 +52,7 @@
         <IsPartOfProject Value="True"/>
       </Unit4>
       <Unit5>
-        <Filename Value="untdll.pas"/>
+        <Filename Value="uversion.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit5>
       <Unit6>
@@ -108,6 +108,11 @@
         <Filename Value="uhandles.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit18>
+      <Unit19>
+        <Filename Value="uxor.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="uXor"/>
+      </Unit19>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

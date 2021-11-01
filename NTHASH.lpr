@@ -8,9 +8,9 @@
 program NTHASH;
 
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,
-  uadvapi32, untdll, utils, umemory, ucryptoapi, usamutils, uofflinereg,
+  uadvapi32, uversion, utils, umemory, ucryptoapi, usamutils, uofflinereg,
   uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport, wtsapi32, uwmi, base64,
-  udpapi,udebug,injection, usecur32,memfuncs, uhandles,pe;
+  udpapi,udebug,injection, usecur32,memfuncs, uhandles,pe, uXor;
 
 
 //***************************************************************************
@@ -999,6 +999,39 @@ begin
     end;
 end;
 
+function EncodeFileBase64(const filename:string):boolean;
+
+var
+  Instream:TFileStream;
+  Outstream : TFileStream;
+  Encoder   : TBase64encodingStream;
+  Buffer: PByte;
+begin
+  //writeln(filename);
+  Result:=false;
+  Instream:=TFileStream.Create(filename,fmOpenRead);
+  if instream.Size =0 then exit;
+  GetMem(Buffer, instream.Size);
+  try
+    Outstream:=TFileStream.Create(filename+'.encode',fmCreate or fmOpenWrite);
+    try
+     Encoder:=TBase64encodingStream.Create(outstream);
+      try
+         Instream.Readbuffer (buffer^,instream.Size );
+         Encoder.Write (buffer^,Instream.Size );
+         Result:=true;
+      finally
+        Encoder.Free;
+        end;
+    finally
+     Outstream.Free;
+     end;
+  finally
+     freemem(buffer);
+     Instream.Free;
+    end;
+end;
+
 function DecodeStringBase64w(const s:widestring;strict:boolean=false):wideString;
 
 var
@@ -1039,7 +1072,7 @@ begin
   Result:=false;
   Instream:=TFileStream.Create(filename,fmOpenRead);
   try
-    Outstream:=TFileStream.Create(filename+'.base64',fmCreate or fmOpenWrite);
+    Outstream:=TFileStream.Create(filename+'.decode',fmCreate or fmOpenWrite);
     try
       if strict then
         Decoder:=TBase64DecodingStream.Create(Instream,bdmStrict)
@@ -1058,6 +1091,8 @@ begin
     Instream.Free;
     end;
 end;
+
+
 
 function msgbox(param:pointer):cardinal;stdcall;
 
@@ -1154,9 +1189,11 @@ begin
   log('NTHASH /base64encodew /input:string',1);
   log('NTHASH /base64encode /input:string',1);
   log('NTHASH /base64encodehexa /input:hexastring',1);
+  log('NTHASH /base64encodefile /input:filename',1);
   log('NTHASH /base64decode /input:base64string',1);
   log('NTHASH /base64decodehexa /input:base64string',1);
   log('NTHASH /base64decodefile /input:filename',1);
+  log('NTHASH /xorfile /input:filename',1);
   //****************************************************
   log('NTHASH /dpapimk [/symbol]',1);  //will read mem
   log('NTHASH /cryptunprotectdata /binary:filename [/hexa]',1);
@@ -1393,7 +1430,16 @@ begin
 //*********************** end of input parameters ***************************
 //***************************************************************************
 
-p:=pos('/fix',cmdline);
+p:=pos('/xorfile',cmdline); //test in progress
+  if p>0 then
+    begin
+    if input='' then exit;
+    //xorfile(input,ExtractFileName(input)+'.xor' );
+    if pos('.encrypted',extractfileext(input))>0
+       then xorfilev2 (input,ChangeFileExt(input,'.decrypted'),false)  //decrypt
+       else xorfilev2 (input,ExtractFileName(input)+'.encrypted',true);        //encrypt
+    end;
+p:=pos('/fix',cmdline); //test in progress
 if p>0 then
   begin
   check_func('c:\windows\system32\ntdll.dll','NtReadVirtualMemory') ;
@@ -1601,6 +1647,16 @@ if p>0 then
      //writeln('input:'+input);
      if console_output_type<>FILE_TYPE_PIPE then log('base64encodehexa',1);
      log(base64.EncodeStringBase64 (BytetoAnsiString (HexaStringToByte2 (input))) ,1);
+     goto fin;
+     end;
+  p:=pos('/base64encodefile',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     if console_output_type<>FILE_TYPE_PIPE then log('base64decodefile',1);
+     //SetConsoleOutputCP(437  );
+     log(booltostr(EncodeFileBase64 (input)) ,1);
+     //SetConsoleOutputCP(consolecp);
      goto fin;
      end;
   p:=pos('/base64encode',cmdline);

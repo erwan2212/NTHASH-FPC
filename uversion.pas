@@ -1,4 +1,4 @@
-unit untdll;
+unit uversion;
 
 {$mode delphi}
 
@@ -35,6 +35,7 @@ var
   RtlGetVersion:function(var lpVersionInformation: TOSVERSIONINFOEXW): DWORD; stdcall;
 begin
 {
+//https://docs.microsoft.com/en-us/windows/release-health/release-information
 windows 10's
 version buildnumber
 1507	10240
@@ -69,7 +70,8 @@ if osver.dwMajorVersion =10 then
         18823:result:=result+'-1909'; //insider?
         19041:result:=result+'-2004';
         19042:result:=result+'-20H2';
-        20180:result:=result+'-21H1';
+        19043:result:=result+'-21H1';
+        //20180:result:=result+'-21H1';
         end;
    end;
 
