@@ -9,12 +9,13 @@ interface
 uses
   windows,SysUtils,ActiveX,ComObj,Variants,utils;
 
-function _EnumProc(computer:widestring=''):boolean;
-function _Create(computer:string='';command:string='';username:string='';password:string=''):boolean;
-Function _Killproc(server:string='';pid:dword=0):boolean;
+function _EnumProc(const computer,username,password:widestring):boolean;
+function _Create(const computer,command,username,password:widestring):boolean;
+Function _Killproc(const server,username,password:widestring;pid:dword=0):boolean;
+function _reboot(const computer,username,password:widestring):boolean;
 
 procedure  _ListFolder(Const Computer,WbemUser,WbemPassword,Path:widestring);
-function  _CopyFile(const computer,SourceFileName,DestFileName:widestring):integer;
+function  _CopyFile(const computer,username,password,SourceFileName,DestFileName:widestring):integer;
 
 implementation
 
@@ -66,7 +67,7 @@ begin
     Result := Value = '';
 end;
 
-Function _Killproc(server:string='';pid:dword=0):boolean;
+Function _Killproc(const server,username,password:widestring;pid:dword=0):boolean;
 const
   wbemFlagForwardOnly = $00000020;
 var
@@ -80,20 +81,20 @@ begin;
   result:=false;
   if pid=0 then exit;
   FSWbemLocator := CreateOleObject('WbemScripting.SWbemLocator');
-  FWMIService   := FSWbemLocator.ConnectServer(widestring(server), 'root\CIMV2', '', '');
+  FWMIService   := FSWbemLocator.ConnectServer(server, 'root\CIMV2', username, password);
   //FWbemObjectSet:= FWMIService.ExecQuery('SELECT name FROM Win32_Process Where ProcessId='+inttostr(pid),'WQL',wbemFlagForwardOnly);
   FWbemObjectSet:= FWMIService.ExecQuery(widestring('SELECT name FROM Win32_Process Where processid="'+inttostr(pid)+'"'),'WQL',wbemFlagForwardOnly);
   oEnum         := IUnknown(FWbemObjectSet._NewEnum) as IEnumVariant;
   while oEnum.Next(1, FWbemObject, iValue) = 0 do
   begin
-    FWbemObject.Terminate();
+    if FWbemObject.Terminate()=0 then result:=true else result:=false;
     FWbemObject:=Unassigned;
   end;
-  result:=true;
+  writeln(BoolToStr (result));
 end;
 
 //check https://github.com/RRUZ/wmi-delphi-code-creator/wiki/DelphiDevelopers
-function _Create(computer:string='';command:string='';username:string='';password:string=''):boolean;
+function _Create(const computer,command,username,password:widestring):boolean;
 const
   wbemFlagForwardOnly = $00000020;
   HIDDEN_WINDOW       = 0;
@@ -118,17 +119,77 @@ begin;
   //if computer<>'' then ...
   //if Failed(CoInitializeSecurity(nil, -1, nil, nil, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IDENTIFY, nil, EOAC_NONE, nil))
   //  then log('failed CoInitializeSecurity');
-  FWMIService   := FSWbemLocator.ConnectServer(widestring(computer), 'root\CIMV2', widestring(username), widestring(password));
+  FWMIService   := FSWbemLocator.ConnectServer(computer, 'root\CIMV2', username, password);
   FWbemObject   := FWMIService.Get('Win32_ProcessStartup');
   objConfig     := FWbemObject.SpawnInstance_;
-  objConfig.ShowWindow := SW_HIDE ;
+  objConfig.ShowWindow := SW_hide ;
   objProcess    := FWMIService.Get('Win32_Process');
   objProcess.Create(widestring(command), null, objConfig, ProcessID);
   Writeln(Format('Pid %d',[ProcessID]));
   result:=true;
 end;
 
-function _EnumProc(computer:widestring=''):boolean;
+function _reboot(const computer,username,password:widestring):boolean;
+const
+  wbemFlagForwardOnly = $00000020;
+  wbemPrivilegeShutdown = $00000012;
+  wbemCimtypeSint32 = 3;
+var
+
+  FSWbemLocator : OLEVariant;
+  FWMIService   : OLEVariant;
+  FWbemObject   : OLEVariant;
+  FWbemObjectSet: OLEVariant;
+
+  ShutdownMethod_inParameters,ShutdownMethod,Shutdown,WmiProperty,PropertyReboot:      OLEVariant;
+
+  oEnum         : IEnumvariant;
+  iValue        : LongWord;
+begin
+
+
+  FSWbemLocator := CreateOleObject('WbemScripting.SWbemLocator');
+   //Permet aux objets d'utiliser l'identité de l'appelant.
+   //C'est le niveau d'usurpation d'identité recommandé pour l'appel d'API de scripting WMI.
+  //WMILocator.Security_.Set_ImpersonationLevel(wbemImpersonationLevelImpersonate );
+  //WMI utilise la configuration d'authentification par défaut de Windows.
+  //WMILocator.Security_.Set_AuthenticationLevel(wbemAuthenticationLevelDefault);
+
+  FWMIService   := FSWbemLocator.ConnectServer(computer, 'root\CIMV2', username, password);
+
+  //Ajoute au process appelant le privilège wbemPrivilegeShutdown (SE_SHUTDOWN_NAME)
+  FWMIService.Security_.Privileges.Add(wbemPrivilegeShutdown, True);
+
+  FWbemObjectSet:= FWMIService.ExecQuery('SELECT * FROM Win32_OperatingSystem WHERE Primary=True','WQL', wbemFlagForwardOnly);
+
+  oEnum         := IUnknown(FWbemObjectSet._NewEnum) as IEnumVariant;
+
+  while oEnum.Next(1, FWbemObject, iValue) = 0 do
+  begin
+
+
+
+    {
+    ShutdownMethod:= FWbemObject.Methods_.Item('Win32Shutdown', 0);
+    ShutdownMethod_inParameters:= ShutdownMethod.InParameters;
+    Shutdown:= ShutdownMethod_inParameters.SpawnInstance_(0);
+
+    WmiProperty := Shutdown.Properties_.Add('Flags', wbemCimtypeSint32, False, 0);
+    PropertyReboot:= EWX_REBOOT; // ou EWX_REBOOT;
+    wmiProperty.Set_Value(PropertyReboot);
+    }
+
+    //if FWbemObject.Win32Shutdown(2+4,0)=S_OK then result:=true else result:=false;
+    if FWbemObject.reboot()=S_OK then result:=true else result:=false;
+    //FWbemObject.ExecMethod_('Win32Shutdown', shutdown, 0);
+    FWbemObject:=Unassigned;
+  end;
+  writeln(BoolToStr (result));
+
+  //if oEnum.Next(1, FWbemObject, iValue) = 0 then  FWbemObject.Win32Shutdown(1);
+end;
+
+function _EnumProc(const computer,username,password:widestring):boolean;
 const
   wbemFlagForwardOnly = $00000020;
 var
@@ -142,10 +203,16 @@ var
   UserDomain    : OleVariant;
   tmp:string;
 begin;
+  writeln('computer:'+computer);
+  writeln('username:'+username);
+  writeln('password:'+password);
   result:=false;
+  //
+  //if computer<>'' then  if Failed(CoInitializeSecurity(nil, -1, nil, nil, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IDENTIFY, nil, EOAC_NONE, nil)) then exit;
+  //
   FSWbemLocator := CreateOleObject('WbemScripting.SWbemLocator');
-  FWMIService   := FSWbemLocator.ConnectServer(computer, 'root\CIMV2', '', '');
-//  FWbemObjectSet:= FWMIService.ExecQuery(Format('SELECT Name, CommandLine FROM Win32_Process Where Name="%s" or Name="%s"',['cscript.exe','wscript.exe']),'WQL',wbemFlagForwardOnly);
+  FWMIService   := FSWbemLocator.ConnectServer(computer, 'root\CIMV2', username, password);
+  //  FWbemObjectSet:= FWMIService.ExecQuery(Format('SELECT Name, CommandLine FROM Win32_Process Where Name="%s" or Name="%s"',['cscript.exe','wscript.exe']),'WQL',wbemFlagForwardOnly);
 //  FWbemObjectSet:= FWMIService.ExecQuery('SELECT Name, CommandLine FROM Win32_Process','WQL',wbemFlagForwardOnly);
 FWbemObjectSet:= FWMIService.ExecQuery('SELECT Name, ProcessID FROM Win32_Process','WQL',wbemFlagForwardOnly);
   oEnum         := IUnknown(FWbemObjectSet._NewEnum) as IEnumVariant;
@@ -218,21 +285,28 @@ begin;
   end;
 end;
 
-function  _CopyFile(const computer,SourceFileName,DestFileName:widestring):integer;
+function  _CopyFile(const computer,username,password,SourceFileName,DestFileName:widestring):integer;
 var
   FSWbemLocator : OLEVariant;
   FWMIService   : OLEVariant;
   FWbemObject   : OLEVariant;
+  source,dest:widestring;
 begin;
   FSWbemLocator := CreateOleObject('WbemScripting.SWbemLocator');
-  FWMIService   := FSWbemLocator.ConnectServer(computer, 'root\CIMV2', '', '');
+  FWMIService   := FSWbemLocator.ConnectServer(computer, 'root\CIMV2', username, password);
   //FWbemObject   := FWMIService.Get(Format('CIM_DataFile.Name="%s"',[StringReplace(SourceFileName,'\','\\',[rfReplaceAll])]));
   writeln('computer:'+computer);
-  writeln('source:'+StringReplace(SourceFileName,'\','\\',[rfReplaceAll]));
-  writeln('DestFileName:'+StringReplace(DestFileName,'\','\\',[rfReplaceAll]));
-  FWbemObject   := FWMIService.Get('CIM_DataFile.Name="'+widestring(StringReplace(SourceFileName,'\','\\',[rfReplaceAll]))+'"');
-  Result:=FWbemObject.Copy(widestring(StringReplace(DestFileName,'\','\\',[rfReplaceAll])));
+  source:=StringReplace(SourceFileName,'\','\\',[rfReplaceAll]);
+  dest:=StringReplace(DestFileName,'\','\\',[rfReplaceAll]);
+  writeln('source:'+source);
+  writeln('DestFileName:'+dest);
+  FWbemObject   := FWMIService.Get('CIM_DataFile.Name="'+source+'"');
+  writeln('get ok');
+  Result:=FWbemObject.Copy(dest);
+  writeln('copy ok');
 end;
+
+
 
 end.
 

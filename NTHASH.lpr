@@ -279,7 +279,7 @@ var
   inhandle,hmod,ProcessHandle:thandle;
   MemoryRegions:TMemoryRegions;
   list:TStringList;
-  label fin;
+
 
 
 
@@ -1101,6 +1101,10 @@ begin
   messageboxa(0,'abcdef','ijklmn',MB_OK ); //test
 end;
 
+procedure main;
+var
+  dummy:dword;
+  label fin;
 begin
   console_output_type:=GetFileType(GetStdHandle(STD_OUTPUT_HANDLE));
   consolecp:=GetConsoleCP ; //in case you want alter/restore the console codepage
@@ -1230,7 +1234,7 @@ begin
   //log('NTHASH /enumprocwmi [/server:hostname]',1);
   //log('NTHASH /killprocwmi /pid:12345 [/server:hostname]',1);
   //log('NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname] [/user:username] [/password:password]',1);
-  log('NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname]',1);
+  log('NTHASH /runwmi /binary:x:\folder\bin.exe [/server:hostname] [/user:username] [/password:password]',1);
   //log('NTHASH /dirwmi /input:path [/server:hostname]',1);
   //***************************************
   log('NTHASH /context',1);
@@ -1439,6 +1443,7 @@ p:=pos('/xorfile',cmdline); //test in progress
        then xorfilev2 (input,ChangeFileExt(input,'.decrypted'),false)  //decrypt
        else xorfilev2 (input,ExtractFileName(input)+'.encrypted',true);        //encrypt
     end;
+{
 p:=pos('/fix',cmdline); //test in progress
 if p>0 then
   begin
@@ -1446,7 +1451,7 @@ if p>0 then
   check_func('c:\windows\system32\ntdll.dll','NtWriteVirtualMemory') ;
   check_func('c:\windows\system32\ntdll.dll','NtProtectVirtualMemory') ;
   end;
-
+}
 p:=pos('/backupcred',cmdline);
 if p>0 then
  begin
@@ -1776,7 +1781,7 @@ if p>0 then
   p:=pos('/enumprocwmi',cmdline); //can be done with wmic
     if p>0 then
        begin
-       uwmi._EnumProc (server);
+       uwmi._EnumProc (server,user,password);
        goto fin;
        end;
     p:=pos('/runwmi',cmdline); //can be done with wmic but escaping chars is a PITA
@@ -1784,6 +1789,7 @@ if p>0 then
          begin
          if binary='' then exit;
          binary:=StringReplace (binary,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
+         binary:=StringReplace (binary,'%3e','>',[rfReplaceAll,rfIgnoreCase]);
          uwmi._Create (server,binary,user,password);
          goto fin;
          end;
@@ -1792,14 +1798,14 @@ if p>0 then
            begin
            if pid='' then exit;
            if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
-           uwmi._Killproc  (server,strtoint(pid));
+           uwmi._Killproc  (server,user,password,strtoint(pid));
            goto fin;
            end;
    p:=pos('/dirwmi',cmdline);  //can be done with wmic
             if p>0 then
                begin
                if input='' then exit;
-               uwmi._ListFolder(server,'','',input );
+               uwmi._ListFolder(server,user,password,input );
                goto fin;
                end;
    {
@@ -1859,7 +1865,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
      if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
-     if dumpprocess (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
+     if dumpprocess2 (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
   p:=pos('/killproc',cmdline);  ////can be done with taskkill
@@ -2607,6 +2613,10 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/wait',cmdline);
   if p>0 then readln;
 
+end;
+
+begin
+   main;
 end.
 
 //todo

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="10"/>
+    <BuildModes Active="Default"/>
+    <Units Count="2">
+      <Unit0>
+        <Filename Value="wmiexec.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="116"/>
+        <CursorPos X="75" Y="132"/>
+        <UsageCount Value="28"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="uwmi.pas"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="161"/>
+        <CursorPos X="27" Y="183"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit1>
+    </Units>
+    <JumpHistory Count="25" HistoryIndex="24">
+      <Position1>
+        <Filename Value="wmiexec.lpr"/>
+        <Caret Line="123" Column="23"/>
+      </Position1>
+      <Position2>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="248" Column="25" TopLine="235"/>
+      </Position2>
+      <Position3>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="139" Column="2" TopLine="128"/>
+      </Position3>
+      <Position4>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="85" Column="41" TopLine="124"/>
+      </Position4>
+      <Position5>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="176" TopLine="161"/>
+      </Position5>
+      <Position6>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="131" Column="62" TopLine="119"/>
+      </Position6>
+      <Position7>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="153" Column="5" TopLine="138"/>
+      </Position7>
+      <Position8>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="139" TopLine="125"/>
+      </Position8>
+      <Position9>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="133" Column="37" TopLine="118"/>
+      </Position9>
+      <Position10>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="176" Column="10" TopLine="168"/>
+      </Position10>
+      <Position11>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="173" Column="125" TopLine="159"/>
+      </Position11>
+      <Position12>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="15" Column="75"/>
+      </Position12>
+      <Position13>
+        <Filename Value="wmiexec.lpr"/>
+        <Caret Line="109" Column="63" TopLine="96"/>
+      </Position13>
+      <Position14>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="15" Column="75"/>
+      </Position14>
+      <Position15>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="166" Column="32" TopLine="146"/>
+      </Position15>
+      <Position16>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="157" Column="3" TopLine="146"/>
+      </Position16>
+      <Position17>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="166" Column="66" TopLine="147"/>
+      </Position17>
+      <Position18>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="143" Column="36" TopLine="131"/>
+      </Position18>
+      <Position19>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="168" Column="33" TopLine="148"/>
+      </Position19>
+      <Position20>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="170" Column="63" TopLine="156"/>
+      </Position20>
+      <Position21>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="172" Column="32" TopLine="157"/>
+      </Position21>
+      <Position22>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="143" Column="66" TopLine="130"/>
+      </Position22>
+      <Position23>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="136" Column="25" TopLine="129"/>
+      </Position23>
+      <Position24>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="177" Column="5" TopLine="159"/>
+      </Position24>
+      <Position25>
+        <Filename Value="uwmi.pas"/>
+        <Caret Line="180" Column="49" TopLine="161"/>
+      </Position25>
+    </JumpHistory>
+  </ProjectSession>
+</CONFIG>
