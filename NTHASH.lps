@@ -8,8 +8,8 @@
       <Unit0>
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="1503"/>
-        <CursorPos X="27" Y="1519"/>
+        <TopLine Value="1528"/>
+        <CursorPos X="17" Y="1541"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -17,7 +17,7 @@
       <Unit1>
         <Filename Value="upsapi.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="29"/>
+        <EditorIndex Value="27"/>
         <TopLine Value="572"/>
         <CursorPos X="49" Y="587"/>
         <UsageCount Value="213"/>
@@ -27,7 +27,7 @@
       <Unit2>
         <Filename Value="uimagehlp.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="24"/>
+        <EditorIndex Value="23"/>
         <TopLine Value="98"/>
         <CursorPos X="10" Y="48"/>
         <UsageCount Value="213"/>
@@ -37,7 +37,7 @@
       <Unit3>
         <Filename Value="uadvapi32.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="27"/>
+        <EditorIndex Value="26"/>
         <CursorPos X="36" Y="9"/>
         <UsageCount Value="212"/>
         <Loaded Value="True"/>
@@ -46,9 +46,9 @@
       <Unit4>
         <Filename Value="utils.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="9"/>
-        <TopLine Value="408"/>
-        <CursorPos X="67" Y="426"/>
+        <EditorIndex Value="10"/>
+        <TopLine Value="74"/>
+        <CursorPos X="9" Y="87"/>
         <UsageCount Value="211"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -56,8 +56,9 @@
       <Unit5>
         <Filename Value="uversion.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="28"/>
-        <CursorPos X="35" Y="10"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="55"/>
+        <CursorPos X="36" Y="77"/>
         <UsageCount Value="213"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -65,7 +66,7 @@
       <Unit6>
         <Filename Value="umemory.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="78"/>
         <CursorPos X="9" Y="92"/>
         <UsageCount Value="213"/>
@@ -115,9 +116,10 @@
         <Filename Value="ulsa.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="uLSA"/>
-        <EditorIndex Value="12"/>
-        <TopLine Value="481"/>
-        <CursorPos X="35" Y="500"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="1065"/>
+        <CursorPos X="80" Y="1086"/>
         <UsageCount Value="208"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -125,7 +127,7 @@
       <Unit12>
         <Filename Value="uchrome.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="26"/>
+        <EditorIndex Value="25"/>
         <TopLine Value="358"/>
         <CursorPos X="32" Y="379"/>
         <UsageCount Value="206"/>
@@ -135,7 +137,7 @@
       <Unit13>
         <Filename Value="ufirefox.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="30"/>
+        <EditorIndex Value="28"/>
         <TopLine Value="484"/>
         <CursorPos X="3" Y="498"/>
         <UsageCount Value="204"/>
@@ -145,7 +147,7 @@
       <Unit14>
         <Filename Value="urunelevatedsupport.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="31"/>
+        <EditorIndex Value="29"/>
         <TopLine Value="278"/>
         <CursorPos X="20" Y="292"/>
         <UsageCount Value="215"/>
@@ -155,7 +157,7 @@
       <Unit15>
         <Filename Value="uwmi.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="3"/>
         <TopLine Value="104"/>
         <CursorPos X="14" Y="110"/>
         <UsageCount Value="243"/>
@@ -175,10 +177,9 @@
       <Unit17>
         <Filename Value="usecur32.pas"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="13"/>
-        <TopLine Value="140"/>
-        <CursorPos X="55" Y="151"/>
+        <TopLine Value="125"/>
+        <CursorPos X="25" Y="136"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -186,7 +187,7 @@
       <Unit18>
         <Filename Value="uhandles.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="5"/>
         <TopLine Value="66"/>
         <CursorPos X="12" Y="79"/>
         <UsageCount Value="256"/>
@@ -197,10 +198,10 @@
         <Filename Value="uxor.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="uXor"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="4"/>
         <TopLine Value="26"/>
         <CursorPos X="45" Y="28"/>
-        <UsageCount Value="175"/>
+        <UsageCount Value="180"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit19>
@@ -224,15 +225,14 @@
       </Unit21>
       <Unit22>
         <Filename Value="C:\FPC\3.0.0\source\rtl\win\wininc\defines.inc"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="489"/>
         <CursorPos X="6" Y="503"/>
         <UsageCount Value="123"/>
-        <Loaded Value="True"/>
       </Unit22>
       <Unit23>
         <Filename Value="..\SymFromName\udebug.pas"/>
-        <EditorIndex Value="33"/>
+        <EditorIndex Value="31"/>
         <TopLine Value="91"/>
         <CursorPos X="10" Y="105"/>
         <UsageCount Value="981"/>
@@ -255,7 +255,7 @@
       </Unit25>
       <Unit26>
         <Filename Value="usamlib.pas"/>
-        <EditorIndex Value="25"/>
+        <EditorIndex Value="24"/>
         <TopLine Value="234"/>
         <CursorPos X="35" Y="251"/>
         <UsageCount Value="670"/>
@@ -264,7 +264,7 @@
       </Unit26>
       <Unit27>
         <Filename Value="..\injector-fpc\injection.pas"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="11"/>
         <TopLine Value="1027"/>
         <CursorPos Y="1049"/>
         <UsageCount Value="665"/>
@@ -273,7 +273,7 @@
       </Unit27>
       <Unit28>
         <Filename Value="..\injector-fpc\ntdll.pas"/>
-        <EditorIndex Value="11"/>
+        <EditorIndex Value="12"/>
         <TopLine Value="654"/>
         <CursorPos X="36" Y="662"/>
         <UsageCount Value="665"/>
@@ -298,7 +298,7 @@
       <Unit31>
         <Filename Value="C:\FPC\3.0.0\source\packages\winunits-base\src\shellapi.pp"/>
         <UnitName Value="ShellApi"/>
-        <EditorIndex Value="32"/>
+        <EditorIndex Value="30"/>
         <UsageCount Value="152"/>
         <Loaded Value="True"/>
       </Unit31>
@@ -313,7 +313,7 @@
       </Unit32>
       <Unit33>
         <Filename Value="wtsapi32.pas"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="8"/>
         <CursorPos X="41" Y="6"/>
         <UsageCount Value="131"/>
         <Loaded Value="True"/>
@@ -321,9 +321,9 @@
       </Unit33>
       <Unit34>
         <Filename Value="lsaapi.pas"/>
-        <EditorIndex Value="8"/>
-        <TopLine Value="799"/>
-        <CursorPos X="12" Y="936"/>
+        <EditorIndex Value="9"/>
+        <TopLine Value="773"/>
+        <CursorPos X="39" Y="789"/>
         <UsageCount Value="234"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -344,7 +344,7 @@
       </Unit36>
       <Unit37>
         <Filename Value="memfuncs.pas"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="6"/>
         <TopLine Value="105"/>
         <CursorPos Y="128"/>
         <UsageCount Value="227"/>
@@ -353,18 +353,17 @@
       </Unit37>
       <Unit38>
         <Filename Value="C:\FPC\3.0.0\source\rtl\objpas\classes\classesh.inc"/>
-        <EditorIndex Value="23"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="966"/>
         <CursorPos X="3" Y="965"/>
         <UsageCount Value="108"/>
-        <Loaded Value="True"/>
       </Unit38>
       <Unit39>
         <Filename Value="..\jwa\branches\2.3\Win32API\JwaWinType.pas"/>
         <EditorIndex Value="17"/>
         <TopLine Value="1497"/>
         <CursorPos X="3" Y="1511"/>
-        <UsageCount Value="19"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit39>
@@ -385,124 +384,124 @@
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="2324" Column="16" TopLine="2311"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="819" Column="119" TopLine="797"/>
       </Position1>
       <Position2>
-        <Filename Value="ucryptoapi.pas"/>
-        <Caret Line="2330" Column="37" TopLine="2312"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="820" Column="92" TopLine="798"/>
       </Position2>
       <Position3>
-        <Filename Value="ulsa.pas"/>
-        <Caret Line="6" Column="20"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="842" Column="119" TopLine="820"/>
       </Position3>
       <Position4>
-        <Filename Value="uvaults.pas"/>
-        <Caret Line="327" Column="50" TopLine="314"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="843" Column="119" TopLine="821"/>
       </Position4>
       <Position5>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1454" Column="2" TopLine="1430"/>
+        <Caret Line="844" Column="65" TopLine="822"/>
       </Position5>
       <Position6>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="356" Column="6" TopLine="343"/>
+        <Caret Line="1118" Column="9" TopLine="1101"/>
       </Position6>
       <Position7>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="507" Column="32" TopLine="494"/>
+        <Caret Line="1109" Column="58" TopLine="1101"/>
       </Position7>
       <Position8>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="881" Column="32" TopLine="868"/>
+        <Caret Line="8" Column="44"/>
       </Position8>
       <Position9>
-        <Filename Value="uimagehlp.pas"/>
-        <Caret Line="70" Column="20" TopLine="57"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1191" Column="26" TopLine="1169"/>
       </Position9>
       <Position10>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="356" Column="6" TopLine="343"/>
+        <Caret Line="1521" Column="20" TopLine="1508"/>
       </Position10>
       <Position11>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1867" Column="9" TopLine="1854"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="15" Column="10" TopLine="2"/>
       </Position11>
       <Position12>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="8" Column="33"/>
+        <Caret Line="1517" Column="23" TopLine="1508"/>
       </Position12>
       <Position13>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1237" Column="22" TopLine="1216"/>
+        <Caret Line="620" Column="48" TopLine="602"/>
       </Position13>
       <Position14>
-        <Filename Value="wtsapi32.pas"/>
-        <Caret Line="401" Column="10" TopLine="387"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="529" Column="130" TopLine="514"/>
       </Position14>
       <Position15>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="8" Column="48"/>
+        <Filename Value="uversion.pas"/>
+        <Caret Line="77" Column="34" TopLine="54"/>
       </Position15>
       <Position16>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1200" Column="23" TopLine="1178"/>
+        <Caret Line="631" Column="7" TopLine="611"/>
       </Position16>
       <Position17>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1443" Column="19" TopLine="1421"/>
+        <Caret Line="1524" Column="21" TopLine="1516"/>
       </Position17>
       <Position18>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="5" Column="64"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="15" Column="10" TopLine="2"/>
       </Position18>
       <Position19>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="768" TopLine="752"/>
+        <Caret Line="7" Column="47"/>
       </Position19>
       <Position20>
         <Filename Value="ulsa.pas"/>
-        <Caret Line="12" Column="10"/>
+        <Caret Line="911" Column="50" TopLine="903"/>
       </Position20>
       <Position21>
         <Filename Value="ulsa.pas"/>
-        <Caret Line="492" Column="33" TopLine="468"/>
+        <Caret Line="566" Column="76" TopLine="563"/>
       </Position21>
       <Position22>
-        <Filename Value="utils.pas"/>
-        <Caret Line="60" Column="10" TopLine="46"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="543" Column="50" TopLine="530"/>
       </Position22>
       <Position23>
-        <Filename Value="utils.pas"/>
-        <Caret Line="422" Column="35" TopLine="403"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="566" Column="50" TopLine="544"/>
       </Position23>
       <Position24>
-        <Filename Value="NTHASH.lpr"/>
-        <Caret Line="760" Column="41" TopLine="752"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="732" Column="29" TopLine="725"/>
       </Position24>
       <Position25>
         <Filename Value="ulsa.pas"/>
-        <Caret Line="12" Column="10"/>
+        <Caret Line="869" Column="50" TopLine="847"/>
       </Position25>
       <Position26>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1173" Column="33" TopLine="1152"/>
+        <Caret Line="1161" TopLine="1145"/>
       </Position26>
       <Position27>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1519" Column="27" TopLine="1503"/>
+        <Caret Line="8" Column="26"/>
       </Position27>
       <Position28>
-        <Filename Value="usecur32.pas"/>
-        <Caret Line="10" Column="13"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1231" Column="23" TopLine="1209"/>
       </Position28>
       <Position29>
-        <Filename Value="usecur32.pas"/>
-        <Caret Line="134" Column="56" TopLine="142"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="1541" Column="17" TopLine="1528"/>
       </Position29>
       <Position30>
-        <Filename Value="usecur32.pas"/>
-        <Caret Line="45" TopLine="25"/>
+        <Filename Value="ulsa.pas"/>
+        <Caret Line="21" Column="10" TopLine="8"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>

