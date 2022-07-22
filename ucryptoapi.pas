@@ -7,7 +7,7 @@ interface
 
 
 uses
-  windows,Classes, SysUtils,JwaWinCrypt,jwabcrypt,uadvapi32,utils{$ifndef fpc},math{$endif fpc};
+  windows,Classes, SysUtils,JwaWinCrypt,jwawintype,jwabcrypt{,uadvapi32},utils{$ifndef fpc},math{$endif fpc};
 
 //light version...
 type tmasterkey=record
@@ -168,7 +168,7 @@ type CRED_BLOB =record
 
 	Type_:DWORD;
 	Flags:DWORD;
-	LastWritten:FILETIME;
+	LastWritten:windows.FILETIME;
 	unkFlagsOrSize:DWORD;
 	Persist:DWORD;
 	AttributeCount:DWORD;
@@ -275,13 +275,41 @@ type _NT6_HARD_SECRET =record
  NT6_HARD_SECRET=_NT6_HARD_SECRET;
  PNT6_HARD_SECRET=^NT6_HARD_SECRET;
 
+ //late binding rather than early binding as in jwawincrypt
+ //late binding rather than early binding as in jwaBCcrypt
+ var
+  CryptProtectData:function(pDataIn: PDATA_BLOB; szDataDescr: LPCWSTR;
+  pOptionalEntropy: PDATA_BLOB; pvReserved: PVOID;
+  pPromptStruct: PCRYPTPROTECT_PROMPTSTRUCT; dwFlags: DWORD; pDataOut: PDATA_BLOB): BOOL; stdcall;
+
+
+ CryptUnprotectData:function(pDataIn: PDATA_BLOB; ppszDataDescr: LPLPWSTR;
+  pOptionalEntropy: PDATA_BLOB; pvReserved: PVOID;
+  pPromptStruct: PCRYPTPROTECT_PROMPTSTRUCT; dwFlags: DWORD; pDataOut: PDATA_BLOB): BOOL; stdcall;
+
+  BCryptOpenAlgorithmProvider:function(out phAlgorithm: BCRYPT_ALG_HANDLE;
+  pszAlgId, pszImplementation: LPCWSTR; dwFlags: ULONG): TNTStatus; stdcall;
+
+  BCryptSetProperty:function(hObject: BCRYPT_HANDLE; pszProperty: LPCWSTR;
+  pbInput: PUCHAR; cbInput: ULONG; dwFlags: ULONG): TNTStatus; stdcall;
+
+  BCryptGenerateSymmetricKey:function(hAlgorithm: BCRYPT_ALG_HANDLE;
+    out phKey: BCRYPT_KEY_HANDLE; pbKeyObject: PUCHAR; cbKeyObject: ULONG;
+    pbSecret: PUCHAR; cbSecret, dwFlags: ULONG): TNTStatus; stdcall;
+
+    BCryptEncrypt:function(hKey: BCRYPT_KEY_HANDLE; pbInput: PUCHAR;
+      cbInput: ULONG; pPaddingInfo: Pointer; pbIV: PUCHAR; cbIV: ULONG;
+      pbOutput: PUCHAR; cbOutput: ULONG; out pcbResult: ULONG;
+      dwFlags: ULONG): TNTStatus; stdcall;
+
+    BCryptDecrypt:function(hKey: BCRYPT_KEY_HANDLE; pbInput: PUCHAR;
+  cbInput: ULONG; pPaddingInfo: Pointer; pbIV: PUCHAR; cbIV: ULONG;
+  pbOutput: PUCHAR; cbOutput: ULONG; out pcbResult: ULONG;
+  dwFlags: ULONG): TNTStatus; stdcall;
+
 implementation
 
-
-
-
-
-
+uses uadvapi32; //to avoid circular reference
 
 
  type _GENERICKEY_BLOB =record
@@ -313,6 +341,9 @@ BCRYPT_CHAIN_MODE_ECB_:widestring       = 'ChainingModeECB';
 BCRYPT_CHAIN_MODE_CFB_:widestring       = 'ChainingModeCFB';
 BCRYPT_CHAINING_MODE_ :widestring       = 'ChainingMode';
 BCRYPT_CHAIN_MODE_GCM_:widestring       = 'ChainingModeGCM';
+
+
+
 
 
 procedure RtlCopyMemory(Destination: PVOID; Source: PVOID; Length: SIZE_T); stdcall;
@@ -436,8 +467,8 @@ end;
 function decodecredblob(cred:pointer):boolean;
 var
   bytes:array[0..1023] of byte;
-  localft:FILETIME ;
-  st:SYSTEMTIME ;
+  localft:windows.FILETIME ;
+  st:windows.SYSTEMTIME ;
   dw,offset:dword;
   tmp:array of byte;
 begin
@@ -2271,6 +2302,43 @@ begin
 end;
 }
 
+function initAPI:boolean;
+  var
+  lib:hmodule=0;
+  lib2:hmodule=0;
+  begin
+  //writeln('initapi');
+  result:=false;
+  try
+  //lib:=0;
+  if lib>0 then begin {log('lib<>0');} result:=true; exit;end;
+      {$IFDEF win64}lib:=loadlibrary('crypt32.dll');{$endif}
+      {$IFDEF win32}lib:=loadlibrary('crypt32.dll');{$endif}
+  if lib<=0 then
+    begin
+    writeln('could not loadlibrary crypt32.dll');
+    exit;
+    end;
+  CryptUnprotectData:=getProcAddress(lib,'CryptUnprotectData');
+  CryptProtectData:=getProcAddress(lib,'CryptProtectData');
+  //
+  lib2:=loadlibrary('bcrypt.dll');
+  BCryptOpenAlgorithmProvider:=getProcAddress(lib2,'BCryptOpenAlgorithmProvider');
+  BCryptSetProperty:=getProcAddress(lib2,'BCryptSetProperty');
+  BCryptGenerateSymmetricKey:=getProcAddress(lib2,'BCryptGenerateSymmetricKey');
+  BCryptEncrypt:=getProcAddress(lib2,'BCryptEncrypt');
+  BCryptDecrypt:=getProcAddress(lib2,'BCryptDecrypt');
+  //
+  result:=true;
+  except
+  //on e:exception do writeln('init error:'+e.message);
+     writeln('init error');
+  end;
+  //log('init:'+BoolToStr (result,'true','false'));
+  end;
+
+initialization
+initAPI ;
 
 end.
 

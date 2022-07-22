@@ -49,6 +49,7 @@ type
     CachedRemoteInteractive);
   SECURITY_LOGON_TYPE = _SECURITY_LOGON_TYPE;
 
+  //https://docs.microsoft.com/en-us/windows/win32/api/ntsecapi/ns-ntsecapi-security_logon_session_data
   PSECURITY_LOGON_SESSION_DATA = ^SECURITY_LOGON_SESSION_DATA;
   _SECURITY_LOGON_SESSION_DATA = record
     Size: ULONG;
@@ -63,6 +64,7 @@ type
     LogonServer: LSA_UNICODE_STRING;
     DnsDomainName: LSA_UNICODE_STRING;
     Upn: LSA_UNICODE_STRING;
+    //there is more...
   end;
   SECURITY_LOGON_SESSION_DATA = _SECURITY_LOGON_SESSION_DATA;
 
@@ -144,10 +146,11 @@ begin
                 LsaGetLogonSessionData(List, sessionData);
                 //Checks if it is an interactive session
                 sUser := sessionData.UserName.Buffer;
-                if (sessionData.LogonType = Interactive)
+                {if (sessionData.LogonType = Interactive)
                   or (sessionData.LogonType = RemoteInteractive)
                   or (sessionData.LogonType = CachedInteractive)
-                  or (sessionData.LogonType = CachedRemoteInteractive) then
+                  or (sessionData.LogonType = CachedRemoteInteractive) then}
+                if sessionData.LogonType<>network then
                 begin
                     //
                     SizeNeeded := MAX_PATH;

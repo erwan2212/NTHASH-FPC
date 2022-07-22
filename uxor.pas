@@ -12,6 +12,7 @@ function xorfile(filein,fileout:string):boolean;
 
 implementation
 
+
 function xorfilev2(filein,fileout:string;encrypt:boolean=true):boolean;
 var
   dwread:dword=0;
@@ -69,8 +70,6 @@ var
   hfilein,hfileout:thandle;
   buffer:pointer;
   pIn:pbyte;
-  //
-  key:array [0..2] of word=($400,$1000,$4000);
 begin
   log('********* xorfile **************');
   hFilein := CreateFile(pchar(filein),GENERIC_READ,0,nil,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);

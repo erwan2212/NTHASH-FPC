@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils,windows,
-  utils;
+  utils,ntdll;
 
 const
   MiniDumpNormal         = $0000;
@@ -45,6 +45,7 @@ const
 
 //
 function dumpprocess(pid:dword):boolean;
+function dumpprocess2(pid:dword):boolean;
 
 implementation
 
@@ -58,6 +59,7 @@ var
   {$IFDEF win32}lib:cardinal;{$endif}
 {$IFDEF win64}lib:int64;{$endif}
 begin
+log('******** dumpprocess ********');
 lib:=0;
 lib:=loadlibrary(pchar(sysdir+'\dbghelp.dll')); //we go for the default system one
 if lib<=0 then
@@ -73,9 +75,49 @@ if processHandle<>thandle(-1) then
    begin
    hFile := CreateFile(pchar(inttostr(pid)+'.dmp'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
    result := MiniDumpWriteDump(processHandle, pid, hfile, MiniDumpWithFullMemory, nil, nil, nil);
-   if result=false then log('MiniDumpWriteDump failed,'+inttostr(getlasterror));
+   if result=false then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)));
    closehandle(hfile);
    closehandle(processHandle );
+   end
+   else log('OpenProcess failed');
+ end;
+
+function dumpprocess2(pid:dword):boolean;
+var
+  status:ntstatus;
+  clone,processHandle,hfile:thandle;
+  //
+  {$IFDEF win32}lib:cardinal;{$endif}
+{$IFDEF win64}lib:int64;{$endif}
+begin
+log('******** dumpprocess2 ********');
+lib:=0;
+lib:=loadlibrary(pchar(sysdir+'\dbghelp.dll')); //we go for the default system one
+if lib<=0 then
+  begin
+  raise exception.Create  ('could not loadlibrary:'+inttostr(getlasterror));
+  exit;
+  end;
+//
+processHandle:=thandle(-1);
+processHandle := OpenProcess(PROCESS_CREATE_PROCESS, false, PID);
+if processHandle<>thandle(-1) then
+   begin
+   //
+   ZeroMemory(@clone,sizeof(clone));
+   status := NtCreateProcessEx(@clone,PROCESS_ALL_ACCESS,nil,processHandle,0,0,0,0,false);
+   //
+   if clone>0 then
+      begin
+      hFile := CreateFile(pchar(inttostr(pid)+'.dmp'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+      MiniDumpWriteDump:=getProcAddress(lib,'MiniDumpWriteDump');
+      result := MiniDumpWriteDump(clone, pid, hfile, MiniDumpWithFullMemory, nil, nil, nil);
+      if result=false then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)));
+      closehandle(hfile);
+      end else log('NtCreateProcessEx failed');
+   closehandle(processHandle );
+   TerminateProcess(clone,0);
+   closehandle(clone );
    end
    else log('OpenProcess failed');
  end;

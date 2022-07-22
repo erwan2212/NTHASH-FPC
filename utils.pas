@@ -419,6 +419,7 @@ var
 begin
 log('**** ByteToHexaString ****');
 log('sizeof:'+inttostr(sizeof(hash)));
+//setlength(dummy,sizeof(hash)*2);
 try
 //writeln('sizeof(hash):'+inttostr(sizeof(hash)));
 //writeln('length(hash):'+inttostr(length(hash)));

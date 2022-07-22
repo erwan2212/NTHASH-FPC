@@ -20,8 +20,7 @@ implementation
 
 
 
-const
-  apilib = 'dpapi.dll';
+//const   apilib = 'dpapi.dll';
 
 var
  HApi: THandle = 0;

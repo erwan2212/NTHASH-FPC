@@ -134,6 +134,10 @@ const
   wbemFlagForwardOnly = $00000020;
   wbemPrivilegeShutdown = $00000012;
   wbemCimtypeSint32 = 3;
+   wbemImpersonationLevelImpersonate = 3;
+    WbemAuthenticationLevelDefault =0;
+
+
 var
 
   FSWbemLocator : OLEVariant;
@@ -151,9 +155,9 @@ begin
   FSWbemLocator := CreateOleObject('WbemScripting.SWbemLocator');
    //Permet aux objets d'utiliser l'identité de l'appelant.
    //C'est le niveau d'usurpation d'identité recommandé pour l'appel d'API de scripting WMI.
-  //WMILocator.Security_.Set_ImpersonationLevel(wbemImpersonationLevelImpersonate );
+  //FSWbemLocator.Security_.Set_ImpersonationLevel(wbemImpersonationLevelImpersonate );
   //WMI utilise la configuration d'authentification par défaut de Windows.
-  //WMILocator.Security_.Set_AuthenticationLevel(wbemAuthenticationLevelDefault);
+  //FSWbemLocator.Security_.Set_AuthenticationLevel(wbemAuthenticationLevelDefault);
 
   FWMIService   := FSWbemLocator.ConnectServer(computer, 'root\CIMV2', username, password);
 

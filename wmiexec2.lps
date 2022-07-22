@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="10"/>
+    <BuildModes Active="Default"/>
+    <Units Count="2">
+      <Unit0>
+        <Filename Value="wmiexec2.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="88"/>
+        <CursorPos X="12" Y="110"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="C:\FPC\3.0.0\source\packages\winunits-jedi\src\jwawbemcli.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit1>
+    </Units>
+    <JumpHistory Count="9" HistoryIndex="8">
+      <Position1>
+        <Filename Value="wmiexec2.lpr"/>
+        <Caret Line="7" Column="81"/>
+      </Position1>
+      <Position2>
+        <Filename Value="wmiexec2.lpr"/>
+        <Caret Line="19" Column="59"/>
+      </Position2>
+      <Position3>
+        <Filename Value="wmiexec2.lpr"/>
+        <Caret Line="83" Column="34" TopLine="105"/>
+      </Position3>
+      <Position4>
+        <Filename Value="wmiexec2.lpr"/>
+        <Caret Line="100" Column="3" TopLine="87"/>
+      </Position4>
+      <Position5>
+        <Filename Value="wmiexec2.lpr"/>
+        <Caret Line="55" Column="4" TopLine="41"/>
+      </Position5>
+      <Position6>
+        <Filename Value="wmiexec2.lpr"/>
+        <Caret Line="85" Column="18" TopLine="69"/>
+      </Position6>
+      <Position7>
+        <Filename Value="wmiexec2.lpr"/>
+        <Caret Line="83" Column="18" TopLine="69"/>
+      </Position7>
+      <Position8>
+        <Filename Value="wmiexec2.lpr"/>
+        <Caret Line="86" Column="3" TopLine="72"/>
+      </Position8>
+      <Position9>
+        <Filename Value="wmiexec2.lpr"/>
+        <Caret Line="90" Column="30" TopLine="83"/>
+      </Position9>
+    </JumpHistory>
+  </ProjectSession>
+</CONFIG>

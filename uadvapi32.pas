@@ -6,7 +6,7 @@ unit uadvapi32;
 interface
 
 uses
-  Classes, SysUtils,windows,utils,jwawincrypt;
+  Classes, SysUtils,windows,utils,ucryptoapi{,jwawincrypt};
 
 const
   LOGON_WITH_PROFILE = $00000001;

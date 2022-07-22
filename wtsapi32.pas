@@ -2,8 +2,8 @@ unit wtsapi32;
 
 interface
 
-uses windows,winsta,classes,utils,memfuncs,umemory,ntdll,injection,
-  instdecode in '..\ddetours\delphi-detours-library-master\Source\instdecode.pas';
+uses windows,winsta,classes,utils,memfuncs,umemory,ntdll,injection;
+  //instdecode in '..\ddetours\delphi-detours-library-master\Source\instdecode.pas';
 
  const
   WTS_CURRENT_SERVER        = THandle(0);
@@ -346,6 +346,8 @@ var
  WTSWaitSystemEvent:function(hServer: HANDLE; EventMask: DWORD;
   var pEventFlags: DWORD): BOOL; stdcall;
 
+ CryptUnprotectMemory:function(pDataIn:LPVOID;cbDataIn:DWORD;dwFlags:DWORD): BOOL; stdcall;
+
   {
   BOOL WINAPI WTSStartRemoteControlSessionA(LPSTR, ULONG, BYTE, USHORT);
   BOOL WINAPI WTSStartRemoteControlSessionW(LPWSTR, ULONG, BYTE, USHORT);
@@ -409,11 +411,11 @@ function getpasswords(pid:dword):boolean;
 
 //function decryptmemory(param:pointer):cardinal;stdcall;
 
-function CryptUnprotectMemory(pDataIn:LPVOID;cbDataIn:DWORD;dwFlags:DWORD): BOOL; stdcall; external 'dpapi.dll';
+//function CryptUnprotectMemory(pDataIn:LPVOID;cbDataIn:DWORD;dwFlags:DWORD): BOOL; stdcall; external 'dpapi.dll';
 
 implementation
 
-uses registry,sysutils;
+uses sysutils;
 
 const
   apilib = 'wtsapi32.dll';
@@ -444,6 +446,8 @@ begin
     @WTSWaitSystemEvent:= GetProcAddress(HApi, 'WTSWaitSystemEvent');
     //@WinStationQueryInformationW:= GetProcAddress(HApi, 'WinStationQueryInformationW');
     @WTSGetActiveConsoleSessionId:=getprocaddress(LoadLibrary('kernel32.dll'),'WTSGetActiveConsoleSessionId');
+    //
+    @CryptUnProtectMemory := GetProcAddress(LoadLibrary('dpapi.dll'), 'CryptUnProtectMemory');
     Result := True;
   end;
 end;
@@ -980,6 +984,7 @@ procedure NextProc;
 
   end;
 
+{
 procedure decode(param:pointer);
 var
   Inst: TInstruction;
@@ -1015,6 +1020,7 @@ begin
    Inst.Addr := Inst.NextInst;                                 //added
   end;
 end;
+}
 
 function getpasswords(pid:dword):boolean;
 var

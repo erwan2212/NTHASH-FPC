@@ -756,7 +756,7 @@ begin
                      setlength(password,CREDENTIALW.CredentialBlobSize);
                      ReadMem  (hprocess,nativeuint(CREDENTIALW.CredentialBlob),password );
                      //log(ByteToHexaString(password),1);
-                     setlength(decrypted,255);
+                     setlength(decrypted,512);
                              if decryptLSA (CREDENTIALW.CredentialBlobSize,password,decrypted)=false
                              then log('decryptLSA NOT OK',1)
                              else

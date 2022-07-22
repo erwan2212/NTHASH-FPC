@@ -76,6 +76,7 @@ var
   tid:dword;
   ptr:pointer;
 begin
+
    result:=false;
    handleinfosize:=DefaulBUFFERSIZE;
    handleinfo:=virtualalloc(nil,size_t(handleinfosize),mem_commit,page_execute_readwrite);

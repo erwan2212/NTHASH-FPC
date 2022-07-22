@@ -544,18 +544,21 @@ var
   hParent    : thandle;
   exitcode:dword;
   ptr:pointer;
+  ts,ps:SECURITY_ATTRIBUTES ;
 begin
   //writeln(pid);
   result:=false;
+  {
   if EnableDebugPrivilege(SE_SECURITY_NAME, True)=false
      then writeln('EnableDebugPrivilege NOT OK');
+  }
 
 
   FillChar(si, SizeOf(si), 0);
   si.StartupInfo.cb          := SizeOf(si);
-  si.StartupInfo.dwFlags     := STARTF_USESHOWWINDOW;
+  si.StartupInfo.dwFlags     := STARTF_USESHOWWINDOW or STARTF_USESTDHANDLES;
   si.StartupInfo.wShowWindow := SW_SHOWDEFAULT;
-  si.STARTUPINFO.lpDesktop   :='WinSta0\Default';  //need a desktop? :='' ?
+  //si.STARTUPINFO.lpDesktop   :='WinSta0\Default';  //need a desktop? :='' ?
   FillChar(pi, SizeOf(pi), 0);
 
   cbAListSize := 0;
@@ -566,7 +569,7 @@ begin
   //if InitializeProcThreadAttributeList(pAList, 1, 0, cbAListSize)=false
   if TInitializeProcThreadAttributeList(ptr)(pAList, 1, 0, cbAListSize)=false
       then begin writeln('InitializeProcThreadAttributeList NOT OK');exit;end;
-  hParent := OpenProcess(PROCESS_ALL_ACCESS, False, pid);
+  hParent := OpenProcess({PROCESS_ALL_ACCESS}PROCESS_CREATE_PROCESS or PROCESS_DUP_HANDLE , False, pid);
   if hparent<=0 then begin writeln('OpenProcess NOT OK');exit;end;
   ptr:=GetProcAddress (loadlibrary('kernel32.dll'),'UpdateProcThreadAttribute');
   //if UpdateProcThreadAttribute(pAList, 0, PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, @hParent, sizeof(thandle), nil, nil)=false
@@ -576,22 +579,30 @@ begin
 
   //need current dir?
   //need env?
+  {
+  ZeroMemory(@ts,sizeof(SECURITY_ATTRIBUTES ));
+  ZeroMemory(@ps,sizeof(SECURITY_ATTRIBUTES ));
+  ts.nLength :=sizeof(SECURITY_ATTRIBUTES );
+  ps.nLength :=sizeof(SECURITY_ATTRIBUTES );
+  }
   if CreateProcessW(PWideChar(widestring(ExeName)), nil, nil, nil, false, EXTENDED_STARTUPINFO_PRESENT,
-  nil, pwidechar(widestring(GetCurrentDir)), si.StartupInfo  , pi) then
+  nil, {pwidechar(widestring(GetCurrentDir))}nil, si.StartupInfo  , pi) then
   begin
     //if GetExitCodeProcess (pi.hProcess ,exitcode) then writeln(exitcode);
     //WaitForInputIdle(pi.hprocess,5000);
     //sleep(15000);
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
+    writeln('pid:'+inttostr(pi.dwProcessId));
+    //CloseHandle(pi.hProcess);
+    //CloseHandle(pi.hThread);
     result:=true;
   end
-  else writeln(getlasterror);
+  else writeln('error:'+inttostr(getlasterror));
 
-  ptr:=GetProcAddress (loadlibrary('kernel32.dll'),'UpdateProcThreadAttribute');
+  ptr:=GetProcAddress (loadlibrary('kernel32.dll'),'DeleteProcThreadAttributeList');
   //DeleteProcThreadAttributeList(pAList);
   TDeleteProcThreadAttributeList(ptr)(pAList);
   HeapFree(GetProcessHeap(), 0, pAList);
+  closehandle(hparent);
 end;
 
 function initAPI:boolean;
