@@ -58,6 +58,8 @@ var
   oldprotect:ulong=0;
   len:ptruint=0;
 begin
+result:=writemem(hprocess,offset,@bytes[0],length(bytes));
+exit;
 len:=length(bytes);
 log('WriteMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(len));
 result:=WriteProcessMemory_ (hprocess,pointer(offset),@bytes[0],len,@written);
@@ -85,6 +87,9 @@ var
   read:PtrUInt;
   status:ntstatus=0;
 begin
+result:=ReadMem(hprocess,offset,@bytes[0],length(bytes));
+exit;
+//
 result:=false;
 fillchar(bytes,length(bytes),0);
 log('ReadMem offset:'+inttohex(offset,sizeof(offset))+' len:'+inttostr(length(bytes)));

