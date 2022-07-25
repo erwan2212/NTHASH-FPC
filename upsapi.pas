@@ -558,7 +558,8 @@ begin
   si.StartupInfo.cb          := SizeOf(si);
   si.StartupInfo.dwFlags     := STARTF_USESHOWWINDOW or STARTF_USESTDHANDLES;
   si.StartupInfo.wShowWindow := SW_SHOWDEFAULT;
-  //si.STARTUPINFO.lpDesktop   :='WinSta0\Default';  //need a desktop? :='' ?
+  //si.STARTUPINFO.lpDesktop   :='WinSta0\Default';
+  //si.StartupInfo.lpDesktop :='';
   FillChar(pi, SizeOf(pi), 0);
 
   cbAListSize := 0;
@@ -585,8 +586,11 @@ begin
   ts.nLength :=sizeof(SECURITY_ATTRIBUTES );
   ps.nLength :=sizeof(SECURITY_ATTRIBUTES );
   }
-  if CreateProcessW(PWideChar(widestring(ExeName)), nil, nil, nil, false, EXTENDED_STARTUPINFO_PRESENT,
-  nil, {pwidechar(widestring(GetCurrentDir))}nil, si.StartupInfo  , pi) then
+  //CREATE_NEW_CONSOLE is needed or else console proggies like cmd will fail with a c0000142
+  //note that we could start it suspended and modify the PEB
+  //https://gist.github.com/xpn/1c51c2bfe19d33c169fe0431770f3020#file-argument_spoofing-cpp
+  if CreateProcessW(PWideChar(widestring(ExeName)), nil, nil, nil, false, CREATE_NEW_CONSOLE or EXTENDED_STARTUPINFO_PRESENT,
+  nil, {pwidechar(widestring(ExtractFilepath  (ExeName)))}nil, si.StartupInfo  , pi) then
   begin
     //if GetExitCodeProcess (pi.hProcess ,exitcode) then writeln(exitcode);
     //WaitForInputIdle(pi.hprocess,5000);
@@ -597,7 +601,6 @@ begin
     result:=true;
   end
   else writeln('error:'+inttostr(getlasterror));
-
   ptr:=GetProcAddress (loadlibrary('kernel32.dll'),'DeleteProcThreadAttributeList');
   //DeleteProcThreadAttributeList(pAList);
   TDeleteProcThreadAttributeList(ptr)(pAList);
