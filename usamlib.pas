@@ -170,7 +170,7 @@ buffer:PSAMPR_RID_ENUMERATION=nil;
 count:ulong;
 //EnumHandle_:thandle=thandle(-1);
 EnumHandle_:dword=0;
-unicode_domain:_LSA_UNICODE_STRING;
+//unicode_domain:_LSA_UNICODE_STRING;
 begin
 result:=false;
 //
@@ -200,6 +200,12 @@ if (status=0) or (status=$00000105) then
    for i:=1 to count do
        begin
        log(strpas(PSAMPR_RID_ENUMERATION(ptr).Name.Buffer),1);
+       status := SamLookupDomainInSamServer(samhandle_, @PSAMPR_RID_ENUMERATION(ptr).Name, PDomainSID);
+       if status=0 then
+          begin
+          if ConvertSidToStringSidA (PDomainSID ,stringsid)
+             then log('sid:'+strpas(stringsid),1);
+          end else log('SamLookupDomainInSamServer failed:'+inttostr(status));
        //if func<>nil then fn(func)(@param );
        inc(ptr,sizeof(_SAMPR_RID_ENUMERATION));
        end;
@@ -385,7 +391,7 @@ if server<>''  then
    begin
    writeln('server:'+server);
    CreateFromStr (ustr_server,server);
-   Status := SamConnect2(@ustr_server, SamHandle_, MAXIMUM_ALLOWED, false);
+   Status := SamConnect2(@ustr_server, SamHandle_, MAXIMUM_ALLOWED, false); //SAM_SERVER_CONNECT | SAM_SERVER_ENUMERATE_DOMAINS | SAM_SERVER_LOOKUP_DOMAIN
    end
 else
 Status := SamConnect(nil, @samhandle_ , MAXIMUM_ALLOWED {0x000F003F}, false);
@@ -399,7 +405,7 @@ begin
 //if a domain is ever passed as a parameter
 if _domain<>'' then
    if  ConvertStringSidToSidA(_domain,PDOMAINSID )=false
-   then log('ConvertStringSidToSid failed',1 )
+   then log('ConvertStringSidToSid domain failed',1 )
    else log ('ConvertStringSidToSid ok',0);
 
 //Builtin
