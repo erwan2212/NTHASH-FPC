@@ -211,9 +211,10 @@ type
 type PWSTR = PWideChar;
 type
   _LSA_UNICODE_STRING = record
-    Length: USHORT;
-    MaximumLength: USHORT;
+    Length: USHORT;  //2
+    MaximumLength: USHORT; //2
     //in x64 an extra dword fiedl may be needed to align to 8 bytes !!!!!!!!!
+    {$ifdef CPU64}dummy:dword; {$endif cpu64} //4
     Buffer: PWSTR;
   end;
   PLSA_UNICODE_STRING=  ^_LSA_UNICODE_STRING;

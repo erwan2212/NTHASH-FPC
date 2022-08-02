@@ -39,9 +39,9 @@ type
   //{$PackRecords 8}
 PLSA_UNICODE_STRING=^LSA_UNICODE_STRING;
 _LSA_UNICODE_STRING = record
-  Length: USHORT;
-  MaximumLength: USHORT;
-  {$ifdef CPU64}dummy:dword;{$endif cpu64}
+  Length: USHORT;          //2
+  MaximumLength: USHORT;   //2
+  {$ifdef CPU64}dummy:dword;{$endif cpu64}   //align to 8 bytes
   Buffer: PWIDECHAR;
   //{$PackRecords default}
 end;

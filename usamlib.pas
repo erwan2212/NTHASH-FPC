@@ -22,7 +22,7 @@ type
   _LSA_UNICODE_STRING = record
     Length: USHORT;
     MaximumLength: USHORT;
-    //{$ifdef CPU64}dummy:dword;{$endif cpu64} //to force/ensure alignement
+    {$ifdef CPU64}dummy:dword;{$endif cpu64} //to force/ensure 8 bytes alignement
     Buffer: PWSTR;
   end;
   LSA_UNICODE_STRING=_LSA_UNICODE_STRING;
@@ -136,6 +136,15 @@ isNewNTLM:boolean;oldNTLM:tbyte16;newNTLM:tbyte16):NTStatus;stdcall;
 
 implementation
 
+const
+  SAM_SERVER_CONNECT=$00000001;
+  SAM_SERVER_ENUMERATE_DOMAINS=$00000010;
+  SAM_SERVER_LOOKUP_DOMAIN=$00000020;
+  SAM_SERVER_ALL_ACCESS=$000F003F;
+  SAM_SERVER_READ=$00020010;
+  SAM_SERVER_WRITE=$0002000E;
+  SAM_SERVER_EXECUTE=$00020021;
+  SAM_SERVER_SHUTDOWN=$00000002;
 
 
 procedure CreateFromStr (var value:_LSA_UNICODE_STRING; st : string);
@@ -178,12 +187,12 @@ if server<>''  then
    begin
    writeln('server:'+server);
    CreateFromStr (ustr_server,server);
-   Status := SamConnect2(@ustr_server, SamHandle_, MAXIMUM_ALLOWED, false);
+   Status := SamConnect2(@ustr_server, SamHandle_, MAXIMUM_ALLOWED, false); //SAM_SERVER_CONNECT | SAM_SERVER_ENUMERATE_DOMAINS | SAM_SERVER_LOOKUP_DOMAIN
    end
 else
 Status := SamConnect(nil, @samhandle_ , MAXIMUM_ALLOWED {0x000F003F}, false);
 if Status <> 0 then
-   begin log('SamConnect failed:'+inttohex(status,8),status);;end
+   begin log('SamConnect failed:'+inttohex(status,8),status);exit;end
    else log ('SamConnect ok',status);
 //
 //0x00000105 MORE_ENTRIES
@@ -396,17 +405,22 @@ if server<>''  then
 else
 Status := SamConnect(nil, @samhandle_ , MAXIMUM_ALLOWED {0x000F003F}, false);
 if Status <> 0 then
-   begin log('SamConnect failed:'+inttohex(status,8),status);;end
+   begin log('SamConnect failed:'+inttohex(status,8),status);exit;end
    else log ('SamConnect ok',status);
+//
+
 //
 if status=0 then
 begin
 //could go straight to 'Builtin' or even 'S-1-5-32' or to computername ?
 //if a domain is ever passed as a parameter
 if _domain<>'' then
-   if  ConvertStringSidToSidA(_domain,PDOMAINSID )=false
-   then log('ConvertStringSidToSid domain failed',1 )
-   else log ('ConvertStringSidToSid ok',0);
+   begin
+   log('domain:'+_domain,1);
+        if  ConvertStringSidToSidA(_domain,PDOMAINSID )=false
+        then log('ConvertStringSidToSid domain failed',1 )
+        else log ('ConvertStringSidToSid ok',0);
+   end;
 
 //Builtin
 //CreateFromStr (unicode_domain,'Builtin');
@@ -420,9 +434,10 @@ if _domain='' then
 
    status:=SamLookupDomainInSamServer(samhandle_ , @unicode_domain {@buffer.Name} , PDomainSID );
    if Status <> 0 then
-      begin log('SamLookupDomainInSamServer failed:'+inttostr(status),status);exit;end
+      begin log('SamLookupDomainInSamServer failed:'+inttohex(status,8),1);exit;end
       else log ('SamLookupDomainInSamServer ok',status);
    ReallocMem (unicode_domain.Buffer, 0);
+   //0xC00000DF STATUS_NO_SUCH_DOMAIN
 end;
 {
 if status=0 then

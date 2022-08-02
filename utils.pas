@@ -84,6 +84,7 @@ function parsexml(binary,key:string;var output:string):boolean;
 
 var
   verbose:boolean=false;
+  lsass_pid:dword=0;
   winver,osarch:string;
   sysdir:pchar;
   debugpriv:boolean=false;

