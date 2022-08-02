@@ -207,6 +207,7 @@ type
   TLSAUnicodeString = packed record
     Length : WORD;
     MaximumLength : WORD;
+    //what about 8bytes alignment?
     Buffer : PWideChar
   end;
   PLSAUnicodeString = ^TLSAUnicodeString;
