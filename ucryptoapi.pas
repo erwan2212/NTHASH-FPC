@@ -417,12 +417,13 @@ const
   strSalt:string='abe2869f-9b47-4cd9-a358-c22904dba7f7';
   //82BD0E67-9FEA-4748-8672-D5EFE5B779B0 - domain entropy
 var
-  bytes:array[0..1023] of byte;
+  bytes:array of byte;//array[0..1023] of byte;
   //
   OptionalEntropy, datain,dataout:_MY_BLOB; //data_blob does not work? -> error 1783...
   tmpSalt:array [0..36] of word; //37 -> 74 -> 148
   i:integer;
 begin
+  log('**** decodecred ****');
   result:=true;
   //
   //writeln(sizeof(tmpsalt));
@@ -446,10 +447,10 @@ begin
   log('CredentialBlobSize:'+inttostr(PCREDENTIALW(cred)^.CredentialBlobSize));
   if PCREDENTIALW(cred)^.CredentialBlobSize >0 then
              begin
+               setlength(bytes,PCREDENTIALW(cred)^.CredentialBlobSize);
                //we could use entropy/salt + CryptUnprotectData
                CopyMemory (@bytes[0],PCREDENTIALW(cred)^.CredentialBlob,PCREDENTIALW(cred)^.CredentialBlobSize);
-
-               if pos('Microsoft_WinInet',strpas(PCREDENTIALW(cred)^.TargetName))>0 then
+               if (PCREDENTIALW(cred)^.TargetName<>nil) and (pos('Microsoft_WinInet',strpas(PCREDENTIALW(cred)^.TargetName))>0) then
                   begin
                   fillchar(DataIn,sizeof(DataIn),0);
                   fillchar(DataOut,sizeof(DataOut),0);

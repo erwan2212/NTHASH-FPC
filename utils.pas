@@ -399,6 +399,8 @@ var
   i:word;
 begin
 log('**** AnsiStringtoByte ****');
+input:=stringreplace(input,'\0',#0,[]);
+//log('input:->'+input+'<-');
 log('length:'+inttostr(length(input)));
 try
 if unicode=false then
