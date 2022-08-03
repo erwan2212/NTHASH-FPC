@@ -5,7 +5,10 @@ unit utils;
 interface
 
 uses
-  Classes, SysUtils,windows{$ifdef fpc},dom,XMLRead{$endif fpc}{$ifndef fpc},math{$endif fpc};
+  Classes, SysUtils,windows,
+  inifiles
+  {$ifdef fpc},dom,XMLRead{$endif fpc}
+  {$ifndef fpc},math{$endif fpc};
 
   {$ifndef fpc}
   type
@@ -48,6 +51,9 @@ type
   end;
  KUHL_M_SEKURLSA_ENUM_HELPER=_KUHL_M_SEKURLSA_ENUM_HELPER;
  PKUHL_M_SEKURLSA_ENUM_HELPER=^_KUHL_M_SEKURLSA_ENUM_HELPER;
+
+procedure writeini(section,ident,value:string;config:string='');
+function readini(section,ident,default:string;config:string=''):string;
 
 procedure log(msg:string;status:dword=0);overload;
 procedure log(msg:dword;status:dword=0);overload;
@@ -92,6 +98,50 @@ var
   console_output_type:dword;
 
 implementation
+
+function readini(section,ident,default:string;config:string=''):string;
+var
+ini:tinifile;
+currentdir,fname:string;
+begin
+log('*********** readini **********');
+//currentdir:=upsapi.GetCurrentExeDir;
+//if currentdir='' then currentdir:=lib.CurrentExeDir ;
+if config<>'' then fname:=config else fname:=getcurrentdir + '\config.INI';
+if FileExists(fname) then
+  begin
+    ini:=tinifile.Create (fname);
+    result:=ini.ReadString (section,ident,default  );
+    freeandnil(ini);
+  end
+  else result:=default;
+
+end;
+
+procedure writeini(section,ident,value:string;config:string='');
+var
+ini:tinifile;
+Attrs:word;
+{currentdir,}fname:string;
+begin
+log('*********** writeini **********');
+//currentdir:=upsapi.GetCurrentExeDir;
+//if currentdir='' then currentdir:=lib.CurrentExeDir ;
+if config<>'' then fname:=config else fname:=getcurrentdir + '\config.INI';
+if FileExists(fname) then
+  begin
+  Attrs := FileGetAttr(fname);
+  if Attrs and fareadonly <> 0 then exit;
+  end;
+
+//if FileExists(GetCurrentDir + '\config.INI')=false then exit;
+try
+  ini:=tinifile.Create (fname);
+  ini.WriteString(section,ident,value);
+finally
+  freeandnil(ini);
+end;
+end;
 
 //status : success=0
 procedure log(msg:string;status:dword=0);
