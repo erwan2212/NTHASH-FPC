@@ -465,6 +465,15 @@ begin
              end;
 end;
 
+function removezero(buffer:array of byte):string;
+var
+  i:dword;
+begin
+result:='';
+if length(buffer)=0 then exit;
+for i:=0 to length(buffer)-1 do if buffer[i]<>0 then result:=result+chr(buffer[i]);
+end;
+
 function decodecredblob(cred:pointer):boolean;
 var
   bytes:array[0..1023] of byte;
@@ -529,7 +538,9 @@ begin
   //log('CredentialBlobSize:'+inttostr(dw));
   setlength(tmp ,dw);
   copymemory(@tmp[0],@PCRED_BLOB(cred)^.data[offset+4],dw);
-  log('CredentialBlob:'+pwidechar(@tmp[0] ),1);
+  //log('CredentialBlob:'+ pwidechar(@tmp[0] ),1);
+  //log('CredentialBlob:'+BytetoAnsiString ( tmp ),1);
+  log('CredentialBlob:'+removezero ( tmp ),1);
   zeromemory(@tmp[0],dw);
   //
 end;

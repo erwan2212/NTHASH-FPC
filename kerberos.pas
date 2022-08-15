@@ -9,7 +9,7 @@ uses
   ntdll,uLSA,
   urunelevatedsupport,
   utils,
-  uadvapi32,usecur32;
+  uadvapi32,usecur32,ucryptoapi;
 
 const
   	//kerberosPackageName:STRING = {8, 9, MICROSOFT_KERBEROS_NAME_A};
@@ -27,13 +27,26 @@ function kuhl_m_kerberos_list(logonid:int64=0):NTSTATUS;
 
 function callback_enumlogonsession(param:pointer=nil):dword;stdcall;
 
+function asktgt(key:tbytes):boolean;
+
 implementation
+
+
 
  type
 
  PCWCHAR = PWCHAR;
  LSA_OPERATIONAL_MODE=ULONG;
  PLSA_OPERATIONAL_MODE=^LSA_OPERATIONAL_MODE;
+
+ {
+ KERB_ETYPE_ALGORITHM=(
+            KERB_ETYPE_RC4_HMAC_NT=23,
+            KERB_ETYPE_AES128_CTS_HMAC_SHA1_96=17,
+            KERB_ETYPE_AES256_CTS_HMAC_SHA1_96=18,
+            KERB_ETYPE_DES_CBC_MD5=3
+);
+}
 
   //https://www.rdos.net/svn/tags/V9.2.5/watcom/bld/w32api/include/ntsecapi.mh
  //{$PACKENUM 4}
@@ -80,17 +93,74 @@ implementation
     PKERB_PROTOCOL_MESSAGE_TYPE=^KERB_PROTOCOL_MESSAGE_TYPE;
     //{$PACKENUM 1}
 
-    //{$PackRecords 8}
-      PLSA_STRING=^LSA_STRING;
-      _LSA_STRING = record
-        Length: USHORT;
-        MaximumLength: USHORT;
-        {$ifdef CPU64}dummy:dword;{$endif cpu64}
-        Buffer: PCHAR;
-        //{$PackRecords default}
-      end;
-      LSA_STRING = _LSA_STRING;
+    {
+    typedef NTSTATUS (WINAPI * PKERB_ECRYPT_HASHPASSWORD_NT5) (PCUNICODE_STRING Password, PVOID pbKey);
+    typedef NTSTATUS (WINAPI * PKERB_ECRYPT_HASHPASSWORD_NT6) (PCUNICODE_STRING Password, PCUNICODE_STRING Salt, ULONG Count, PVOID pbKey);
+    }
 
+
+         PKERB_ECRYPT_INITIALIZE=function(
+                pbKey:LPCVOID;
+                KeySize:ULONG;
+                MessageType:ULONG;
+                pContext:PPVOID): NTSTATUS; stdcall;
+
+            PKERB_ECRYPT_ENCRYPT=function(
+                pContext:PVOID;
+                pbInput:LPCVOID;
+                cbInput:ULONG;
+                pbOutput:PVOID;
+                cbOutput:PULONG): NTSTATUS; stdcall;
+
+            PKERB_ECRYPT_DECRYPT=function(
+                pContext:PVOID;
+                pbInput:LPCVOID;
+                cbInput:ULONG;
+                pbOutput:PVOID;
+                cbOutput:PULONG): NTSTATUS; stdcall;
+
+            PKERB_ECRYPT_FINISH=function (pContext:PPVOID): NTSTATUS; stdcall;
+
+            PKERB_ECRYPT_RANDOMKEY=function (
+                Seed:LPCVOID;
+                SeedLength:ULONG;
+                pbKey:PVOID): NTSTATUS; stdcall;
+
+            PKERB_ECRYPT_CONTROL=function (
+                Function_:ULONG;
+                pContext:PVOID;
+                InputBuffer:PUCHAR;
+                InputBufferSize:ULONG): NTSTATUS; stdcall;
+
+
+
+
+    KERB_ECRYPT =record
+    	 EncryptionType:ULONG;
+    	 BlockSize:ULONG;
+    	 ExportableEncryptionType:ULONG;
+    	 KeySize:ULONG;
+    	 HeaderSize:ULONG;
+    	 PreferredCheckSum:ULONG;
+    	 Attributes:ULONG;
+    	 Name:PCWSTR;
+    	 Initialize:PKERB_ECRYPT_INITIALIZE;
+    	 Encrypt:PKERB_ECRYPT_ENCRYPT;
+    	 Decrypt:PKERB_ECRYPT_DECRYPT;
+    	 Finish:PKERB_ECRYPT_FINISH;
+         HashPassword:pointer;
+    	 // union {
+    	 //	PKERB_ECRYPT_HASHPASSWORD_NT5 HashPassword_NT5;
+    	 //	PKERB_ECRYPT_HASHPASSWORD_NT6 HashPassword_NT6;
+    	 //};
+    	RandomKey:PKERB_ECRYPT_RANDOMKEY;
+    	Control:PKERB_ECRYPT_CONTROL;
+    	unk0_null:PVOID;
+    	unk1_null:PVOID;
+    	unk2_null:PVOID;
+    end;
+    PKERB_ECRYPT=^KERB_ECRYPT;
+    PPKERB_ECRYPT=^PKERB_ECRYPT;
 
     KERB_CRYPTO_KEY =record
     KeyType:LONG;
@@ -239,34 +309,13 @@ end;
 
 
 
- //https://docs.microsoft.com/en-usSTATUS_UNSUCCESSFUL/windows/win32/api/ntsecapi/nf-ntsecapi-lsacallauthenticationpackage
-  function LsaCallAuthenticationPackage(
-       LsaHandle:handle;       //[in]  HANDLE
-       AuthenticationPackage:ulong;  //[in]  ULONG
-       ProtocolSubmitBuffer:PVOID;    //[in]  PVOID
-       SubmitBufferLength:ulong;       //[in]  ULONG
-       ProtocolReturnBuffer:ppvoid;         //[out] PVOID
-       ReturnBufferLength:pulong;         //[out] PULONG
-       ProtocolStatus:PNTSTATUS             //[out] PNTSTATUS
-):NTSTATUS external 'secur32.dll';
 
- function  LsaConnectUntrusted( LsaHandle:PHANDLE):NTSTATUS external 'secur32.dll';
+var
+CDLocateCSystem:function(Type_:ULONG; ppCSystem:PPKERB_ECRYPT): NTSTATUS; stdcall=nil;
 
- function LsaLookupAuthenticationPackage(
-      LsaHandle:HANDLE;
-      PackageName:PLSA_STRING;
-      AuthenticationPackage:PULONG
-):NTSTATUS external 'secur32.dll';
 
-function LsaRegisterLogonProcess(
-    LogonProcessName:PLSA_STRING;
-    LsaHandle:PHANDLE;
-    SecurityMode:PLSA_OPERATIONAL_MODE
- ):NTSTATUS external 'secur32.dll';
 
- function LsaDeregisterLogonProcess(LsaHandle:HANDLE):NTSTATUS external 'secur32.dll';
 
- function LsaFreeReturnBuffer (buffer : pointer) : NTSTATUS; stdcall; external 'secur32.dll';
 
 const
 STATUS_HANDLE_NO_LONGER_VALID=$C0190028;
@@ -290,6 +339,12 @@ STATUS_UNSUCCESSFUL=$c0000001;
  KERB_ETYPE_RC4_HMAC_NT                             =23;
  KERB_ETYPE_RC4_HMAC_NT_EXP                         =24;
 
+ KRB_KEY_USAGE_AS_REQ_PA_ENC_TIMESTAMP=1;
+ KRB_KEY_USAGE_AS_REP_TGS_REP=2;
+
+ PA_TYPE_TGS_REQ=		1;
+ PA_TYPE_ENC_TIMESTAMP=		2;
+
  STATUS_NO_TRUST_SAM_ACCOUNT= $C000018B;
 
  SEC_E_NO_CREDENTIALS      =$8009030E;
@@ -301,6 +356,108 @@ begin
              //log('LUID:'+inttohex(int64(PSECURITY_LOGON_SESSION_DATA(param)^.LogonId) ,8),1);
              kuhl_m_kerberos_list (int64(PSECURITY_LOGON_SESSION_DATA(param)^.LogonId));
      end;
+end;
+
+{
+function encrypt_time(key,buffer:tbytes):boolean;
+begin
+  //md5 $00008003
+  //ecb 2
+  result:=EnCryptDecrypt(CALG_RC4,$00008003,2,key,buffer,false);
+end;
+}
+
+function kuhl_m_kerberos_decrypt(eType:{KERB_ETYPE_ALGORITHM}ulong; keyUsage:integer; key:tbytes;data:tbytes):tbytes;
+var
+        pCSystem:KERB_ECRYPT;
+        pCSystemPtr:pointer=nil;
+        status:ntstatus;
+        pContext:pvoid;
+        pCSystemInitialize:PKERB_ECRYPT_INITIALIZE;
+        pCSystemDecrypt:PKERB_ECRYPT_Decrypt;
+        pCSystemFinish:PKERB_ECRYPT_Finish;
+        outputSize:ulong;
+        output:tbytes;
+begin
+            log('**** kuhl_m_kerberos_decrypt ****');
+            log('key:'+ByteToHexaString (key));
+            log('data:'+ByteToHexaString (data));
+            if @CDLocateCSystem=nil then CDLocateCSystem:=getProcAddress(loadlibrary('cryptdll.dll'),'CDLocateCSystem');
+            status:=CDLocateCSystem(eType, @pCSystemPtr);
+            log('status:'+inttohex(status,8));
+            if (status <> 0) then
+               begin log('Error on CDLocateCSystem',1);exit;end;
+            pCSystem := PKERB_ECRYPT(pCSystemPtr)^;
+
+            log('AlgName:'+strpas(pCSystem.Name)); ;
+
+            pCSystemInitialize := PKERB_ECRYPT_INITIALIZE(pCSystem.Initialize);
+            pCSystemDecrypt := PKERB_ECRYPT_Decrypt(pCSystem.Decrypt);
+            pCSystemFinish := PKERB_ECRYPT_Finish(pCSystem.Finish);
+            status := pCSystemInitialize(key, length(key), keyUsage, @pContext);
+            if (status <> 0) then
+                begin log('Error on pCSystemInitialize:'+inttohex(status,8),1);exit;end;
+            outputSize := length(data);
+	    if(length(data) mod pCSystem.BlockSize <> 0)
+                            then outputSize :=outputSize+ pCSystem.BlockSize - (length(data) mod pCSystem.BlockSize);
+	    outputSize := outputSize + sizeof(pCSystem);
+            setlength(output,outputSize);
+            //fillchar(output,outputsize,0);
+            //pointer(output):= allocmem(outputsize);
+	    status := pCSystemDecrypt(pContext, data, length(data), output, @outputSize);
+            log('outputSize:'+inttostr(outputSize));
+            if (status <> 0) then
+                begin log('Error on pCSystemDecrypt:'+inttohex(status,8),1);;end;
+	    pCSystemFinish(@pContext);
+            log('output:'+ByteToHexaString (@output[0],outputSize));
+            result:= output;
+            //0xC0000001  STATUS_UNSUCCESSFUL
+end;
+
+function kuhl_m_kerberos_encrypt(eType:{KERB_ETYPE_ALGORITHM}ulong; keyUsage:integer; key:tbytes;data:tbytes):tbytes;
+var
+        pCSystem:KERB_ECRYPT;
+        pCSystemPtr:pointer=nil;
+        status:ntstatus;
+        pContext:pvoid;
+        pCSystemInitialize:PKERB_ECRYPT_INITIALIZE;
+        pCSystemEncrypt:PKERB_ECRYPT_Encrypt;
+        pCSystemFinish:PKERB_ECRYPT_Finish;
+        outputSize:ulong;
+        output:tbytes;
+begin
+            log('**** kuhl_m_kerberos_encrypt ****');
+            log('key:'+ByteToHexaString (key));
+            log('data:'+ByteToHexaString (data));
+            if @CDLocateCSystem=nil then CDLocateCSystem:=getProcAddress(loadlibrary('cryptdll.dll'),'CDLocateCSystem');
+            status:=CDLocateCSystem(eType, @pCSystemPtr);
+            log('status:'+inttohex(status,8));
+            if (status <> 0) then
+               begin log('Error on CDLocateCSystem',1);exit;end;
+            pCSystem := PKERB_ECRYPT(pCSystemPtr)^;
+
+            log('AlgName:'+strpas(pCSystem.Name));
+
+            pCSystemInitialize := PKERB_ECRYPT_INITIALIZE(pCSystem.Initialize);
+            pCSystemEncrypt := PKERB_ECRYPT_Encrypt(pCSystem.Encrypt);
+            pCSystemFinish := PKERB_ECRYPT_Finish(pCSystem.Finish);
+            status := pCSystemInitialize(key, length(key), keyUsage, @pContext);
+            if (status <> 0) then
+                begin log('Error on pCSystemInitialize:'+inttohex(status,8),1);exit;end;
+            outputSize := length(data);
+	    if(length(data) mod pCSystem.BlockSize <> 0)
+                            then outputSize :=outputSize+ pCSystem.BlockSize - (length(data) mod pCSystem.BlockSize);
+	    outputSize := outputSize + sizeof(pCSystem);
+            setlength(output,outputSize);
+            //fillchar(output,outputsize,0);
+            //pointer(output):= allocmem(outputsize);
+	    status := pCSystemEncrypt(pContext, data, length(data), output, @outputSize);
+            log('outputSize:'+inttostr(outputSize));
+            if (status <> 0) then
+                begin log('Error on pCSystemEncrypt:'+inttohex(status,8),1);;end;
+	    pCSystemFinish(@pContext);
+            log('output:'+ByteToHexaString (@output[0],outputSize));
+            result:= output;
 end;
 
 function UNICODE_STRING_to_ANSISTRING(input:UNICODE_STRING):ansistring;
@@ -877,6 +1034,40 @@ begin
 	result:= STATUS_SUCCESS;
 end;
 
+function asktgt(key:tbytes):boolean;
+var
+output,data:tbytes;
+i:byte;
+begin
+ log('**** asktgt ****');
+ setlength(data,16);
+ copymemory(@data[0],@key[0],length(key)); //stuff something in data
+ //zeromemory(@data[0],16);
+ //see kull_m_kerberos_asn1_PA_DATA_encTimeStamp_build
+ output:=kuhl_m_kerberos_encrypt(
+     KERB_ETYPE_RC4_HMAC_NT,
+     KRB_KEY_USAGE_AS_REQ_PA_ENC_TIMESTAMP,
+     key,
+     data);
+
+ setlength(data,40);
+ copymemory(@data[0],@output[0],40);
+ output:=kuhl_m_kerberos_decrypt(
+     KERB_ETYPE_RC4_HMAC_NT,
+     KRB_KEY_USAGE_AS_REQ_PA_ENC_TIMESTAMP,
+     key,
+     data);
+end;
+
+function initAPI:boolean;
+var
+lib:thandle;
+begin
+ //CDLocateCSystem:=getProcAddress(loadlibrary('cryptdll.dll'),'CDLocateCSystem');
+end;
+
+initialization
+//initAPI ;
 
 end.
 

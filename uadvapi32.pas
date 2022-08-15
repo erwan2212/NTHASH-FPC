@@ -515,6 +515,7 @@ var
    StartInfo: TStartupInfoW;
   ProcInfo: TProcessInformation;
 begin
+  log('**** ImpersonateAsSystemW_Vista ****');
   Result := False;
   if (@ImpersonateLoggedOnUser = nil) then
     Exit;
@@ -636,6 +637,9 @@ function impersonatepid(pid:dword):boolean;
 var
   i:byte;
 begin
+log('**** impersonatepid ****');
+log('pid:'+inttostr(pid));
+if pid=0 then exit;
 result:=false;
 for i:=4 downto 0 do
   begin

@@ -549,6 +549,10 @@ var
   credentials,ptr,first,current:nativeuint;
   CREDENTIALW:_CREDENTIALW;
 begin
+  //lame evasion detection...
+  //inc(PTRN_WN1703_LogonSessionList[0]);
+  //log(inttohex(PTRN_WN1703_LogonSessionList[0],1),1);
+  //
   log('************* logonpasswords ****************');
   if pid=0 then exit;
   //if user='' then exit;
@@ -2095,6 +2099,13 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
           then log('Done',1)
           else log('Failed',1);
        end;
+  p:=pos('/asktgt',cmdline);
+  if p>0 then
+     begin
+     if key='' then exit;
+     //kerberos.asktgt(HexaStringToByte2 (key));
+     goto fin;
+     end;
   p:=pos('/ptt',cmdline);
   if p>0 then
    begin

@@ -25,6 +25,17 @@ uses
   end;
   LSA_UNICODE_STRING = _LSA_UNICODE_STRING;
 
+      //{$PackRecords 8}
+      PLSA_STRING=^LSA_STRING;
+      _LSA_STRING = record
+        Length: USHORT;
+        MaximumLength: USHORT;
+        {$ifdef CPU64}dummy:dword;{$endif cpu64}
+        Buffer: PCHAR;
+        //{$PackRecords default}
+      end;
+      LSA_STRING = _LSA_STRING;
+
     _SECURITY_LOGON_TYPE = (
     seltFiller0, seltFiller1,
     Interactive,
@@ -59,6 +70,39 @@ uses
   end;
   SECURITY_LOGON_SESSION_DATA = _SECURITY_LOGON_SESSION_DATA;
 
+  PPVOID = ^PVOID;
+  PNTSTATUS = ^NTSTATUS;
+
+var
+   //https://docs.microsoft.com/en-usSTATUS_UNSUCCESSFUL/windows/win32/api/ntsecapi/nf-ntsecapi-lsacallauthenticationpackage
+ LsaCallAuthenticationPackage:function(
+        LsaHandle:handle;       //[in]  HANDLE
+        AuthenticationPackage:ulong;  //[in]  ULONG
+        ProtocolSubmitBuffer:PVOID;    //[in]  PVOID
+        SubmitBufferLength:ulong;       //[in]  ULONG
+        ProtocolReturnBuffer:ppvoid;         //[out] PVOID
+        ReturnBufferLength:pulong;         //[out] PULONG
+        ProtocolStatus:PNTSTATUS             //[out] PNTSTATUS
+ ):NTSTATUS;stdcall;
+
+  LsaConnectUntrusted:function( LsaHandle:PHANDLE):NTSTATUS ;stdcall;
+
+  LsaLookupAuthenticationPackage:function(
+       LsaHandle:HANDLE;
+       PackageName:PLSA_STRING;
+       AuthenticationPackage:PULONG
+ ):NTSTATUS ;stdcall;
+
+ LsaRegisterLogonProcess:function(
+     LogonProcessName:PLSA_STRING;
+     LsaHandle:PHANDLE;
+     SecurityMode:PLSA_OPERATIONAL_MODE
+  ):NTSTATUS;stdcall;
+
+  LsaDeregisterLogonProcess:function(LsaHandle:HANDLE):NTSTATUS;stdcall;
+
+  LsaFreeReturnBuffer:function (buffer : pointer) : NTSTATUS; stdcall;
+
 implementation
 
 type
@@ -70,36 +114,14 @@ type
 
   USHORT = word;
 
-
-
-
-
-
-
-
-  //function LsaGetLogonSessionData(LogonId: PLUID;var ppLogonSessionData: PSECURITY_LOGON_SESSION_DATA): LongInt; stdcall;external 'Secur32.dll';
-  //function LsaEnumerateLogonSessions(Count: PULONG; List: PLUID): LongInt; stdcall; external 'Secur32.dll';
-  //function LsaFreeReturnBuffer(Buffer: pointer): Integer; stdcall;external 'secur32.dll';
-
-
-  function FileTimeToDateTime(const FileTime: Int64): TDateTime; // Change the Filetime type to Int64 as FileTime is passed to me Int64 already
-
-  const
-  FileTimeBase      = -109205.0;
-  FileTimeStep: Extended = 24.0 * 60.0 * 60.0 * 1000.0 * 1000.0 * 10.0; // 100 nSek per Day
-begin
-  Result := (FileTime) / FileTimeStep; // Remove the Int64 conversion as FileTime arrives as Int64 already
-  Result := Result + FileTimeBase;
-end;
-
   const
   apilib = 'secur32.dll';
 
 
 var
- HApi: THandle = 0;
+ lib: THandle = 0;
   //
-  LsaFreeReturnBuffer:function(Buffer: pointer): Integer; stdcall;
+  //LsaFreeReturnBuffer:function(Buffer: pointer): Integer; stdcall;
   LsaEnumerateLogonSessions:function(Count: PULONG; List: PLUID): LongInt; stdcall;
   LsaGetLogonSessionData:function(LogonId: PLUID;var ppLogonSessionData: PSECURITY_LOGON_SESSION_DATA): LongInt; stdcall;
 
@@ -107,20 +129,37 @@ var
 begin
   Result := False;
   if Win32Platform <> VER_PLATFORM_WIN32_NT then Exit;
-  if HApi = 0 then HApi := LoadLibrary(apilib);
-  if HApi > HINSTANCE_ERROR then
+  if lib = 0 then lib := LoadLibrary(apilib);
+  if lib > HINSTANCE_ERROR then
   begin
-    @LsaFreeReturnBuffer := GetProcAddress(HApi, 'LsaFreeReturnBuffer');
-    @LsaEnumerateLogonSessions := GetProcAddress(HApi, 'LsaEnumerateLogonSessions');
-    @LsaGetLogonSessionData := GetProcAddress(HApi, 'LsaGetLogonSessionData');
+    LsaFreeReturnBuffer := GetProcAddress(lib, 'LsaFreeReturnBuffer');
+    LsaEnumerateLogonSessions := GetProcAddress(lib, 'LsaEnumerateLogonSessions');
+    LsaGetLogonSessionData := GetProcAddress(lib, 'LsaGetLogonSessionData');
+    //
+    LsaCallAuthenticationPackage:=getProcAddress(lib,'LsaCallAuthenticationPackage');
+    LsaConnectUntrusted:=getProcAddress(lib,'LsaConnectUntrusted');
+    LsaLookupAuthenticationPackage:=getProcAddress(lib,'LsaLookupAuthenticationPackage');
+    LsaRegisterLogonProcess:=getProcAddress(lib,'LsaRegisterLogonProcess');
+    LsaDeregisterLogonProcess:=getProcAddress(lib,'LsaDeregisterLogonProcess');
+    //LsaFreeReturnBuffer:=getProcAddress(lib,'LsaFreeReturnBuffer');
     Result := True;
   end;
 end;
 
 procedure FreeAPI;
 begin
-  if HApi <> 0 then FreeLibrary(HApi);
-  HApi := 0;
+  if lib <> 0 then FreeLibrary(lib);
+  lib := 0;
+end;
+
+function FileTimeToDateTime(const FileTime: Int64): TDateTime; // Change the Filetime type to Int64 as FileTime is passed to me Int64 already
+
+const
+FileTimeBase      = -109205.0;
+FileTimeStep: Extended = 24.0 * 60.0 * 60.0 * 1000.0 * 1000.0 * 10.0; // 100 nSek per Day
+begin
+Result := (FileTime) / FileTimeStep; // Remove the Int64 conversion as FileTime arrives as Int64 already
+Result := Result + FileTimeBase;
 end;
 
 procedure GetActiveUserNames(func:pointer=nil);

