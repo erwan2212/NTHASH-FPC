@@ -10,8 +10,24 @@ uses
 function xorfilev2(filein,fileout:string;encrypt:boolean=true):boolean;
 function xorfile(filein,fileout:string):boolean;
 
+function xorbytes(buffer:pointer;size:integer):boolean;
+
 implementation
 
+function xorbytes(buffer:pointer;size:integer):boolean;
+var
+  c:dword;
+  pIn:^byte;
+begin
+  log('**** xorbytes ****');
+  //xor buffer here
+  pIn:=buffer;
+  for c:=0 to size {length(buffer)} -1 do
+    begin
+    pIn^:=pIn^ xor 255;  //too easy, virustotal can id the file...
+    inc(pIn);
+    end;
+end;
 
 function xorfilev2(filein,fileout:string;encrypt:boolean=true):boolean;
 var

