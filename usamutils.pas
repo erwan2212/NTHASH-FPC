@@ -40,6 +40,8 @@ var
   classStr:array [0..15] of widechar;
   i:byte=0;
 begin
+log('**** getclass_offline ****');
+log('hive:'+hive);
 uofflinereg.init ;
 ret:=OROpenHive(pwidechar(widestring(hive)),hkey);
 if ret<>0 then begin log('OROpenHive NOT OK',0);exit;end;
@@ -229,6 +231,7 @@ log('getvaluePTR OK '+inttostr(cbdata)+' read',0);
        end
        else
        begin
+       log('RC4 MODE',0);
         CopyMemory(@salt[0],@data[$70],sizeof(salt)) ;
         CopyMemory(@encrypted_samkey[0],@data[$80],sizeof(tbyte16)) ;
         //writeln('SAMKey:'+HashByteToString (samkey));

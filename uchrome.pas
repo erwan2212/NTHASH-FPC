@@ -54,7 +54,7 @@ Props: TSQLDBSQLite3ConnectionProperties ;
   p:pointer;
   //b:array of byte;
   b,output:tbytes;
-  path,tmp:string;
+  path,tmp,input:string;
   //li:TListItem ;
   Rows: ISQLDBRows;
   //
@@ -69,7 +69,8 @@ Props: TSQLDBSQLite3ConnectionProperties ;
   s:string;
   bytes,key,iv,encrypted:tbytes;
 begin
-
+  log('**** decrypt_chrome ****');
+  if mk<>nil then log('mk:'+ByteToHexaString (mk,20));
   result:=false;
 //C:\Users\xxx\AppData\Local\Google\Chrome\User Data\Default
 if db='' then
@@ -92,10 +93,13 @@ if db<>'' then
    copyfile(pchar(db),pchar(path+'\login data.db'),false);
    end; //if db<>'' then
 
-writeln('path:'+path);
+writeln('db path:'+path);
 writeln('db:'+path+'\login data.db');
+writeln('local state:'+extractfiledir(path)+'\local state');
 
-if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist');exit;end;
+if (db<>'') and (fileexists(db)=false) then begin writeln('db does not exist!');exit;end;
+
+if FileExists (extractfiledir(path)+'\local state')=false then writeln('local state does not exists');
 
 if (db<>'') and (mk=nil) then
    begin
@@ -103,8 +107,13 @@ if (db<>'') and (mk=nil) then
    end;
 
 //
-if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state')) then
+if ((db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state')))
+or ((db<>'') and (FileExists (extractfiledir(path)+'\local state')))
+   then
    begin
+   if db='' then tmp:=GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state';
+   if db<>'' then tmp:=extractfiledir(path)+'\local state';
+   log('local state file exists:'+tmp);
    {
    New Chrome version (v80.0 & higher) uses Master Key based encryption to store your web login passwords.
    First 32-byte random data is generated.
@@ -120,7 +129,7 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
    CloseFile(t);
    }
    //js := TlkJSON.ParseText(s) as TlkJSONobject;
-   js:=TlkJSONstreamed.loadfromfile(GetSpecialFolder($1c)+'\Google\Chrome\User Data\local state') as TlkJsonObject;
+   js:=TlkJSONstreamed.loadfromfile(tmp) as TlkJsonObject;
    if assigned(js) then
       begin
       //writeln('assigned(js)');
@@ -130,11 +139,38 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
       {$ifndef fpc}bytes:=AnsiStringtoByte (base64_delphi.DecodeStringBase64 (s));{$endif fpc}
       s:=ByteToHexaString(bytes);
       delete(s,1,10); //remove 'DPAPI'
+      log('encrypted_key:'+s);
       //writeln(s);
       //writeln(length(s));
+      //CryptUnProtectData_ will work only on the local machine where chrome is running
       if CryptUnProtectData_(HexaStringToByte2(s),key)= true
         then writeln('os_crypt:encrypted_key:'+ByteToHexaString(key))
-        else writeln('no os_crypt:encrypted_key');
+        else
+          begin
+          //lets try to decrypt the blob and find the key if we know the masterkey
+          //you can run nthash-win64 /decodemk /binary:X:\Users\username\AppData\Roaming\Microsoft\Protect\S-1-5-21-560686698-2847355238-3152790812-1001\masterkeyguid /password:DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
+          guidMasterKey:='{00000000-0000-0000-0000-000000000000}';
+          fillchar(blob_,sizeof(blob_),0);
+          if decodeblob (HexaStringToByte2(s),@blob_,0)
+           then guidMasterKey:=GUIDToString (blob_.guidMasterKey);
+          writeln('masterkey:'+guidMasterKey);
+          input:=readini(GUIDToString(blob_.guidMasterKey),'MasterKey','','masterkeys.ini');
+          if input<>'' then
+            begin
+            log('found masterkey in masterkeys.ini',0);
+            bytes:=HexaStringToByte2(input);
+            if dpapi_unprotect_blob(@blob_,@bytes[0] ,length(bytes),nil,0,nil,ptr_,dw) then
+              begin
+              SetLength(key,dw);
+              zeromemory(@key[0],dw);
+              copymemory(@key[0],ptr_,dw);
+              writeln('os_crypt:encrypted_key:'+ByteToHexaString(key));
+              end
+              else writeln('no os_crypt:encrypted_key');
+            end
+            else writeln('no os_crypt:encrypted_key');
+
+          end;
       js.Free;
       end;
    end;
@@ -164,12 +200,14 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
       {$ifndef nodpapi}
       if mk<>nil then
          begin
+         log('mk<>nil');
          if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
          begin
+         log('DPAPI_CHROME_UNKV10:No');
          //
          //lets get our encrypted blob
          guidMasterKey:='{00000000-0000-0000-0000-000000000000}';
-         if decodeblob (b,@blob_)
+         if decodeblob (b,@blob_,0)
            then guidMasterKey:=GUIDToString (blob_.guidMasterKey);
            //else guidMasterKey:='{00000000-0000-0000-0000-000000000000}';
          //
@@ -190,12 +228,14 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
          if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)) and (length(key)=0)
             then //writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';*');
             begin
+            log('DPAPI_CHROME_UNKV10:Yes, Key:No');
             setlength(key,32);
             CopyMemory(@key[0],mk,32);
             end;
          if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)) and (length(key)<>0) //TODO
             then
             begin
+            log('DPAPI_CHROME_UNKV10:Yes, Key:Yes');
             //writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';*');
             setlength(iv,12);
             CopyMemory (@iv[0],@b[0+3],length(iv));
@@ -203,6 +243,8 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
             CopyMemory (@encrypted[0],@b[0+3+12],length(encrypted));
             setlength(output,length(encrypted)-16); //-16=TAG length
             //writeln('length(key):'+inttostr(length(key)));
+            //log('iv:'+ByteToHexaString (iv));
+            //log('encrypted:'+ByteToHexaString (encrypted));
             if bdecrypt_gcm('AES', encrypted, @output[0], key, iv)<>0
               then writeln(rows['origin_url']+';'+rows['username_value']+';'+BytetoAnsiString (output)+';*')
               else writeln(rows['origin_url']+';'+rows['username_value']+';'+'SCRAMBLEDOFF'+';*');
@@ -212,6 +254,7 @@ if (db='') and  (FileExists (GetSpecialFolder($1c)+'\Google\Chrome\User Data\loc
 
       if mk=nil then
       begin
+      log('mk=nil');
          //
          if (CompareMem (@b[0],@DPAPI_CHROME_UNKV10[0] ,3)=false) then
          begin

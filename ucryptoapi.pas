@@ -1040,6 +1040,7 @@ var
   entropyBlob: DATA_BLOB;
   pEntropy: Pointer;
 begin
+  log('**** CryptUnProtectData_ ****');
   result:=false;
   fillchar(plainBlob,sizeof(plainBlob),0);
   fillchar(decryptedBlob,sizeof(decryptedBlob),0);
@@ -1115,6 +1116,7 @@ var
   entropyBlob: DATA_BLOB;
   pEntropy: Pointer;
 begin
+  log('**** CryptUnProtectData_ ****');
   result:=false;
 
   fillchar(plainBlob,sizeof(plainBlob),0);
@@ -1326,7 +1328,8 @@ begin
   //status := BCryptDecrypt(hkey, @encryped[0], sizeof(encryped), 0, @initializationVector[0], cbiv, @decrypted[0], sizeof(decrypted), result, 0);
   status := BCryptDecrypt(hkey, @encryped[0], sizeof(encryped)-AES_BLOCK_SIZE, @info, nil, 0, @decrypted[0], length(decrypted), result, 0);
   log('resultlen:'+inttostr(result));
-  if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));exit;end;
+  //C000A002	STATUS_AUTH_TAG_MISMATCH
+  if status<>0 then begin log('BCryptDecrypt NOT OK:'+inttohex(status,sizeof(status)));result:=0;exit;end;
   //
   log('decrypted:'+ByteToHexaString  (@decrypted[0],result));
   //log(strpas (pwidechar(@decrypted[0]) ));

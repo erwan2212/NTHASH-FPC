@@ -322,7 +322,7 @@ end;
 
 function dpapi_unprotect_blob(blob:PDPAPI_BLOB;  masterkey:LPCVOID; masterkeyLen:DWORD; entropy:LPCVOID;  entropyLen:DWORD; password:LPCWSTR; var dataOut:LPVOID; var dataOutLen:DWORD):boolean;
 var
-	status:BOOL = FALSE; iStatus:bool;
+	status:BOOL = FALSE; iStatus:bool=true;
 	hmac:PVOID=nil;key:PVOID=nil;hashPassword:PVOID = nil;
 	hSessionProv:HCRYPTPROV;
 	hSessionKey:HCRYPTKEY;
@@ -332,10 +332,12 @@ var
         tmp:tbytes;
 begin
 log('**** dpapi_unprotect_blob ****');
+log('masterkey:'+ByteToHexaString (masterkey,masterkeyLen));
 	//REM HEREHEREHERE
 
         //iStatus = !password;
         if password<>nil then istatus:=false;
+
         hashLen :=  blob.dwAlgHashLen div 8;
         cryptLen := blob.dwAlgCryptLen div 8;
 
@@ -346,6 +348,9 @@ log('**** dpapi_unprotect_blob ****');
         log('hashLen:'+inttostr(hashLen ));
         log('cryptLen:'+inttostr(cryptLen ));
 
+        log('algCrypt:'+inttostr(blob.algCrypt ));
+
+        log('istatus:'+booltostr(istatus ));
 
 	if (blob.algCrypt = CALG_3DES) and (cryptLen < (192 div 8)) then cryptLen := 192 div 8;
 

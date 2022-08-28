@@ -1111,6 +1111,36 @@ begin
     end;
 end;
 
+function DecodeFileBase64(const filename:string;strict:boolean=false):boolean;
+
+var
+  Instream:TFileStream;
+  Outstream : TFileStream;
+  Decoder   : TBase64DecodingStream;
+begin
+  Result:=false;
+  Instream:=TFileStream.Create(filename,fmOpenRead);
+  try
+    Outstream:=TFileStream.Create(filename+'.decode',fmCreate or fmOpenWrite);
+    try
+      if strict then
+        Decoder:=TBase64DecodingStream.Create(Instream,bdmStrict)
+      else
+        Decoder:=TBase64DecodingStream.Create(Instream,bdmMIME);
+      try
+         Outstream.CopyFrom(Decoder,Decoder.Size);
+         Result:=true;
+      finally
+        Decoder.Free;
+        end;
+    finally
+     Outstream.Free;
+     end;
+  finally
+    Instream.Free;
+    end;
+end;
+
 function DecodeStringBase64w(const s:widestring;strict:boolean=false):wideString;
 
 var
@@ -1141,35 +1171,7 @@ begin
 end;
 
 
-function DecodeFileBase64(const filename:string;strict:boolean=false):boolean;
 
-var
-  Instream:TFileStream;
-  Outstream : TFileStream;
-  Decoder   : TBase64DecodingStream;
-begin
-  Result:=false;
-  Instream:=TFileStream.Create(filename,fmOpenRead);
-  try
-    Outstream:=TFileStream.Create(filename+'.decode',fmCreate or fmOpenWrite);
-    try
-      if strict then
-        Decoder:=TBase64DecodingStream.Create(Instream,bdmStrict)
-      else
-        Decoder:=TBase64DecodingStream.Create(Instream,bdmMIME);
-      try
-         Outstream.CopyFrom(Decoder,Decoder.Size);
-         Result:=true;
-      finally
-        Decoder.Free;
-        end;
-    finally
-     Outstream.Free;
-     end;
-  finally
-    Instream.Free;
-    end;
-end;
 
 
 
@@ -2571,7 +2573,11 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
                    input_:=output_ ; //->HMAC KEY (utf-16(sid)+sha1)
                    end
                  else
-                   begin log('cannot detect SID in path',1);goto fin;end;
+                   begin
+                   log('cannot detect SID in path',1);
+                   log('provide path like c:\Users\%username%\AppData\Roaming\Microsoft\Protect\sid',1);
+                   goto fin;
+                   end;
 
               if sysutils.findFirst(folder+'\*.*', $0000003f, SR) = 0 then
                  begin
@@ -2740,13 +2746,15 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
   p:=pos('/gethash',cmdline);
           if p>0 then
              begin
-              if input='' then exit;
+              //if input='' then exit;
               input:=StringReplace (input,',','',[rfReplaceAll]);
               input:=StringReplace (input,'$','',[rfReplaceAll]);
               input:=StringReplace (input,' ','',[rfReplaceAll]);
               //writeln('.'+input+'.');
               if mode='' then exit;
              dw:=0;
+             //https://hashtoolkit.com/generate-hash/?text=
+             //https://sha1.gromweb.com/?string=
              if mode='SHA512' then dw:=$0000800e;
              if mode='SHA256' then dw:=$0000800c;
              if mode='SHA384' then dw:=$0000800d;
