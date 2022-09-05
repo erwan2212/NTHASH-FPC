@@ -2473,7 +2473,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
           log('provide a path where credentials are stored like:',1);
           log('C:\Users\%username%\AppData\Roaming\Microsoft\Credentials',1);
           log('C:\Users\%username%\AppData\local\Microsoft\Credentials',1);
-          log('C:\windows\system32\config\systemprofile\AppData\Local\Microsoft\Credentials',1);
+          log('%systemroot%\system32\config\systemprofile\AppData\Local\Microsoft\Credentials',1);
           log('Also, consider using /dpapimk /save to store decrypted masterkeys');
           goto fin;
           end;
