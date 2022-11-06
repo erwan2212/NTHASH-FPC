@@ -40,6 +40,7 @@ var
   classStr:array [0..15] of widechar;
   i:byte=0;
 begin
+result:=false;
 log('**** getclass_offline ****');
 log('hive:'+hive);
 uofflinereg.init ;
@@ -111,8 +112,8 @@ for i:=0 to length(keys)-1 do
     begin
     if offline=false
        then result:=getclass (HKEY_LOCAL_MACHINE ,'SYSTEM\CurrentControlSet\Control\Lsa',keys[i],enc_bytes)
-       else result:=getclass_offline  ('system.sav' ,'ControlSet001\Control\Lsa',keys[i],enc_bytes);
-    CopyMemory (@bytes[i*4],@enc_bytes[0],4);
+       else result:=getclass_offline  (system_hive ,'ControlSet001\Control\Lsa',keys[i],enc_bytes);
+    if result=true then CopyMemory (@bytes[i*4],@enc_bytes[0],4);
     end;
 end;
 
@@ -130,9 +131,11 @@ begin
 log('**** getsyskey ****');
 result:=false;
 //get the encoded syskey
+fillchar(output,sizeof(output),0);
 result:=get_encoded_syskey(bytes);
 //Get syskey raw bytes (using permutation)
-for i:=0 to sizeof(bytes)-1 do output[i] := bytes[syskeyPerm[i]];
+if result=true then
+   for i:=0 to sizeof(bytes)-1 do output[i] := bytes[syskeyPerm[i]];
 end;
 
 //see kuhl_m_lsadump_getSamKey in kuhl_m_lsadump_getSamKey

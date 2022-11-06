@@ -1277,7 +1277,7 @@ begin
   log('NTHASH /dumpsam',1);
   log('NTHASH /dumphashes [/offline]',1);
   log('NTHASH /dumphash /rid:500 [/offline]',1); //will patch lsasss
-  log('NTHASH /getsyskey [/offline]',1);
+  log('NTHASH /getsyskey [/offline] [binary:path_to_system]',1);
   log('NTHASH /getsamkey [/offline]',1);
   log('NTHASH /dumpresetdata [/offline]',1);
   log('NTHASH /dumpsecret /input:* [/offline]',1);
@@ -1385,7 +1385,7 @@ begin
      if console_output_type<>FILE_TYPE_PIPE then log('Offline=true',1);
      if (not FileExists ('sam.sav')) or (not FileExists ('system.sav')) then
         begin
-        log('sam.sav and/or system.sav and/or security.sav missing',1);
+        log('sam.sav and/or system.sav and/or security.sav [possibly] missing',1);
         //goto fin;
         end;
      end;
@@ -1862,6 +1862,12 @@ if p>0 then
   p:=pos('/getsyskey',cmdline);
   if p>0 then
      begin
+     if binary<>'' then
+       begin
+       //bypassing default 'system.sav'
+       system_hive :=binary;
+       writeln('switching hive to:'+system_hive);
+       end;
      if getsyskey(syskey)
         then log('Syskey:'+ByteToHexaString(syskey) ,1)
         else log('getsyskey NOT OK' ,1);
@@ -1880,6 +1886,7 @@ if p>0 then
         else log('getsyskey NOT OK' ,1);
      goto fin;
      end;
+  //powershell "ntdsutil.exe 'ac i ntds' 'ifm' 'create full c:\temp' q q"
   p:=pos('/dumphashes',cmdline);
   if p>0 then
      begin
@@ -2564,7 +2571,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
        begin
        folder:=binary;
        log('folder:'+folder);
-
+       //if password='' then password:='DA39A3EE5E6B4B0D3255BFEF95601890AFD80709'; //empty
        if pos('S-1-5',folder)>0
                  then
                    begin

@@ -96,6 +96,10 @@ var
   debugpriv:boolean=false;
   symmode:boolean=false;
   console_output_type:dword;
+  //
+  system_hive:string='system.sav';
+  security_hive:string='security.sav';
+  sam_hive:string='sam.sav';
 
 implementation
 

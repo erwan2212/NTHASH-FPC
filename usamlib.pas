@@ -12,6 +12,7 @@ NTStatus = DWORD;
 
 type tdomainuser=record
      domain_handle:thandle;
+     servername:string;
      username:string;
      rid:dword;
 end;
@@ -366,7 +367,7 @@ begin
 result:=0;
 if param<>nil then
      begin
-     GetAccountSid2(widestring(''),widestring(pdomainuser (param).username),mypsid);
+     GetAccountSid2(widestring(pdomainuser (param).servername),widestring(pdomainuser (param).username),mypsid);
      ConvertSidToStringSidA (mypsid,mystringsid);
      log(pdomainuser (param).username+':'+mystringsid,1);
      //
@@ -473,6 +474,7 @@ if (Status <> 0) and (status<>$00000105) then
              begin
              domainuser.rid :=PSAMPR_RID_ENUMERATION(ptr).RelativeId ;
              domainuser.domain_handle :=domainhandle_;
+             domainuser.servername:=strpas(server);
              domainuser.username :=strpas(PSAMPR_RID_ENUMERATION(ptr).Name.Buffer);
              fn(func)(@domainuser );
              end;

@@ -17,3 +17,7 @@ lib
 *.dcu
 *.old
 *.kirbi
+*.dit
+security
+software
+*.mhtml
