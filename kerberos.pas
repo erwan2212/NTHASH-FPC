@@ -9,7 +9,8 @@ uses
   ntdll,uLSA,
   urunelevatedsupport,
   utils,
-  uadvapi32,usecur32,ucryptoapi;
+  uadvapi32,usecur32,ucryptoapi,
+  winsock,dateutils;
 
 const
   	//kerberosPackageName:STRING = {8, 9, MICROSOFT_KERBEROS_NAME_A};
@@ -372,10 +373,10 @@ var
         pCSystem:KERB_ECRYPT;
         pCSystemPtr:pointer=nil;
         status:ntstatus;
-        pContext:pvoid;
-        pCSystemInitialize:PKERB_ECRYPT_INITIALIZE;
-        pCSystemDecrypt:PKERB_ECRYPT_Decrypt;
-        pCSystemFinish:PKERB_ECRYPT_Finish;
+        pContext:pvoid=nil;
+        pCSystemInitialize:PKERB_ECRYPT_INITIALIZE=nil;
+        pCSystemDecrypt:PKERB_ECRYPT_Decrypt=nil;
+        pCSystemFinish:PKERB_ECRYPT_Finish=nil;
         outputSize:ulong;
         output:tbytes;
 begin
@@ -394,18 +395,20 @@ begin
             pCSystemInitialize := PKERB_ECRYPT_INITIALIZE(pCSystem.Initialize);
             pCSystemDecrypt := PKERB_ECRYPT_Decrypt(pCSystem.Decrypt);
             pCSystemFinish := PKERB_ECRYPT_Finish(pCSystem.Finish);
-            status := pCSystemInitialize(key, length(key), keyUsage, @pContext);
+            status := pCSystemInitialize(@key[0], length(key), keyUsage, @pContext);
             if (status <> 0) then
                 begin log('Error on pCSystemInitialize:'+inttohex(status,8),1);exit;end;
             outputSize := length(data);
-	    if(length(data) mod pCSystem.BlockSize <> 0)
-                            then outputSize :=outputSize+ pCSystem.BlockSize - (length(data) mod pCSystem.BlockSize);
+            //next 2 instructions are may be not needed while decrypting
+            {
+            if(outputSize mod pCSystem.BlockSize <> 0)
+                            then outputSize :=outputSize+ pCSystem.BlockSize - (outputSize mod pCSystem.BlockSize);
 	    outputSize := outputSize + sizeof(pCSystem);
-            setlength(output,outputSize);
-            //fillchar(output,outputsize,0);
-            //pointer(output):= allocmem(outputsize);
-	    status := pCSystemDecrypt(pContext, data, length(data), output, @outputSize);
+            }
+            setlength(output,outputSize); //zeroed
+	    status := pCSystemDecrypt(pContext, @data[0], length(data), @output[0], @outputSize);
             log('outputSize:'+inttostr(outputSize));
+            if status=0 then setlength(output,outputsize);
             if (status <> 0) then
                 begin log('Error on pCSystemDecrypt:'+inttohex(status,8),1);;end;
 	    pCSystemFinish(@pContext);
@@ -416,13 +419,13 @@ end;
 
 function kuhl_m_kerberos_encrypt(eType:{KERB_ETYPE_ALGORITHM}ulong; keyUsage:integer; key:tbytes;data:tbytes):tbytes;
 var
-        pCSystem:KERB_ECRYPT;
+pCSystem:KERB_ECRYPT;
         pCSystemPtr:pointer=nil;
         status:ntstatus;
-        pContext:pvoid;
-        pCSystemInitialize:PKERB_ECRYPT_INITIALIZE;
-        pCSystemEncrypt:PKERB_ECRYPT_Encrypt;
-        pCSystemFinish:PKERB_ECRYPT_Finish;
+        pContext:pvoid=nil;
+        pCSystemInitialize:PKERB_ECRYPT_INITIALIZE=nil;
+        pCSystemEncrypt:PKERB_ECRYPT_Encrypt=nil;
+        pCSystemFinish:PKERB_ECRYPT_Finish=nil;
         outputSize:ulong;
         output:tbytes;
 begin
@@ -436,28 +439,34 @@ begin
                begin log('Error on CDLocateCSystem',1);exit;end;
             pCSystem := PKERB_ECRYPT(pCSystemPtr)^;
 
-            log('AlgName:'+strpas(pCSystem.Name));
+            log('AlgName:'+strpas(pCSystem.Name)); ;
 
             pCSystemInitialize := PKERB_ECRYPT_INITIALIZE(pCSystem.Initialize);
             pCSystemEncrypt := PKERB_ECRYPT_Encrypt(pCSystem.Encrypt);
             pCSystemFinish := PKERB_ECRYPT_Finish(pCSystem.Finish);
-            status := pCSystemInitialize(key, length(key), keyUsage, @pContext);
+            status := pCSystemInitialize(@key[0], length(key), keyUsage, @pContext);
             if (status <> 0) then
                 begin log('Error on pCSystemInitialize:'+inttohex(status,8),1);exit;end;
             outputSize := length(data);
-	    if(length(data) mod pCSystem.BlockSize <> 0)
-                            then outputSize :=outputSize+ pCSystem.BlockSize - (length(data) mod pCSystem.BlockSize);
-	    outputSize := outputSize + sizeof(pCSystem);
-            setlength(output,outputSize);
-            //fillchar(output,outputsize,0);
-            //pointer(output):= allocmem(outputsize);
-	    status := pCSystemEncrypt(pContext, data, length(data), output, @outputSize);
+            //writeln('BlockSize:'+inttostr(pCSystem.BlockSize));
+            //writeln('HeaderSize:'+inttostr(pCSystem.HeaderSize));
+            //writeln('sizeof(pCSystem):'+inttostr(sizeof(pCSystem)));
+            //writeln('modulo:'+inttostr(outputSize mod pCSystem.BlockSize));
+            //we round up to next multiple of blocksize
+            //ex 45 with blocksize=8 - 45 mod 8 =5 - 45 +8 -3=48
+	    if(outputSize mod pCSystem.BlockSize) <> 0
+                            then outputSize :=outputSize+ pCSystem.BlockSize - (outputSize mod pCSystem.BlockSize);
+	    outputSize := outputSize +pCSystem.HeaderSize; //sizeof(pCSystem); //pCSystem.HeaderSize
+            setlength(output,outputSize); //zeroed
+	    status := pCSystemEncrypt(pContext, @data[0], length(data), @output[0], @outputSize);
             log('outputSize:'+inttostr(outputSize));
+            if status=0 then setlength(output,outputsize);
             if (status <> 0) then
                 begin log('Error on pCSystemEncrypt:'+inttohex(status,8),1);;end;
 	    pCSystemFinish(@pContext);
             log('output:'+ByteToHexaString (@output[0],outputSize));
             result:= output;
+            //0xC0000001  STATUS_UNSUCCESSFUL
 end;
 
 function UNICODE_STRING_to_ANSISTRING(input:UNICODE_STRING):ansistring;
@@ -1034,15 +1043,228 @@ begin
 	result:= STATUS_SUCCESS;
 end;
 
+procedure send_asreq(dest_ip,cname,realm,service:string;encbytes:tbytes);
+var
+ret,iTotalSize,recvbuflen,val   : Integer;
+wsdata      : TWSAdata;
+sh          : TSocket;
+Remote      : TSockAddr;
+recvbuf,buf         :array[0..512-1] of byte;
+reply:tbytes;
+//
+pos:byte;
+begin
+
+        //Startup Winsock 2
+          ret := WSAStartup(makeword(2,2), wsdata);
+        //Create socket
+            sh := socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (sh = INVALID_SOCKET) then
+            begin
+              writeln('Socket() failed: '+IntToStr(WSAGetLastError));
+              exit;
+            end;
+        //options
+
+        //val:=0; //512*1024;
+        //val:=0;
+        //ret := setsockopt(sh, SOL_SOCKET, SO_SNDBUF, pchar(@val), sizeof(val));
+        //ret:=setsockopt(sh, IPPROTO_TCP, TCP_NODELAY, pchar(@val), sizeof(val));
+        val := 100; //100ms
+        ret := setsockopt(sh, SOL_SOCKET, SO_RCVTIMEO, pchar(@val), sizeof(val));
+        If ret = SOCKET_ERROR Then  writeln('SetSocket failed');
+        ret := setsockopt(sh, SOL_SOCKET, SO_SNDTIMEO, pchar(@val), sizeof(val));
+        If ret = SOCKET_ERROR Then  writeln('SetSocket failed');
+
+        val:= 0; //1=non blocking
+        //ioctlsocket (sh, FIONBIO, val);
+
+        //prepare datas
+            fillchar(buf,sizeof(buf),0);
+            iTotalSize:=sizeof(buf); //to be modified later on
+
+            buf[0]:=0;buf[1]:=0;buf[2]:=0;buf[3]:=$e0; //record mark - size //to be modified later on
+            buf[4]:=$6a;buf[5]:=$81;buf[6]:=$dd; //??
+            buf[7]:=$30;buf[8]:=$81;buf[9]:=$da; //??
+            buf[10]:=$a1;buf[11]:=$03;buf[12]:=$02;buf[13]:=$01; //header ??
+            buf[14]:=$05; //pvno
+            buf[15]:=$a2;buf[16]:=$03;buf[17]:=$02;buf[18]:=$01; //header ??
+            buf[19]:=$0a; //krb-as-req
+            buf[20]:=$a3;buf[21]:=$58;buf[22]:=$30;buf[23]:=$56; //header ??
+            //padata: 2 items
+            //PA-DATA pA-ENC-TIMESTAMP
+            buf[24]:=$30;buf[25]:=$41;
+            buf[26]:=$a1;buf[27]:=$03;buf[28]:=$02;buf[29]:=$01; //header ??
+            buf[30]:=$02; //padata-type: pA-ENC-TIMESTAMP (2)
+            buf[31]:=$a2;buf[32]:=$3a;buf[33]:=$04;buf[34]:=$38;//header ??
+            buf[35]:=$30;buf[36]:=$36;
+            buf[37]:=$a0;buf[38]:=$03;buf[39]:=$02;buf[40]:=$01; //header ??
+            buf[41]:=$17; //etype: eTYPE-ARCFOUR-HMAC-MD5 (23)
+            buf[42]:=$a2;buf[43]:=$2f;buf[44]:=$04;buf[45]:=$2d; //header ??
+            //->cipher 45 ($2d) fixes bytes
+            {
+            buf[46]:=$6d;buf[47]:=$03;buf[48]:=$c0;buf[49]:=$97;buf[50]:=$09;buf[51]:=$e4;buf[52]:=$c2;buf[53]:=$0d;buf[54]:=$d3;buf[55]:=$30;
+            buf[56]:=$6c;buf[57]:=$ef;buf[58]:=$91;buf[59]:=$67;buf[60]:=$f8;buf[61]:=$a0;buf[62]:=$f4;buf[63]:=$87;buf[64]:=$6e;buf[65]:=$b0;
+            buf[66]:=$26;buf[67]:=$6c;buf[68]:=$be;buf[69]:=$d8;buf[70]:=$ec;buf[71]:=$90;buf[72]:=$8a;buf[73]:=$94;buf[74]:=$cf;buf[75]:=$c6;
+            buf[76]:=$a1;buf[77]:=$69;buf[78]:=$e0;buf[79]:=$f2;buf[80]:=$eb;buf[81]:=$43;buf[82]:=$4f;buf[83]:=$d2;buf[84]:=$41;buf[85]:=$23;
+            buf[86]:=$b2;buf[87]:=$a9;buf[88]:=$a7;buf[89]:=$38;buf[90]:=$21;
+            }
+            copymemory(@buf[46],@encbytes[0],45);
+            //PA-DATA pA-PAC-REQUEST
+            buf[91]:=$30;buf[92]:=$11;
+            buf[93]:=$a1;buf[94]:=$04;buf[95]:=$02;buf[96]:=$02; //header ??
+            buf[97]:=$00;buf[98]:=$80; //padata-type: pA-PAC-REQUEST (128)
+            buf[99]:=$a2;buf[100]:=$09;buf[101]:=$04;buf[102]:=$07; //header ??
+            //->padata-value: 3005a003010101
+            buf[103]:=$30;buf[104]:=$05;buf[105]:=$a0;buf[106]:=$03;buf[107]:=$01;buf[108]:=$01;buf[109]:=$01;
+            buf[110]:=$a4;buf[111]:=$74; // ??
+            //req-body
+            buf[112]:=$30;buf[113]:=$72; // ??
+            buf[114]:=$a0;buf[115]:=$07;buf[116]:=$03;buf[117]:=$05; //header ??
+            buf[118]:=$00; //Padding: 0
+            buf[119]:=$40;buf[120]:=$80;buf[121]:=$00;buf[122]:=$10; //kdc-options: 40800010
+            buf[123]:=$a1;buf[124]:=$1a; // ??
+            //cname
+            buf[125]:=$30;buf[126]:=$18; // ??
+            buf[127]:=$a0;buf[128]:=$03;buf[129]:=$02;buf[130]:=$01;//header ??
+            buf[131]:=$01; //name-type: kRB5-NT-PRINCIPAL (1)
+            //cname-string: 1 item
+            buf[132]:=$a1;buf[133]:=$11;buf[134]:=$30;buf[135]:=$0f;//header ??
+            buf[136]:=$1b;buf[137]:=length(cname); //size of the string
+            copymemory(@buf[138],@cname[1],length(cname));
+            pos:=138+length(cname);
+            //realm: home.lab
+            buf[pos]:=$a2;buf[pos+1]:=$0a; /// ??
+            buf[pos+2]:=$1b;buf[pos+3]:=length(realm);// ??
+            copymemory(@buf[pos+4],@realm[1],length(realm));
+            pos:=pos+4+length(realm);
+            //sname
+            buf[pos]:=$a3;buf[pos+1]:=$1d; // ??
+            buf[pos+2]:=$30;buf[pos+3]:=$1b; // ??
+            buf[pos+4]:=$a0;buf[pos+5]:=$03;buf[pos+6]:=$02;buf[pos+7]:=$01; //header ??
+            buf[pos+8]:=$02; //name-type: kRB5-NT-SRV-INST (2)
+            buf[pos+9]:=$a1;buf[pos+10]:=$14;buf[pos+11]:=$30;buf[pos+12]:=$12;//header ??
+            //sname-string: 2 items
+            buf[pos+13]:=$1b;buf[pos+14]:=length(service);
+            copymemory(@buf[pos+15],@service[1],length(service));
+            pos:=pos+15+length(service);
+            buf[pos]:=$1b;buf[pos+1]:=length(realm);
+            copymemory(@buf[pos+2],@realm[1],length(realm));
+            pos:=pos+2+length(realm);
+            //
+            buf[pos]:=$a5;buf[pos+1]:=$11;buf[pos+2]:=$18;buf[pos+3]:=$0f; //header ??
+            //till: 2037-09-13 04:48:05 (UTC)
+            buf[pos+4]:=$32;buf[pos+5]:=$30;buf[pos+6]:=$33;buf[pos+7]:=$37;buf[pos+8]:=$30;buf[pos+9]:=$39;buf[pos+10]:=$31;buf[pos+11]:=$33;buf[pos+12]:=$30;buf[pos+13]:=$34;buf[pos+14]:=$34;buf[pos+15]:=$38;buf[pos+16]:=$30;buf[pos+17]:=$35;buf[pos+18]:=$5a;
+            pos:=pos+18;
+            buf[pos+1]:=$a7;buf[pos+2]:=$06;buf[pos+3]:=$02;buf[pos+4]:=$04;//header ??
+            //nonce: 1344451290
+            buf[pos+5]:=$50;buf[pos+6]:=$22;buf[pos+7]:=$b2;buf[pos+8]:=$da;
+            pos:=pos+8;
+            buf[pos+1]:=$a8;buf[pos+2]:=$05;buf[pos+3]:=$30;buf[pos+4]:=$03;//header ??
+            //etype: 1 item
+            buf[pos+5]:=$02;buf[pos+6]:=$01;buf[pos+7]:=$17;
+            pos:=pos+7;
+
+            //writeln('pos:'+inttostr(pos));
+            buf[3]:=pos+1-4; //zero based
+            iTotalSize:=pos+1;
+            writeln('iTotalSize:'+inttostr(iTotalSize));
+
+
+        //set remote
+            fillchar(remote,sizeof(remote),0);
+            remote.sin_family :=AF_INET;
+            remote.sin_addr.S_addr  :=inet_Addr(PChar(dest_ip));
+            remote.sin_port :=htons(88);;
+        //connect (if using send)
+            ret:=connect(sh,remote,SizeOf(Remote));
+        //sendto or send (if using connect - bit quicker)
+            //ret:=SendTo ( sh,  buf, iTotalSize , 0,  Remote, SizeOf(Remote));
+            //ret:=Send ( sh,  @buf[0],4 , 0);
+
+            //recvbuflen:=sizeof(recvbuf);
+            //ret := recv(sh, @recvbuf[0], recvbuflen, 0);
+            //writeln(recvbuflen);
+
+            //ret:=SendTo ( sh,  buf, iTotalSize , 0,  Remote, SizeOf(Remote));
+            ret:=Send ( sh,  @buf[0], iTotalSize , 0);
+            if ret = SOCKET_ERROR
+               then writeln('sendto() failed: '+IntToStr(WSAGetLastError))
+               else writeln('sent '+inttostr(iTotalSize)+' bytes');
+        //
+        // shutdown the connection since no more data will be sent
+        //ret:= shutdown(sh, 1); //sd_send=1
+        //
+        recvbuflen:=sizeof(recvbuf);
+        iTotalSize:=0;
+        while 1=1 do
+        begin
+             ret := recv(sh, @recvbuf[0], 512, 0);
+             if ret=SOCKET_ERROR then break;;
+             iTotalSize:=iTotalSize+ret ;
+             setlength(reply,iTotalSize);
+             copymemory(@reply[iTotalSize-ret],@recvbuf[0],ret);
+        end;
+        writeln('reply:'+inttostr(iTotalSize));
+        //we should save the ticket part
+        // Close socket
+        CloseSocket(sh);
+        //cleanup
+        WSACleanup;
+end;
+
+function GetUTCTime: TDateTime;
+var
+    SystemTime: TSystemTime;
+begin
+    GetSystemTime(SystemTime);
+    with SystemTime do begin
+        Result := EncodeTime (wHour, wMinute, wSecond, wMilliSeconds) +
+                                              EncodeDate (wYear, wMonth, wDay);
+    end ;
+end;
+
 function asktgt(key:tbytes):boolean;
 var
 output,data:tbytes;
 i:byte;
+d:TDateTime ;
+Fmt: TFormatSettings;
+s:string;
+const
+ //till: 2037-09-13 04:48:05 (UTC)
+ //nonce: 1344451290
+
+ encbytes:array[0..44] of byte=($6d,$03,$c0,$97,$09,$e4,$c2,$0d,$d3,$30,$6c,$ef,$91,$67,$f8,$a0,$f4,$87,$6e,$b0,$26,$6c,$be,$d8,$ec,$90,$8a,$94,$cf,$c6,$a1,$69,$e0,$f2,$eb,$43,$4f,$d2,$41,$23,$b2,$a9,$a7,$38,$21);
+ rawbytes:array[0..20] of byte=($30,$13,$a0,$11,$18,$0f,$32,$30,$32,$32,$31,$32,$30,$33,$31,$31,$34,$38,$33,$35,$5a); //=20221203114835Z
+ //encbytes:array[0..44] of byte=($0e,$84,$b5,$d4,$98,$75,$f0,$fd,$47,$ff,$85,$97,$05,$35,$22,$b2,$5c,$fd,$e2,$41,$44,$45,$c0,$e8,$5c,$8b,$c3,$30,$f1,$41,$f9,$5d,$f2,$15,$02,$a3,$8f,$e2,$11,$e1,$4a,$3c,$cd,$4b,$03);
 begin
  log('**** asktgt ****');
- setlength(data,16);
- copymemory(@data[0],@key[0],length(key)); //stuff something in data
- //zeromemory(@data[0],16);
+
+ writeln(datetimetostr(now));
+ s:=(inttostr(yearof(GetUTCTime))+inttostr(monthof(GetUTCTime))+format('%.02d',[dayof(GetUTCTime)])+format('%.02d',[hourof(GetUTCTime)])+format('%.02d',[minuteof(GetUTCTime)])+format('%.02d',[secondof(GetUTCTime)])+'Z');
+ writeln(s);
+
+ setlength(data,length(rawbytes));
+ copymemory(@data[0],@rawbytes[0],length(rawbytes));
+ copymemory(@data[6],@s[1],length(s));
+
+ output:=kuhl_m_kerberos_encrypt(
+     KERB_ETYPE_RC4_HMAC_NT,
+     KRB_KEY_USAGE_AS_REQ_PA_ENC_TIMESTAMP,
+     key,
+     data);
+ //writeln('encrypted:'+ByteToHexaString (output));
+
+ //
+ //
+ send_asreq ('192.168.1.121','administrator','home.lab','krbtgt',output);
+ exit;
+ {
+ setlength(data,length(rawbytes));
+ copymemory(@data[0],@rawbytes[0],length(rawbytes)); //stuff something in data
+ writeln('text:'+BytetoAnsiString(@data[6],16));
+ writeln('rawbytes:'+ByteToHexaString (data));
  //see kull_m_kerberos_asn1_PA_DATA_encTimeStamp_build
  output:=kuhl_m_kerberos_encrypt(
      KERB_ETYPE_RC4_HMAC_NT,
@@ -1050,13 +1272,54 @@ begin
      key,
      data);
 
- setlength(data,40);
- copymemory(@data[0],@output[0],40);
+ writeln('encrypted:'+ByteToHexaString (output));
+
+ writeln('*****************');
+ }
+
+ setlength(data,length(encbytes));
+ copymemory(@data[0],@encbytes[0],length(encbytes)); //stuff something in data
+ writeln('encrypted:'+ByteToHexaString (data));
+
  output:=kuhl_m_kerberos_decrypt(
      KERB_ETYPE_RC4_HMAC_NT,
      KRB_KEY_USAGE_AS_REQ_PA_ENC_TIMESTAMP,
      key,
      data);
+
+ writeln('rawbytes:'+ByteToHexaString (output));
+ writeln('text:'+BytetoAnsiString(@output[6],16));
+
+ writeln('*****************');
+ //encrypt again - output will be different from original encryption
+ output:=kuhl_m_kerberos_encrypt(
+     KERB_ETYPE_RC4_HMAC_NT,
+     KRB_KEY_USAGE_AS_REQ_PA_ENC_TIMESTAMP,
+     key,
+     output);
+ writeln('encrypted:'+ByteToHexaString (output));
+ //decrypt again - output should be identical to original
+  output:=kuhl_m_kerberos_decrypt(
+     KERB_ETYPE_RC4_HMAC_NT,
+     KRB_KEY_USAGE_AS_REQ_PA_ENC_TIMESTAMP,
+     key,
+     output);
+  writeln('rawbytes:'+ByteToHexaString (output));
+  writeln('text:'+BytetoAnsiString(@output[6],16));
+
+ exit;
+
+
+ fmt.ShortDateFormat :='yyyy-mm-dd';
+ //fmt.longDateFormat :='yyyy-mm-dd';
+ fmt.ShorttimeFormat :='hh:nn:ss';
+ //fmt.LongTimeFormat  :='hh:nn:ss';
+ fmt.TimeSeparator:=':';
+ fmt.dateSeparator:='-';
+ d:=StrToDatetime('2037-09-13 04:48:05',fmt);
+ writeln(DatetimeToStr (d));
+ writeln(FloatToStr(d));
+ writeln(ByteToHexaString (output));
 end;
 
 function initAPI:boolean;

@@ -4,7 +4,7 @@ unit uhandles;
 
 interface
 
-uses windows,ntdll,sysutils;
+uses windows,ntdll,sysutils,uadvapi32;
 
 type tobj=record
      h:thandle;
@@ -75,6 +75,15 @@ var
   hThread:thandle;
   tid:dword;
   ptr:pointer;
+  //
+  TokenStatisticsInformation:TOKEN_STATISTICS ;
+  TokenUser_:PTOKENUSER ;
+  TokenOwner_:TOKEN_OWNER ;
+  cbbuf:dword;
+  SizeNeeded, SizeNeeded2: DWORD;
+  OwnerName, DomainName: PChar;
+  OwnerType: SID_NAME_USE;
+  bSuccess:boolean;
 begin
 
    result:=false;
@@ -145,6 +154,42 @@ begin
                  else strName :=strpas(obj.s);
 
               //
+              {
+              if strtype='Token' then
+                 begin
+                 {
+                 if GetTokenInformation(dupHandle,TokenStatistics,
+                                     @TokenStatisticsInformation,
+                                     sizeof(TokenStatisticsInformation), len)=true
+                    then strname:=inttostr(int64(TokenStatisticsInformation.TokenType)) ;
+                 }
+
+                    bSuccess := GetTokenInformation(dupHandle, TokenUser, nil, 0, cbbuf);
+                    TokenUser_ := nil;
+                    while (not bSuccess) and (GetLastError = ERROR_INSUFFICIENT_BUFFER) do
+                    begin
+                    ReallocMem(TokenUser_, cbBuf);
+                    bSuccess := GetTokenInformation(dupHandle, TokenUser, TokenUser_, cbBuf, cbBuf);
+                    end;// while (not bSuccess) and...
+
+                    if bSuccess=true then
+                    begin
+                    SizeNeeded := MAX_PATH;
+                    SizeNeeded2:= MAX_PATH;
+                    GetMem(OwnerName, MAX_PATH);
+                    GetMem(DomainName, MAX_PATH);
+                    //ConvertSidToStringSidA (TokenUser_^.User.Sid ,OwnerName);
+                    //writeln('Token:' + OwnerName);
+                    if LookupAccountSID(nil, TokenUser_^.User.Sid  , OwnerName,
+                                       SizeNeeded, DomainName,SizeNeeded2,
+                                       OwnerType)
+                       then strname:=OwnerName
+                       else strname:='failed1';
+                    end
+                    else strname:='failed2:'+inttostr(GetLastError) ;
+
+                 end;
+              }
               if (dup='!') and (strtype='Process') and (strname='') then
               begin
               lpszProcess := AllocMem(MAX_PATH);
