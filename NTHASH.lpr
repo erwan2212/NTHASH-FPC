@@ -10,7 +10,8 @@ program NTHASH;
 uses windows, classes, sysutils, dos, usamlib, usid, uimagehlp, upsapi,
   uadvapi32, uversion, utils, umemory, ucryptoapi, usamutils, uofflinereg,
   uvaults, uLSA, uchrome, ufirefox, urunelevatedsupport, wtsapi32, uwmi, base64,
-  udpapi,udebug,injection, usecur32,memfuncs, uhandles,pe, uXor,kerberos;
+  udpapi,udebug,injection, usecur32,memfuncs, uhandles,pe, uXor,kerberos,
+  wininet_utils;
 
 
 //***************************************************************************
@@ -280,6 +281,7 @@ var
   MemoryRegions:TMemoryRegions;
   list:TStringList;
   SR      :TSearchRec ;
+  ms:tstream;
 
 
 
@@ -1319,7 +1321,7 @@ begin
   log('NTHASH /base64decode /input:base64string',1);
   log('NTHASH /base64decodehexa /input:base64string',1);
   log('NTHASH /base64decodefile /input:filename',1);
-  log('NTHASH /xorfile /input:filename',1);
+  log('NTHASH /xorfile /binary:filename',1);
   log('NTHASH /xorbytes /input:hexastring',1);
   //****************************************************
   log('NTHASH /dpapimk [/save] [/symbol]',1);  //will read mem
@@ -1353,8 +1355,12 @@ begin
   log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpproc /pid:12345',1);
   //**************************************
-  log('NTHASH /inject /pid:12345 /binary:x:\folder\bin.dll',1);
-  log('NTHASH /eject /pid:12345 /binary:bin.dll',1);
+  log('NTHASH /injectmod /pid:12345 /binary:x:\folder\bin.dll',1);
+  log('NTHASH /ejectmod /pid:12345 /binary:bin.dll',1);
+  //**************************************
+  //**************************************
+  log('NTHASH /download2file /input:url /binary:x:\folder\bin.dll',1);
+  log('NTHASH /download2hexa /input:url',1);
   //**************************************
   //log('NTHASH /enumprocwmi [/server:hostname]',1);
   //log('NTHASH /killprocwmi /pid:12345 [/server:hostname]',1);
@@ -1574,17 +1580,23 @@ p:=pos('/xorbytes',cmdline);
     input:=StringReplace (input,'$','',[rfReplaceAll]);
     input:=StringReplace (input,' ','',[rfReplaceAll]);
     input_:=HexaStringToByte2 (input);
+    //writeln('length(input_):'+inttostr(length(input_)));
     if xorbytes(@input_[0],length(input_)) then log(ByteToHexaString (input_),1);
     end;
 
 p:=pos('/xorfile',cmdline); //test in progress
   if p>0 then
     begin
-    if input='' then exit;
-    //xorfile(input,ExtractFileName(input)+'.xor' );
-    if pos('.encrypted',extractfileext(input))>0
-       then xorfilev2 (input,ChangeFileExt(input,'.decrypted'),false)  //decrypt
-       else xorfilev2 (input,ExtractFileName(input)+'.encrypted',true);        //encrypt
+    if binary='' then exit;
+    if xorfile(binary,ExtractFileName(binary)+'.xor' )=true
+       then log('ok',1)
+       else log('not ok',1);
+
+    {
+    if pos('.encrypted',extractfileext(binary))>0
+       then xorfilev2 (binary,ChangeFileExt(input,'.decrypted'),false)  //decrypt
+       else xorfilev2 (binary,ExtractFileName(input)+'.encrypted',true);        //encrypt
+    }
     end;
 {
 p:=pos('/fix',cmdline); //test in progress
@@ -2038,7 +2050,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      goto fin;
      end;
   //********************************************
-  p:=pos('/inject',cmdline);  //
+  p:=pos('/injectmod',cmdline);  //
   if p>0 then
      begin
      if TryStrToInt (input,_long ) then pid:=input;
@@ -2060,7 +2072,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
         else log('OpenProcess failed',1);
      goto fin;
      end;
-  p:=pos('/eject',cmdline);  //
+  p:=pos('/ejectmod',cmdline);  //
   if p>0 then
      begin
      if TryStrToInt (input,_long ) then pid:=input;
@@ -2958,6 +2970,35 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
           end
           else log('OpenProcess failed',1);
        goto fin;
+  end;
+  //***********************************************************
+  p:=pos('/download2file',cmdline);
+  if p>0 then
+  begin
+  input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
+  if wininet_utils.download2file (input,'download.dmp')
+     then log('download2file OK',1)
+     else log('download2file NOK',1);
+  end;
+  p:=pos('/download2hexa',cmdline);
+  if p>0 then
+  begin
+
+  input:=StringReplace (input,'%2f','/',[rfReplaceAll,rfIgnoreCase]);
+  try
+  ms:= wininet_utils.DownloadFile2Stream (input);
+  if ms.Size =0 then raise exception.Create ('empty stream');
+  except
+  on e:exception do writeln(e.message);
+  end;
+
+  getmem(ptr_,ms.Size);
+  ret:=ms.Read(ptr_^,ms.Size);
+  if ret=0 then raise exception.Create ('ms.read failed');
+  if ret<>ms.Size  then raise exception.Create ('ret<>ms.Size');
+  log(ByteToHexaString(ptr_,ms.Size ),1);
+  freemem(ptr_,ms.Size );
+  ms.Free ;
   end;
   //***********************************************************
   fin:

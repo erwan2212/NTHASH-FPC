@@ -127,7 +127,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir);..\jwa\branches\2.3\Includes"/>
-      <OtherUnitFiles Value="..\jwa\branches\2.3\Win32API;..\..\databases\mORMot-1.18;..\..\system\ikjson;..\SymFromName;..\injector-fpc;..\pe"/>
+      <OtherUnitFiles Value="..\jwa\branches\2.3\Win32API;..\..\databases\mORMot-1.18;..\..\system\ikjson;..\SymFromName;..\injector-fpc;..\pe;..\..\network\http_download2"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>

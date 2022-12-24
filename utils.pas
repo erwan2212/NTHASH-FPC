@@ -151,6 +151,7 @@ end;
 procedure log(msg:string;status:dword=0);
 begin
 //if (verbose=false) and (status=0) then exit;
+//writeln('length(msg):'+inttostr(length(msg)));
 try
 if verbose=false then
    if status<>0 then writeln(msg);
@@ -400,7 +401,7 @@ end;
 
 function AnsiStringtoByte(input:string;unicode:boolean=false):tbytes;
 var
-  i:word;
+  i:dword;
 begin
 log('**** AnsiStringtoByte ****');
 input:=stringreplace(input,'\0',#0,[]);
@@ -443,7 +444,7 @@ end;
 
 function BytetoAnsiString(input:array of byte):string;
 var
-  i:word;
+  i:dword;
   dummy:string{$ifdef fpc}=''{$endif fpc};
 begin
 log('**** BytetoAnsiString ****');
@@ -471,7 +472,7 @@ end;
 //function HashByteToString(hash:tbyte16):string;
 function ByteToHexaString(hash:array of byte):string;
 var
-  i:word;
+  i:dword;
   dummy:string{$ifdef fpc}=''{$endif fpc};
 begin
 log('**** ByteToHexaString ****');
@@ -489,7 +490,7 @@ end;
 
 function HexaStringToByte(hash:string):tbyte16;
 var
-  i:word;
+  i:dword;
   tmp:string;
 begin
 try
@@ -508,7 +509,7 @@ end;
 
 function HexaStringToByte2(hash:string):tbytes;
 var
-  i:word;
+  i:dword;
   tmp:string;
   b:longint;
 begin
@@ -525,6 +526,7 @@ setlength(result,length(hash) div 2);
       if TryStrToInt ('$'+tmp,b) then result[i div 2]:=b;
       //result[i div 2]:=strtoint('$'+tmp);
       inc(i,2);
+      //write('.');
       end;
 except
 on e:exception do log('HexaStringToByte2:'+e.Message );

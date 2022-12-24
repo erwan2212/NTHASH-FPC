@@ -20,6 +20,7 @@ var
   pIn:^byte;
 begin
   log('**** xorbytes ****');
+  log('size:'+inttostr(size));
   //xor buffer here
   pIn:=buffer;
   for c:=0 to size {length(buffer)} -1 do
@@ -41,7 +42,7 @@ var
   //
   key:array [0..2] of word=($400,$1000,$4000);
 begin
-  log('********* xorfile **************');
+  log('********* xorfilev2 **************');
   hFilein := CreateFile(pchar(filein),GENERIC_READ,0,nil,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
   if hFilein=thandle(-1) then exit;
   hFileout := CreateFile(pchar(fileout),GENERIC_WRITE,0,nil,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);
@@ -87,6 +88,7 @@ var
   buffer:pointer;
   pIn:pbyte;
 begin
+  result:=false;
   log('********* xorfile **************');
   hFilein := CreateFile(pchar(filein),GENERIC_READ,0,nil,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
   if hFilein=thandle(-1) then exit;
@@ -116,6 +118,7 @@ begin
   if buffer<>nil then freemem(buffer);
   closehandle(hFilein);
   closehandle(hFileout);
+  result:=true;
   log('done');
 end;
 

