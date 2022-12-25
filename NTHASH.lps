@@ -9,8 +9,8 @@
         <Filename Value="NTHASH.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="2075"/>
-        <CursorPos X="45" Y="2092"/>
+        <TopLine Value="253"/>
+        <CursorPos X="45" Y="266"/>
         <UsageCount Value="241"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -209,7 +209,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1326"/>
         <CursorPos X="10" Y="1338"/>
-        <UsageCount Value="164"/>
+        <UsageCount Value="160"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit21>
       <Unit22>
@@ -217,7 +217,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="35"/>
         <CursorPos X="3" Y="47"/>
-        <UsageCount Value="58"/>
+        <UsageCount Value="54"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit22>
       <Unit23>
@@ -225,14 +225,14 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="489"/>
         <CursorPos X="6" Y="503"/>
-        <UsageCount Value="9"/>
+        <UsageCount Value="5"/>
       </Unit23>
       <Unit24>
         <Filename Value="..\SymFromName\udebug.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="95"/>
         <CursorPos Y="109"/>
-        <UsageCount Value="919"/>
+        <UsageCount Value="915"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit24>
       <Unit25>
@@ -240,21 +240,21 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="7178"/>
         <CursorPos X="16" Y="7195"/>
-        <UsageCount Value="75"/>
+        <UsageCount Value="71"/>
       </Unit25>
       <Unit26>
         <Filename Value="C:\FPC\3.0.0\source\packages\fcl-base\src\base64.pp"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="118"/>
         <CursorPos X="10" Y="90"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="6"/>
       </Unit26>
       <Unit27>
         <Filename Value="usamlib.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="355"/>
         <CursorPos X="62" Y="370"/>
-        <UsageCount Value="631"/>
+        <UsageCount Value="627"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit27>
       <Unit28>
@@ -280,7 +280,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="9353"/>
         <CursorPos X="12" Y="9364"/>
-        <UsageCount Value="407"/>
+        <UsageCount Value="403"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit30>
       <Unit31>
@@ -288,20 +288,20 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="348"/>
         <CursorPos X="18" Y="360"/>
-        <UsageCount Value="84"/>
+        <UsageCount Value="80"/>
       </Unit31>
       <Unit32>
         <Filename Value="C:\FPC\3.0.0\source\packages\winunits-base\src\shellapi.pp"/>
         <UnitName Value="ShellApi"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="90"/>
+        <UsageCount Value="86"/>
       </Unit32>
       <Unit33>
         <Filename Value="usid.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="426"/>
         <CursorPos X="10" Y="402"/>
-        <UsageCount Value="89"/>
+        <UsageCount Value="85"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit33>
       <Unit34>
@@ -309,7 +309,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="210"/>
         <CursorPos X="65" Y="222"/>
-        <UsageCount Value="69"/>
+        <UsageCount Value="65"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit34>
       <Unit35>
@@ -317,7 +317,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="201"/>
         <CursorPos X="35" Y="210"/>
-        <UsageCount Value="172"/>
+        <UsageCount Value="168"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit35>
       <Unit36>
@@ -325,7 +325,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="105"/>
         <CursorPos Y="128"/>
-        <UsageCount Value="165"/>
+        <UsageCount Value="161"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit36>
       <Unit37>
@@ -333,28 +333,28 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="850"/>
         <CursorPos X="15" Y="861"/>
-        <UsageCount Value="35"/>
+        <UsageCount Value="31"/>
       </Unit37>
       <Unit38>
         <Filename Value="C:\FPC\3.0.0\source\rtl\objpas\sysutils\sysutilh.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="92"/>
         <CursorPos X="4" Y="104"/>
-        <UsageCount Value="56"/>
+        <UsageCount Value="52"/>
       </Unit38>
       <Unit39>
         <Filename Value="C:\FPC\3.0.0\source\packages\rtl-extra\src\win\winsock.pp"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="309"/>
         <CursorPos X="19" Y="319"/>
-        <UsageCount Value="53"/>
+        <UsageCount Value="49"/>
       </Unit39>
       <Unit40>
         <Filename Value="..\..\network\http_download2\wininet_utils.pas"/>
         <EditorIndex Value="2"/>
         <TopLine Value="141"/>
         <CursorPos X="25" Y="94"/>
-        <UsageCount Value="55"/>
+        <UsageCount Value="73"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit40>
@@ -362,27 +362,27 @@
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="..\injector-fpc\injection.pas"/>
-        <Caret Line="1023" Column="10" TopLine="1011"/>
+        <Caret Line="111" Column="10" TopLine="165"/>
       </Position1>
       <Position2>
         <Filename Value="..\injector-fpc\injection.pas"/>
-        <Caret Line="604" TopLine="595"/>
+        <Caret Line="410" TopLine="394"/>
       </Position2>
       <Position3>
-        <Filename Value="..\injector-fpc\injection.pas"/>
-        <Caret Line="815" Column="10" TopLine="872"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="173" Column="33" TopLine="164"/>
       </Position3>
       <Position4>
-        <Filename Value="..\injector-fpc\injection.pas"/>
-        <Caret Line="111" Column="10" TopLine="165"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="378" Column="72" TopLine="358"/>
       </Position4>
       <Position5>
-        <Filename Value="..\injector-fpc\injection.pas"/>
-        <Caret Line="410" TopLine="394"/>
+        <Filename Value="NTHASH.lpr"/>
+        <Caret Line="10" Column="17"/>
       </Position5>
       <Position6>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="173" Column="33" TopLine="164"/>
+        <Caret Line="13" Column="23"/>
       </Position6>
       <Position7>
         <Filename Value="NTHASH.lpr"/>
@@ -390,95 +390,95 @@
       </Position7>
       <Position8>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="10" Column="17"/>
+        <Caret Line="1358" Column="22" TopLine="1338"/>
       </Position8>
       <Position9>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="13" Column="23"/>
+        <Caret Line="1360" Column="22" TopLine="1340"/>
       </Position9>
       <Position10>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="378" Column="72" TopLine="358"/>
+        <Caret Line="6" Column="57"/>
       </Position10>
       <Position11>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1358" Column="22" TopLine="1338"/>
+        <Caret Line="575" Column="17" TopLine="555"/>
       </Position11>
       <Position12>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1360" Column="22" TopLine="1340"/>
+        <Caret Line="583" Column="17" TopLine="563"/>
       </Position12>
       <Position13>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="6" Column="57"/>
+        <Caret Line="591" Column="17" TopLine="571"/>
       </Position13>
       <Position14>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="575" Column="17" TopLine="555"/>
+        <Caret Line="598" Column="17" TopLine="578"/>
       </Position14>
       <Position15>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="583" Column="17" TopLine="563"/>
+        <Caret Line="605" Column="17" TopLine="585"/>
       </Position15>
       <Position16>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="591" Column="17" TopLine="571"/>
+        <Caret Line="618" Column="17" TopLine="598"/>
       </Position16>
       <Position17>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="598" Column="17" TopLine="578"/>
+        <Caret Line="625" Column="17" TopLine="605"/>
       </Position17>
       <Position18>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="605" Column="17" TopLine="585"/>
+        <Caret Line="632" Column="17" TopLine="612"/>
       </Position18>
       <Position19>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="618" Column="17" TopLine="598"/>
+        <Caret Line="639" Column="17" TopLine="619"/>
       </Position19>
       <Position20>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="625" Column="17" TopLine="605"/>
+        <Caret Line="646" Column="17" TopLine="626"/>
       </Position20>
       <Position21>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="632" Column="17" TopLine="612"/>
+        <Caret Line="654" Column="17" TopLine="634"/>
       </Position21>
       <Position22>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="639" Column="17" TopLine="619"/>
+        <Caret Line="1325" Column="24" TopLine="1305"/>
       </Position22>
       <Position23>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="646" Column="17" TopLine="626"/>
+        <Caret Line="150" Column="55" TopLine="143"/>
       </Position23>
       <Position24>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="654" Column="17" TopLine="634"/>
+        <Caret Line="378" Column="72" TopLine="358"/>
       </Position24>
       <Position25>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1325" Column="24" TopLine="1305"/>
+        <Caret Line="1358" Column="22" TopLine="1338"/>
       </Position25>
       <Position26>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="150" Column="55" TopLine="143"/>
+        <Caret Line="1360" Column="22" TopLine="1340"/>
       </Position26>
       <Position27>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="378" Column="72" TopLine="358"/>
+        <Caret Line="2043" Column="18" TopLine="2023"/>
       </Position27>
       <Position28>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1358" Column="22" TopLine="1338"/>
+        <Caret Line="2093" Column="42" TopLine="2085"/>
       </Position28>
       <Position29>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="1360" Column="22" TopLine="1340"/>
+        <Caret Line="6" Column="54"/>
       </Position29>
       <Position30>
         <Filename Value="NTHASH.lpr"/>
-        <Caret Line="2043" Column="18" TopLine="2023"/>
+        <Caret Line="1545" Column="18" TopLine="1529"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>

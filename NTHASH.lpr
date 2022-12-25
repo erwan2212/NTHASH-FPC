@@ -263,7 +263,7 @@ var
   p,ret,dw,dw1,dw2:dword;
   n:nativeint;
   consolecp:uint;
-  rid,folder,binary,pid,server,user,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key,luid:string;
+  rid,folder,binary,pid,server,user,old,new,oldhash,newhash,oldpwd,newpwd,password,domain,input,mode,key,luid:string;
   inputw:widestring;
   oldhashbyte,newhashbyte:tbyte16;
   myPsid:PSID;
@@ -1264,13 +1264,13 @@ begin
   //
   if (paramcount=0) or ((paramcount=1) and (pos('/wait',cmdline)>0)) then
   begin
-  log('NTHASH /setntlm [/server:hostname] /user:username /newhash:xxx',1);
-  log('NTHASH /setntlm [/server:hostname] /user:username /newpwd:xxx',1);
-  log('NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newpwd:xxx',1);
-  log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newpwd:xxx',1);
-  log('NTHASH /changentlm [/server:hostname] /user:username /oldpwd:xxx /newhash:xxx',1);
-  log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:xxx /newhash:xxx',1);
-  log('NTHASH /getntlmhash /input:password',1);
+  log('NTHASH /setntlm [/server:hostname] /user:username /newhash:hash',1);
+  log('NTHASH /setntlm [/server:hostname] /user:username /newpwd:string',1);
+  log('NTHASH /changentlm [/server:hostname] /user:username /oldpwd:string /newpwd:string',1);
+  log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:hash /newpwd:string',1);
+  log('NTHASH /changentlm [/server:hostname] /user:username /oldpwd:string /newhash:hash',1);
+  log('NTHASH /changentlm [/server:hostname] /user:username /oldhash:hash /newhash:hash',1);
+  log('NTHASH /getntlmhash /input:string',1);
   //*******************************************
   log('NTHASH /getsid /user:username [/server:hostname]',1);
   log('NTHASH /getsids [/server:hostname] [/domain:domainsid] [/offline]',1);
@@ -1290,7 +1290,7 @@ begin
   log('NTHASH /wdigeston [/symbol]',1);  //will read mem
   log('NTHASH /enumlogonsessions',1); //will read mem
   log('NTHASH /logonpasswords [/symbol]',1); //will read mem
-  log('NTHASH /pth /user:username /password:myhash /domain:mydomain',1); //will patch lsass
+  log('NTHASH /pth /user:username /password:hash /domain:string',1); //will patch lsass
   log('NTHASH /showkeymgr',1);
   log('NTHASH /writecred',1);
   log('NTHASH /backupcred',1);
@@ -1312,15 +1312,16 @@ begin
   log('NTHASH /hexatostring /input:hexastring',1);
   log('NTHASH /stringtohexa /input:string',1);
   log('NTHASH /filetohexa /binary:filename',1);
-  log('NTHASH /hexatofile /input:hexastring',1);
+  log('NTHASH /hexatofile /input:hexastring [/binary:filename]',1);
   log('NTHASH /widestringtobyte /input:string',1);
   log('NTHASH /base64encodew /input:string',1);
   log('NTHASH /base64encode /input:string',1);
   log('NTHASH /base64encodehexa /input:hexastring',1);
-  log('NTHASH /base64encodefile /input:filename',1);
+  log('NTHASH /base64encodefile /binary:filename',1);
   log('NTHASH /base64decode /input:base64string',1);
   log('NTHASH /base64decodehexa /input:base64string',1);
-  log('NTHASH /base64decodefile /input:filename',1);
+  log('NTHASH /base64decodefile /binary:filename',1);
+  log('NTHASH /replace:string /old:string /new:string',1);
   log('NTHASH /xorfile /binary:filename',1);
   log('NTHASH /xorbytes /input:hexastring',1);
   //****************************************************
@@ -1355,12 +1356,12 @@ begin
   log('NTHASH /enummod /pid:12345',1);
   log('NTHASH /dumpproc /pid:12345',1);
   //**************************************
-  log('NTHASH /injectmod /pid:12345 /binary:x:\folder\bin.dll',1);
-  log('NTHASH /ejectmod /pid:12345 /binary:bin.dll',1);
-  log('NTHASH /injectcode /pid:12345 /binary:x:\folder\buffer.bin',1);
+  log('NTHASH /injectmod /pid:12345 /binary:filename',1);
+  log('NTHASH /ejectmod /pid:12345 /binary:filename',1);
+  log('NTHASH /injectcode /pid:12345 /binary:filename',1);
   log('NTHASH /injectcodehexa /pid:12345 /input:hexastring',1);
   //**************************************
-  log('NTHASH /download2file /input:url /binary:x:\folder\bin.dll',1);
+  log('NTHASH /download2file /input:url /binary:filename',1);
   log('NTHASH /download2hexa /input:url',1);
   //**************************************
   //log('NTHASH /enumprocwmi [/server:hostname]',1);
@@ -1536,6 +1537,22 @@ begin
        key:=copy(cmdline,p,512);
        key:=stringreplace(key,'/key:','',[rfReplaceAll, rfIgnoreCase]);
        delete(key,pos(' ',key),512);
+       end;
+  p:=pos('/old:',cmdline);
+  if p>0 then
+       begin
+       old:=copy(cmdline,p,1024);
+       old:=stringreplace(old,'/old:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(old,pos(' ',old),1024);
+       //log(old);
+       end;
+  p:=pos('/new:',cmdline);
+  if p>0 then
+       begin
+       new:=copy(cmdline,p,1024);
+       new:=stringreplace(new,'/new:','',[rfReplaceAll, rfIgnoreCase]);
+       delete(new,pos(' ',new),1024);
+       //log(old);
        end;
   p:=pos('/oldhash:',cmdline);
   if p>0 then
@@ -1806,10 +1823,10 @@ if p>0 then
   p:=pos('/base64encodefile',cmdline);
   if p>0 then
      begin
-     if input='' then exit;
+     if binary='' then exit;
      if console_output_type<>FILE_TYPE_PIPE then log('base64decodefile',1);
      //SetConsoleOutputCP(437  );
-     log(booltostr(EncodeFileBase64 (input)) ,1);
+     log(booltostr(EncodeFileBase64 (binary)) ,1);
      //SetConsoleOutputCP(consolecp);
      goto fin;
      end;
@@ -1844,10 +1861,10 @@ if p>0 then
   p:=pos('/base64decodefile',cmdline);
   if p>0 then
      begin
-     if input='' then exit;
+     if binary='' then exit;
      if console_output_type<>FILE_TYPE_PIPE then log('base64decodefile',1);
      //SetConsoleOutputCP(437  );
-     log(booltostr(DecodeFileBase64 (input)) ,1);
+     log(booltostr(DecodeFileBase64 (binary)) ,1);
      //SetConsoleOutputCP(consolecp);
      goto fin;
      end;
@@ -1859,6 +1876,16 @@ if p>0 then
      //SetConsoleOutputCP(437  );
      log(base64.DecodeStringBase64 (input) ,1);
      //SetConsoleOutputCP(consolecp);
+     goto fin;
+     end;
+  p:=pos('/replace',cmdline);
+  if p>0 then
+     begin
+     if input='' then exit;
+     if old='' then exit;
+     //if new='' then exit;
+     input:=StringReplace (input,old,new,[rfReplaceAll, rfIgnoreCase]);
+     log(input,1);
      goto fin;
      end;
   //************************************************************
