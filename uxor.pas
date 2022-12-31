@@ -12,6 +12,7 @@ function xorfile(filein,fileout:string):boolean;
 
 function xorbytes(buffer:pointer;size:integer):boolean;
 
+
 implementation
 
 function xorbytes(buffer:pointer;size:integer):boolean;

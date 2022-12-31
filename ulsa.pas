@@ -637,6 +637,7 @@ result:=extractlsakeys (pid,ivOffset,desOffset ,aesOffset,deskey,aeskey,iv);
 
 end;
 
+{
 function callback2(param:pointer=nil):dword;stdcall;
 var
   lpszProcess : PChar;
@@ -665,6 +666,7 @@ begin
      if h<>thandle(-1) then closehandle(h);
 end
 end; //function callback(param:thandle):dword;stdcall;
+}
 
 //dd lsasrv!LsaInitializeProtectedMemory
 //dd lsasrv!h3DesKey
