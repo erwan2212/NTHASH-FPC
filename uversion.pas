@@ -72,6 +72,7 @@ if osver.dwMajorVersion =10 then
         19042:result:=result+'-20H2';
         19043:result:=result+'-21H1';
         19044:result:=result+'-21H2';
+        19045:result:=result+'-22H2';
         //20180:result:=result+'-21H1';
         //win11
         22000:begin result[2]:='1'; result:=result+'-21H2';end;

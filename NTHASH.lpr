@@ -647,6 +647,13 @@ begin
         copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         patch_pos:=23;
         end;
+     if (copy(winver,1,4)='10.0') and (pos('-22H2',winver)>0)  then //win10     //not verified
+        begin
+        setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
+        xorbytes (@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
+        patch_pos:=23;
+        end;
 
      if (copy(winver,1,4)='11.0') and (pos('-21H2',winver)>0)  then //win11     //not verified
         begin
@@ -877,7 +884,8 @@ begin
                                           if (pos('-1903',winver)>0) or (pos('-1803',winver)>0) or (pos('-1703',winver)>0) or
                                              (pos('-1909',winver)>0) or (pos('-1809',winver)>0) or (pos('-1709',winver)>0) or
                                              (pos('-2004',winver)>0) or
-                                             (pos('-20H2',winver)>0) or (pos('-21H1',winver)>0) or (pos('-21H2',winver)>0)
+                                             (pos('-20H2',winver)>0) or (pos('-21H1',winver)>0) or (pos('-21H2',winver)>0) or
+                                             (pos('-22H2',winver)>0)
                                              then
                                              begin
                                              log('after windows10 post 1703 (incl.)');
@@ -2642,6 +2650,18 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
              //SetLength(output_,dw);
              //CopyMemory(@output_[0],ptr_,dw);
              //log('Blob:'+ByteToHexaString (output_),1);
+             if pos('/save',cmdline)>0 then
+                begin
+                //if we are dealing with a rsa key -> BCRYPT RSA Private Key BLOB
+                inhandle:=thandle(-1);
+                inhandle := CreateFile(pchar('decoded.bin'), GENERIC_READ or generic_write , FILE_SHARE_READ , nil, create_always, FILE_ATTRIBUTE_NORMAL, 0);
+                if inhandle<>thandle(-1) then
+                   begin
+                   if writefile(inhandle,ptr_^,dw,dw,nil)=true
+                       then log('writefile ok',1) else log('writefile not ok',1);
+                   closehandle(inhandle);
+                   end;
+                end;
              log('Blob:'+ByteToHexaString (ptr_,dw),1);
              if dw<64 then log('Blob:'+BytetoAnsiString (ptr_,dw),1);
              if dw>=64 then

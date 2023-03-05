@@ -790,7 +790,7 @@ begin
   offset:=0;
   //if blob=nil then debug:=1 else debug:=0;
   if blob<>nil then ZeroMemory(blob,sizeof(tdpapi_blob));
-    for i:=0 to 32 do
+    for i:=0 to 511 do //look for first 512 bytes...
         begin
           if CompareMem (@buffer[i],@marker[0],16) then begin offset:=i;break;end;
         end;

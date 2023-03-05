@@ -740,6 +740,7 @@ if lowercase(osarch) ='amd64' then
    if (pos('-1809',winver)>0) or (pos('-1903',winver)>0) or (pos('-1909',winver)>0)
       or (pos('-2004',winver)>0)
       or (pos('-20H2',winver)>0) or (pos('-21H1',winver)>0)
+      or (pos('-22H2',winver)>0)
       or (pos('-21H2',winver)>0) //win 11
       then //win10 1809+
       begin
@@ -1086,6 +1087,12 @@ result:=false;
       patch_pos:=11;
       end;
    if (pos('-21H2',winver)>0) {or (pos('-1909',winver)>0)} then //win10 & win11    //not verified
+      begin
+      setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
+      patch_pos:=11;
+      end;
+   if (pos('-22H2',winver)>0) {or (pos('-1909',winver)>0)} then //win10 & win11    //not verified
       begin
       setlength(pattern,sizeof(PTRN_WI64_1607_MasterKeyCacheList));
       copymemory(@pattern[0],@PTRN_WI64_1607_MasterKeyCacheList[0],sizeof(PTRN_WI64_1607_MasterKeyCacheList));
