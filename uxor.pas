@@ -8,14 +8,14 @@ uses
    sysutils,utils,windows;
 
 function xorfilev2(filein,fileout:string;encrypt:boolean=true):boolean;
-function xorfile(filein,fileout:string):boolean;
+function xorfile(filein,fileout:string;key:byte=255):boolean;
 
-function xorbytes(buffer:pointer;size:integer):boolean;
+function xorbytes(buffer:pointer;size:integer;key:byte=255):boolean;
 
 
 implementation
 
-function xorbytes(buffer:pointer;size:integer):boolean;
+function xorbytes(buffer:pointer;size:integer;key:byte=255):boolean;
 var
   c:dword;
   pIn:^byte;
@@ -26,7 +26,7 @@ begin
   pIn:=buffer;
   for c:=0 to size {length(buffer)} -1 do
     begin
-    pIn^:=pIn^ xor 255;  //too easy, virustotal can id the file...
+    pIn^:=pIn^ xor key;  //too easy, virustotal can id the file...
     inc(pIn);
     end;
 end;
@@ -79,7 +79,7 @@ begin
   log('done');
 end;
 
-function xorfile(filein,fileout:string):boolean;
+function xorfile(filein,fileout:string;key:byte=255):boolean;
 var
   dwread:dword=0;
   dwwrite:dword=0;
@@ -105,12 +105,15 @@ begin
   ReadFile(hFilein,buffer^,dwFileSize,dwRead,nil);
   if dwread=0 then break;
   //xor buffer here
+  xorbytes (buffer,dwread);
+  {
   pIn:=buffer;
   for c:=0 to dwread -1 do
     begin
     pIn^:=pIn^ xor 255;  //too easy, virustotal can id the file...
     inc(pIn);
     end;
+  }
   //
   //result:=WriteFile(hFileout, bufferIn^, dwread, dwwrite, nil);
   result:=WriteFile(hFileout, buffer^, dwread, dwwrite, nil);

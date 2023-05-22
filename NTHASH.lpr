@@ -1330,7 +1330,7 @@ begin
   log('NTHASH /base64decodefile /binary:filename',1);
   log('NTHASH /replace:string /old:string /new:string',1);
   log('NTHASH /xorfile /binary:filename',1);
-  log('NTHASH /xorbytes /input:hexastring',1);
+  log('NTHASH /xorbytes /input:hexastring [/key:hexastring]',1);
   //****************************************************
   log('NTHASH /dpapimk [/save] [/symbol]',1);  //will read mem
   log('NTHASH /cryptunprotectdata /binary:filename [/hexa]',1);
@@ -1605,15 +1605,17 @@ p:=pos('/xorbytes',cmdline);
     input:=StringReplace (input,'$','',[rfReplaceAll]);
     input:=StringReplace (input,' ','',[rfReplaceAll]);
     input_:=HexaStringToByte2 (input);
+    if key='' then key:='FF';
     //writeln('length(input_):'+inttostr(length(input_)));
-    if xorbytes(@input_[0],length(input_)) then log(ByteToHexaString (input_),1);
+    if xorbytes(@input_[0],length(input_),strtoint('$'+key)) then log(ByteToHexaString (input_),1);
     end;
 
 p:=pos('/xorfile',cmdline); //test in progress
   if p>0 then
     begin
     if binary='' then exit;
-    if xorfile(binary,ExtractFileName(binary)+'.xor' )=true
+    if key='' then key:='FF';
+    if xorfile(binary,ExtractFileName(binary)+'.xor',strtoint('$'+key) )=true
        then log('ok',1)
        else log('not ok',1);
 
@@ -2055,7 +2057,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
      if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
-     if dumpprocess2 (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
+     if dumpprocess3 (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
   p:=pos('/killproc',cmdline);  ////can be done with taskkill

