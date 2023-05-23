@@ -105,7 +105,7 @@ begin
   ReadFile(hFilein,buffer^,dwFileSize,dwRead,nil);
   if dwread=0 then break;
   //xor buffer here
-  xorbytes (buffer,dwread);
+  xorbytes (buffer,dwread,key);
   {
   pIn:=buffer;
   for c:=0 to dwread -1 do
