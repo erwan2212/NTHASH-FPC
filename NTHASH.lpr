@@ -606,6 +606,13 @@ begin
         copymemory(@pattern[0],@PTRN_WN1803_LogonSessionList[0],sizeof(PTRN_WN1803_LogonSessionList));
         patch_pos:=23;
         end;
+     if (pos('-1809',winver)>0)  then //win10
+        begin
+        setlength(pattern,sizeof(PTRN_WN1803_LogonSessionList));
+        xorbytes (@PTRN_WN1803_LogonSessionList[0],sizeof(PTRN_WN1803_LogonSessionList));
+        copymemory(@pattern[0],@PTRN_WN1803_LogonSessionList[0],sizeof(PTRN_WN1803_LogonSessionList));
+        patch_pos:=23;
+        end;
      if (pos('-1903',winver)>0)  then //win10
         begin
         setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
