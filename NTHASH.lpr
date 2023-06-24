@@ -2058,6 +2058,24 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
        _EnumMod(strtoint(pid),'');
        goto fin;
        end;
+  p:=pos('/dumpproc0',cmdline);
+  if p>0 then
+     begin
+     if TryStrToInt (input,_long ) then pid:=input;
+     if pid='' then exit;
+     if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
+     if dumpprocess0 (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
+     goto fin;
+     end;
+  p:=pos('/dumpproc2',cmdline);
+  if p>0 then
+     begin
+     if TryStrToInt (input,_long ) then pid:=input;
+     if pid='' then exit;
+     if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
+     if dumpprocess0 (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
+     goto fin;
+     end;
   p:=pos('/dumpproc',cmdline);
   if p>0 then
      begin

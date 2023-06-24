@@ -207,7 +207,7 @@ end;
 {$EXTERNALSYM MiniDumpWriteDump}
 
 //
-function dumpprocess(pid:dword):boolean;
+function dumpprocess0(pid:dword):boolean;
 function dumpprocess2(pid:dword):boolean;
 function dumpprocess3(pid:dword):boolean;
 
@@ -220,7 +220,7 @@ dumpBuffer:LPVOID;
 bytesRead:DWORD = 0;
 
 //the original...
-function dumpprocess(pid:dword):boolean;
+function dumpprocess0(pid:dword):boolean;
 var
   processHandle,hfile:thandle;
   //
@@ -243,7 +243,9 @@ if processHandle<>thandle(-1) then
    begin
    hFile := CreateFile(pchar(inttostr(pid)+'.dmp'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
    result := MiniDumpWriteDump(processHandle, pid, hfile, MiniDumpWithFullMemory, nil, nil, nil);
-   if result=false then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)));
+   if result=false
+      then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)))
+      else log(inttostr(pid)+'.dmp'+ ' written',1);
    closehandle(hfile);
    closehandle(processHandle );
    end
@@ -281,7 +283,9 @@ if processHandle<>thandle(-1) then
       hFile := CreateFile(pchar(inttostr(pid)+'.dmp'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
       MiniDumpWriteDump:=getProcAddress(lib,'MiniDumpWriteDump');
       result := MiniDumpWriteDump(clone, pid, hfile, MiniDumpWithFullMemory, nil, nil, nil);
-      if result=false then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)));
+      if result=false
+         then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)))
+         else log(inttostr(pid)+'.dmp'+ ' written',1);
       closehandle(hfile);
       end else log('NtCreateProcessEx failed');
    closehandle(processHandle );
@@ -387,8 +391,8 @@ if processHandle<>thandle(-1) then
       log('bytesRead:'+inttostr(bytesRead ));
       xorbytes(dumpbuffer,bytesread);
       hFile := CreateFile(pchar(inttostr(pid)+'.dmp.xor'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
-      log(inttostr(pid)+'.dmp.xor'+ ' written - key=FF',1);
       writefile(hfile,dumpBuffer^,bytesRead ,bytesRead,nil);
+      log(inttostr(pid)+'.dmp.xor'+ ' written - key=FF',1);
       closehandle(hfile);
       //
       heapfree(GetProcessHeap(),0,dumpbuffer);
