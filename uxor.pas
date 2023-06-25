@@ -10,12 +10,12 @@ uses
 function xorfilev2(filein,fileout:string;encrypt:boolean=true):boolean;
 function xorfile(filein,fileout:string;key:byte=255):boolean;
 
-function xorbytes(buffer:pointer;size:integer;key:byte=255):boolean;
+function xorbytes(buffer:pointer;size:dword;key:byte=255):boolean;
 
 
 implementation
 
-function xorbytes(buffer:pointer;size:integer;key:byte=255):boolean;
+function xorbytes(buffer:pointer;size:dword;key:byte=255):boolean;
 var
   c:dword;
   pIn:^byte;
