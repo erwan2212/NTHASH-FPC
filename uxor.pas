@@ -20,6 +20,7 @@ var
   c:dword;
   pIn:^byte;
 begin
+  result:=false;
   log('**** xorbytes ****');
   log('size:'+inttostr(size));
   //xor buffer here
@@ -29,6 +30,7 @@ begin
     pIn^:=pIn^ xor key;  //too easy, virustotal can id the file...
     inc(pIn);
     end;
+  result:=true;
 end;
 
 function xorfilev2(filein,fileout:string;encrypt:boolean=true):boolean;

@@ -1336,7 +1336,7 @@ begin
   log('NTHASH /base64decodehexa /input:base64string',1);
   log('NTHASH /base64decodefile /binary:filename',1);
   log('NTHASH /replace:string /old:string /new:string',1);
-  log('NTHASH /xorfile /binary:filename',1);
+  log('NTHASH /xorfile /binary:filename [/key:hexastring]',1);
   log('NTHASH /xorbytes /input:hexastring [/key:hexastring]',1);
   //****************************************************
   log('NTHASH /dpapimk [/save] [/symbol]',1);  //will read mem
