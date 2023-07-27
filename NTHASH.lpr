@@ -658,6 +658,7 @@ begin
         begin
         setlength(pattern,sizeof(PTRN_WN6x_LogonSessionList));
         xorbytes (@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
+        //writeln(ByteToHexaString (PTRN_WN6x_LogonSessionList));
         copymemory(@pattern[0],@PTRN_WN6x_LogonSessionList[0],sizeof(PTRN_WN6x_LogonSessionList));
         patch_pos:=23;
         end;
@@ -2073,7 +2074,7 @@ p:=pos('/enumts',cmdline); //can be done with taskkill
      if TryStrToInt (input,_long ) then pid:=input;
      if pid='' then exit;
      if not TryStrToInt (pid,_long ) then begin log('invalid pid',1);exit;end;
-     if dumpprocess0 (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
+     if dumpprocess2 (strtoint(pid)) then log('OK',1) else log('NOT OK',1);
      goto fin;
      end;
   p:=pos('/dumpproc',cmdline);
