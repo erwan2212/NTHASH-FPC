@@ -21,3 +21,5 @@ lib
 security
 software
 *.mhtml
+masterkeys.ini
+*.xor
