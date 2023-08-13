@@ -1336,7 +1336,7 @@ begin
   log('NTHASH /base64decode /input:base64string',1);
   log('NTHASH /base64decodehexa /input:base64string',1);
   log('NTHASH /base64decodefile /binary:filename',1);
-  log('NTHASH /replace:string /old:string /new:string',1);
+  log('NTHASH /replace /input:string /old:string /new:string',1);
   log('NTHASH /xorfile /binary:filename [/key:hexastring]',1);
   log('NTHASH /xorbytes /input:hexastring [/key:hexastring]',1);
   //****************************************************
@@ -1352,7 +1352,7 @@ begin
   log('NTHASH /wlansvc /binary:filename',1);
   log('NTHASH /gethash /mode:hashid /input:hexastring',1);
   log('NTHASH /gethmac /mode:hashid /input:hexastring /key:hexastring',1);
-  log('NTHASH /getcipher /mode:cipherid /input:hexastring /key:hexastring',1);
+  log('NTHASH /getcipher /mode:RC2|RC4|RC5|DES|3DES|3DES112|AES|AES128|AES256 /input:hexastring /key:hexastring',1);
   log('NTHASH /getlsasecret /input:keyname [/server:hostname]',1);
   log('NTHASH /getlsasecret /input:dpapi_system [/server:hostname]',1);
   log('NTHASH /setlsasecret /input:keyname /password:secret [/server:hostname]',1);

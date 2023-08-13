@@ -317,6 +317,8 @@ var
 begin
 result:=thandle(-1);
 
+//note : eventually rewrite in pure ntapi with RtlSetCurrentTransaction +ntcreatefile
+
 //************** lets create a transacted file
      log('**** createtransactedfile **** ');
      InitializeObjectAttributes(Attrib ,nil,0,0,nil);
